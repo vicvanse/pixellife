@@ -209,11 +209,10 @@ export function DailyOverview() {
       
       // Se não há mood mas há texto ou quickNotes, criar entrada sem mood (não forçar neutro)
       // Se há mood, usar o mood selecionado
-      // Sempre salvar o moodNumber atual se houver mood
-      // IMPORTANTE: Se mood é null, garantir que moodNumber também seja undefined/null
+      // IMPORTANTE: Passar null explicitamente quando não há moodNumber para limpar
       updateJournalEntry(selectedDate, { 
         mood: mood || undefined, // Não criar mood neutro automaticamente
-        moodNumber: mood !== null ? (currentMoodNumber !== null && currentMoodNumber !== undefined ? currentMoodNumber : undefined) : undefined,
+        moodNumber: mood !== null ? (currentMoodNumber !== null && currentMoodNumber !== undefined ? currentMoodNumber : null) : null,
         text, 
         quickNotes: filteredQuickNotes
       });
@@ -254,7 +253,7 @@ export function DailyOverview() {
           });
         updateJournalEntry(selectedDate, { 
           mood: mood || undefined, // Não criar mood neutro automaticamente
-          moodNumber: mood !== null ? (currentMoodNumber !== null ? currentMoodNumber : undefined) : undefined,
+          moodNumber: mood !== null ? (currentMoodNumber !== null ? currentMoodNumber : null) : null,
           text, 
           quickNotes: filteredQuickNotes
         });
@@ -304,7 +303,7 @@ export function DailyOverview() {
         });
       updateJournalEntry(selectedDate, { 
         mood: entryMood as Mood,
-        moodNumber: currentMoodNumber ?? (mood === null ? 5 : undefined),
+        moodNumber: currentMoodNumber !== null && currentMoodNumber !== undefined ? currentMoodNumber : null,
         text, 
         quickNotes: filteredQuickNotes
       });
@@ -354,12 +353,13 @@ export function DailyOverview() {
       setJournalDates(getAllDates().filter(date => date !== selectedDate));
     } else {
       // Preservar texto e quickNotes, apenas atualizar/remover o mood
-        updateJournalEntry(selectedDate, { 
-          mood: newMood || undefined,
-          moodNumber: newMood === null ? undefined : (currentMoodNumber !== null && currentMoodNumber !== undefined ? currentMoodNumber : undefined),
-          text: existingText, 
-          quickNotes: existingQuickNotes
-        });
+      // IMPORTANTE: Passar null explicitamente quando deselecionando para limpar o moodNumber
+      updateJournalEntry(selectedDate, { 
+        mood: newMood || undefined,
+        moodNumber: newMood === null ? null : (currentMoodNumber !== null && currentMoodNumber !== undefined ? currentMoodNumber : null),
+        text: existingText, 
+        quickNotes: existingQuickNotes
+      });
       setJournalDates(getAllDates());
     }
   };
@@ -386,9 +386,10 @@ export function DailyOverview() {
       setJournalDates(getAllDates().filter(date => date !== selectedDate));
     } else {
       // Preservar texto e quickNotes, apenas atualizar/remover o mood
+      // IMPORTANTE: Passar null explicitamente quando deselecionando para limpar o moodNumber
       updateJournalEntry(selectedDate, { 
         mood: newMood || undefined,
-        moodNumber: (num !== null && num !== undefined) ? num : undefined,
+        moodNumber: num !== null ? num : null, // Passar null explicitamente para deselecionar
         text: existingText, 
         quickNotes: existingQuickNotes
       });
@@ -548,7 +549,7 @@ export function DailyOverview() {
       // Salvar no journal, preservando IDs e times quando possível
       updateJournalEntry(selectedDate, {
         mood: mood as Mood,
-        moodNumber: currentMoodNumber ?? undefined,
+        moodNumber: currentMoodNumber !== null && currentMoodNumber !== undefined ? currentMoodNumber : null,
         text,
         quickNotes: updatedNotes.map(n => {
           // Tentar encontrar o quickNote correspondente no journal para preservar ID e time
@@ -581,7 +582,7 @@ export function DailyOverview() {
       // Atualizar no journal, preservando IDs e times quando possível
       updateJournalEntry(selectedDate, {
         mood: mood as Mood,
-        moodNumber: currentMoodNumber ?? undefined,
+        moodNumber: currentMoodNumber !== null && currentMoodNumber !== undefined ? currentMoodNumber : null,
         text,
         quickNotes: updatedNotes.map(n => {
           // Tentar encontrar o quickNote correspondente no journal para preservar ID e time

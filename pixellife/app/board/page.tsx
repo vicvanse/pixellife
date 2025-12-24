@@ -172,6 +172,7 @@ function BoardPageInner() {
   const [editingAccountMoneyValue, setEditingAccountMoneyValue] = useState<number>(0);
   const [activeFinanceTab, setActiveFinanceTab] = useState<'daily' | 'monthly' | 'reserve' | 'analysis'>('daily');
   const [isEditingMonthlyLimit, setIsEditingMonthlyLimit] = useState(false);
+  const [recurringEntriesUpdateKey, setRecurringEntriesUpdateKey] = useState(0);
   // Modais de Finanças
   const [isIncomeConfigModalOpen, setIsIncomeConfigModalOpen] = useState(false);
   const [isExpensePlanningModalOpen, setIsExpensePlanningModalOpen] = useState(false);
@@ -1211,6 +1212,9 @@ function BoardPageInner() {
                                 }}
                               >
                                 <div className="flex items-center gap-2 flex-1">
+                                      {item.frequency === 'recorrente' && (
+                                        <span className="text-xs font-pixel" style={{ color: '#9ca3af' }}>↻</span>
+                                      )}
                                       <span className="font-pixel" style={{ fontSize: '14px', color: '#666' }}>
                                     {item.value >= 0 ? '+' : '−'}
                                   </span>
@@ -2126,6 +2130,7 @@ function BoardPageInner() {
                     )}
 
                     {activeFinanceTab === 'analysis' && (() => {
+                      // Forçar atualização quando recurringEntriesUpdateKey mudar
                       const activeRecurring = getActiveRecurringEntries();
                       const today = new Date().toISOString().substring(0, 10);
                       const currentMonthStart = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1).toISOString().substring(0, 10);
@@ -2200,6 +2205,8 @@ function BoardPageInner() {
                                           onClick={() => {
                                             if (confirm(`Encerrar recorrência "${entry.description}" a partir de hoje? Isso não afetará registros passados.`)) {
                                               endRecurrence(entry.id, today);
+                                              // Forçar atualização da lista de recorrentes
+                                              setRecurringEntriesUpdateKey(prev => prev + 1);
                                               // Recarregar dados mensais
                                               const monthKey = formatMonthKey(selectedMonth);
                                               const desired = getDesiredMonthlyExpense(monthKey) || 0;
@@ -3162,7 +3169,7 @@ function BoardPageInner() {
                             <div className="flex-1">
                                   <div className="flex items-center gap-2">
                                     {item.frequency === 'recorrente' && (
-                                      <span className="text-base">🔁</span>
+                                      <span className="text-xs font-pixel" style={{ color: '#9ca3af' }}>↻</span>
                                     )}
                                     {item.installments && item.installments.total > 1 && (
                                       <span className="text-base">📆</span>
@@ -4167,6 +4174,8 @@ function BoardPageInner() {
                                     onClick={() => {
                                       if (confirm(`Encerrar recorrência "${entry.description}" a partir de hoje? Isso não afetará registros passados.`)) {
                                         endRecurrence(entry.id, today);
+                                        // Forçar atualização da lista de recorrentes
+                                        setRecurringEntriesUpdateKey(prev => prev + 1);
                                         // Recarregar dados mensais
                                         const monthKey = formatMonthKey(selectedMonth);
                                         const desired = getDesiredMonthlyExpense(monthKey) || 0;
