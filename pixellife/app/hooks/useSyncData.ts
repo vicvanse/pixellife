@@ -707,20 +707,41 @@ export function useSyncFinancialEntries() {
     // Função para carregar dados do Supabase (só se realmente mudou)
     const reloadFinancialEntries = async () => {
       try {
+        // Não recarregar se há um salvamento pendente (evitar sobrescrever dados locais)
+        if (saveTimeoutRef.current) {
+          console.log("⏸️ Salvamento pendente, pulando recarregamento para evitar conflito");
+          return;
+        }
+
         const { data, error } = await loadFromSupabase(user.id, "financial_entries");
         if (!error && data && Array.isArray(data)) {
           // Verificar se realmente mudou comparando hash
           const dataHash = JSON.stringify(data);
           const currentHash = JSON.stringify(exportFinancialEntriesData());
           
-          // Só atualizar se os dados forem diferentes
-          if (dataHash !== currentHash) {
-            console.log("📥 Financial entries recarregados do Supabase (dados atualizados)");
-            // Os dados já são importados para localStorage automaticamente pelo loadFromSupabase
-            // Forçar atualização da UI emitindo evento de storage
-            if (typeof window !== "undefined") {
-              window.dispatchEvent(new Event("storage"));
-              window.dispatchEvent(new CustomEvent("financial-entries-updated"));
+          // Só atualizar se os dados forem diferentes E se não houver salvamento pendente
+          if (dataHash !== currentHash && !saveTimeoutRef.current) {
+            // Verificar se os dados locais são mais recentes (comparar timestamps)
+            const localEntries = exportFinancialEntriesData();
+            const localLatest = localEntries.length > 0 
+              ? Math.max(...localEntries.map((e: any) => new Date(e.updatedAt || e.createdAt || 0).getTime()))
+              : 0;
+            const remoteLatest = data.length > 0
+              ? Math.max(...data.map((e: any) => new Date(e.updatedAt || e.createdAt || 0).getTime()))
+              : 0;
+
+            // Só sobrescrever se os dados remotos forem mais recentes
+            if (remoteLatest > localLatest) {
+              console.log("📥 Financial entries recarregados do Supabase (dados atualizados)");
+              // Os dados já são importados para localStorage automaticamente pelo loadFromSupabase
+              // Forçar atualização da UI emitindo evento de storage
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(new Event("storage"));
+                window.dispatchEvent(new CustomEvent("financial-entries-updated"));
+                window.dispatchEvent(new Event("pixel-life-storage-change"));
+              }
+            } else {
+              console.log("ℹ️ Dados locais são mais recentes, mantendo dados locais");
             }
           } else {
             console.log("ℹ️ Dados já estão sincronizados, pulando recarregamento");

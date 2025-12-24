@@ -160,6 +160,7 @@ export function importFinancialEntriesData(data: unknown[]): void {
       // Disparar evento para notificar componentes sobre mudanças
       window.dispatchEvent(new Event("storage"));
       window.dispatchEvent(new CustomEvent("financial-entries-updated"));
+      window.dispatchEvent(new Event("pixel-life-storage-change"));
     } else {
       console.warn("⚠️ Dados de financial entries não são um array, ignorando importação");
     }

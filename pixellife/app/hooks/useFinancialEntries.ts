@@ -34,15 +34,41 @@ export function useFinancialEntries() {
 
   // Carregar do localStorage
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setEntries(parsed);
+    const loadEntries = () => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setEntries(parsed);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar entradas financeiras:", error);
       }
-    } catch (error) {
-      console.error("Erro ao carregar entradas financeiras:", error);
-    }
+    };
+
+    // Carregar imediatamente
+    loadEntries();
+
+    // Escutar mudanças no storage (incluindo de outras abas ou sincronização)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY) {
+        loadEntries();
+      }
+    };
+
+    const handleCustomChange = () => {
+      loadEntries();
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("pixel-life-storage-change", handleCustomChange);
+    window.addEventListener("financial-entries-updated", handleCustomChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("pixel-life-storage-change", handleCustomChange);
+      window.removeEventListener("financial-entries-updated", handleCustomChange);
+    };
   }, []);
 
   // Salvar no localStorage
@@ -55,6 +81,7 @@ export function useFinancialEntries() {
       if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("storage"));
         window.dispatchEvent(new CustomEvent("financial-entries-updated"));
+        window.dispatchEvent(new Event("pixel-life-storage-change"));
       }
     } catch (error) {
       console.error("Erro ao salvar entradas financeiras:", error);
