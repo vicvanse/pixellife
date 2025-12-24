@@ -1,8 +1,9 @@
 # Ignorar tudo exceto a pasta pixellife
 *
 
-# Mas incluir a pasta pixellife
+# Mas incluir a pasta pixellife e todo seu conteúdo
 !pixellife/
+!pixellife/**
 
 # E também incluir este .gitignore
 !.gitignore
