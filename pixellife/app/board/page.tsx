@@ -1235,6 +1235,15 @@ function BoardPageInner() {
                                             // Se for do sistema antigo, usar removeDailyExpense
                                             if (dailyItems.find(d => d.id === item.id)) {
                                       removeDailyExpense(formatDateKey(selectedDate), item.id);
+                                      // Recarregar dados e recalcular monthlyRows
+                                      const dateKey = formatDateKey(selectedDate);
+                                      const items = getDailyExpenses(dateKey);
+                                      setDailyItems(items);
+                                      const monthKey = formatMonthKey(selectedMonth);
+                                      const desired = getDesiredMonthlyExpense(monthKey) || 0;
+                                      const reset = getResetDate(monthKey) || 1;
+                                      const rows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getEntriesForDate);
+                                      setMonthlyRows(rows);
                                             } else {
                                               // Se for do novo sistema
                                               const dateKey = formatDateKey(selectedDate);
@@ -4545,6 +4554,13 @@ function BoardPageInner() {
             setDailyItems(items);
             setIsAddExpenseModalOpen(false);
             
+            // Recalcular monthlyRows imediatamente após adicionar gasto
+            const monthKey = formatMonthKey(selectedMonth);
+            const desired = getDesiredMonthlyExpense(monthKey) || 0;
+            const reset = getResetDate(monthKey) || 1;
+            const rows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getEntriesForDate);
+            setMonthlyRows(rows);
+            
             // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
             const today = new Date();
             const todayKey = formatDateKey(today);
@@ -4985,6 +5001,13 @@ function BoardPageInner() {
             removeDailyExpense(dateKey, expenseId);
             const expenses = getExpensesByGoalId(selectedPossession.id);
             setSelectedExpenses(expenses);
+            
+            // Recalcular monthlyRows após remover gasto
+            const monthKey = formatMonthKey(selectedMonth);
+            const desired = getDesiredMonthlyExpense(monthKey) || 0;
+            const reset = getResetDate(monthKey) || 1;
+            const rows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getEntriesForDate);
+            setMonthlyRows(rows);
             
             // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
             const today = new Date();

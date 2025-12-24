@@ -95,6 +95,7 @@ function writeJSON<T>(key: string, value: T) {
     if (key.startsWith("pixel-life-expenses-v1:")) {
       window.dispatchEvent(new Event("storage"));
       window.dispatchEvent(new CustomEvent("expenses-updated"));
+      window.dispatchEvent(new Event("pixel-life-storage-change"));
     }
   } catch (error) {
     if (error instanceof DOMException && error.name === 'QuotaExceededError') {
