@@ -120,7 +120,7 @@ export function DailyOverview() {
         // IMPORTANTE: Se não há moodNumber salvo E não há mood, não definir número padrão
         // Só definir número padrão se houver mood mas não houver moodNumber
         if (entry.mood !== null && entry.mood !== undefined) {
-          setCurrentMoodNumber(entry.moodNumber !== undefined && entry.moodNumber !== null ? entry.moodNumber : undefined);
+          setCurrentMoodNumber(entry.moodNumber !== undefined && entry.moodNumber !== null ? entry.moodNumber : null);
         } else {
           setCurrentMoodNumber(null);
         }
