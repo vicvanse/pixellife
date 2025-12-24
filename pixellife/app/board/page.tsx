@@ -3575,9 +3575,9 @@ function BoardPageInner() {
                                 setMonthlyRows(rows);
                                 
                                 // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
-                                const accountMoney = getAccountMoney(todayKey);
+                                const savedAccountMoney = getAccountMoney(todayKey);
                                 const reserve = getCurrentReserve();
-                                updateAllProgressFromAccountMoney(accountMoney, reserve);
+                                updateAllProgressFromAccountMoney(savedAccountMoney, reserve);
                                 setTimeout(() => {
                                   setPossessions(getAllPossessions());
                                 }, 100);
