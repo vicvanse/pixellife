@@ -50,6 +50,12 @@ export function useFinancialEntries() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newEntries));
       setEntries(newEntries);
+      
+      // Emitir eventos para sincronização imediata
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("storage"));
+        window.dispatchEvent(new CustomEvent("financial-entries-updated"));
+      }
     } catch (error) {
       console.error("Erro ao salvar entradas financeiras:", error);
     }

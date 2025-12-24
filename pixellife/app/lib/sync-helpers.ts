@@ -123,5 +123,50 @@ export function importTreeData(data: { leisure: unknown; personal: unknown }): v
   }
 }
 
+/**
+ * Exporta todos os dados de financial entries do localStorage
+ * Financial entries são salvos em uma única chave como array
+ */
+export function exportFinancialEntriesData(): unknown[] {
+  if (typeof window === "undefined") return [];
+  
+  const storageKey = "pixel-life-financial-entries-v1";
+  
+  try {
+    const value = window.localStorage.getItem(storageKey);
+    if (value) {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+  } catch (error) {
+    console.error(`Erro ao exportar financial entries:`, error);
+  }
+  
+  return [];
+}
+
+/**
+ * Importa dados de financial entries para o localStorage
+ */
+export function importFinancialEntriesData(data: unknown[]): void {
+  if (typeof window === "undefined") return;
+  
+  const storageKey = "pixel-life-financial-entries-v1";
+  
+  try {
+    if (Array.isArray(data)) {
+      window.localStorage.setItem(storageKey, JSON.stringify(data));
+      
+      // Disparar evento para notificar componentes sobre mudanças
+      window.dispatchEvent(new Event("storage"));
+      window.dispatchEvent(new CustomEvent("financial-entries-updated"));
+    } else {
+      console.warn("⚠️ Dados de financial entries não são um array, ignorando importação");
+    }
+  } catch (error) {
+    console.error(`Erro ao importar financial entries:`, error);
+  }
+}
+
 
 

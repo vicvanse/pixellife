@@ -13,7 +13,7 @@ function RegisterPageContent() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.push("/display");
+      router.push("/board");
     }
   }, [user, loading, router]);
 

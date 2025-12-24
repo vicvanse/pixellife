@@ -56,6 +56,7 @@ import { GuidesSection } from '../components/guides/GuidesSection';
 import { MapasSection } from '../components/mapas/MapasSection';
 import { useUI } from '../context/UIContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useSyncFinancialEntries } from '../hooks/useSyncData';
 
 type BoardSection = 'display' | 'habits' | 'journal' | 'finances' | 'goals' | 'mapas' | 'biography' | 'feedback' | 'guides' | 'achievements';
 
@@ -163,6 +164,10 @@ function BoardPageInner() {
     getCategoryAnalysis,
     updateEntry: updateFinancialEntry,
   } = useFinancialEntries();
+  
+  // Sincronizar financial entries com Supabase
+  useSyncFinancialEntries();
+  
   const [editingAccountMoneyDate, setEditingAccountMoneyDate] = useState<Date | null>(null);
   const [editingAccountMoneyValue, setEditingAccountMoneyValue] = useState<number>(0);
   const [activeFinanceTab, setActiveFinanceTab] = useState<'daily' | 'monthly' | 'reserve' | 'analysis'>('daily');
@@ -451,6 +456,16 @@ function BoardPageInner() {
       const reset = getResetDate(monthKey) || 1;
       const rows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getEntriesForDate);
       setMonthlyRows(rows);
+      
+      // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
+      const today = new Date();
+      const todayKey = formatDateKey(today);
+      const accountMoney = getAccountMoney(todayKey);
+      const reserve = getCurrentReserve();
+      updateAllProgressFromAccountMoney(accountMoney, reserve);
+      setTimeout(() => {
+        setPossessions(getAllPossessions());
+      }, 100);
     };
 
     window.addEventListener('pixel-life-storage-change', handleStorageChange);
@@ -458,7 +473,7 @@ function BoardPageInner() {
     return () => {
       window.removeEventListener('pixel-life-storage-change', handleStorageChange);
     };
-  }, [selectedMonth, formatMonthKey, getDesiredMonthlyExpense, getResetDate, calculateMonthlyData, getEntriesForDate]);
+  }, [selectedMonth, formatMonthKey, getDesiredMonthlyExpense, getResetDate, calculateMonthlyData, getEntriesForDate, formatDateKey, getAccountMoney, getCurrentReserve, updateAllProgressFromAccountMoney, getAllPossessions]);
 
 
   // Carregar todas as movimentações de reserva do mês
@@ -1242,6 +1257,16 @@ function BoardPageInner() {
                                               const rows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getEntriesForDate);
                                               setMonthlyRows(rows);
                                             }
+                                            
+                                            // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
+                                            const today = new Date();
+                                            const todayKey = formatDateKey(today);
+                                            const accountMoney = getAccountMoney(todayKey);
+                                            const reserve = getCurrentReserve();
+                                            updateAllProgressFromAccountMoney(accountMoney, reserve);
+                                            setTimeout(() => {
+                                              setPossessions(getAllPossessions());
+                                            }, 100);
                                           }
                                         }}
                                         className="text-gray-400 hover:text-gray-600 ml-2"
@@ -1578,6 +1603,14 @@ function BoardPageInner() {
                                       const reset = getResetDate(monthKey) || 1;
                                       const rows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getEntriesForDate);
                                       setMonthlyRows(rows);
+                                      
+                                      // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
+                                      const accountMoney = getAccountMoney(todayKey);
+                                      const reserve = getCurrentReserve();
+                                      updateAllProgressFromAccountMoney(accountMoney, reserve);
+                                      setTimeout(() => {
+                                        setPossessions(getAllPossessions());
+                                      }, 100);
                                       
                                       if (typeof window !== "undefined") {
                                         window.dispatchEvent(new Event("pixel-life-storage-change"));
@@ -2004,6 +2037,16 @@ function BoardPageInner() {
                                           });
                                           
                                           setMonthlyReserveItems(allReserveItems);
+                                          
+                                          // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
+                                          const today = new Date();
+                                          const todayKey = formatDateKey(today);
+                                          const accountMoney = getAccountMoney(todayKey);
+                                          const reserve = getCurrentReserve();
+                                          updateAllProgressFromAccountMoney(accountMoney, reserve);
+                                          setTimeout(() => {
+                                            setPossessions(getAllPossessions());
+                                          }, 100);
                                         },
                                       });
                                     }}
@@ -3153,6 +3196,16 @@ function BoardPageInner() {
                                       const reset = getResetDate(monthKey) || 1;
                                       const rows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getEntriesForDate);
                                       setMonthlyRows(rows);
+                                      
+                                      // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
+                                      const today = new Date();
+                                      const todayKey = formatDateKey(today);
+                                      const accountMoney = getAccountMoney(todayKey);
+                                      const reserve = getCurrentReserve();
+                                      updateAllProgressFromAccountMoney(accountMoney, reserve);
+                                      setTimeout(() => {
+                                        setPossessions(getAllPossessions());
+                                      }, 100);
                               }
                             }}
                             className="ml-2 text-gray-400 hover:text-gray-600"
@@ -3520,6 +3573,14 @@ function BoardPageInner() {
                                 // Recalcular mês atual
                                 const rows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getEntriesForDate);
                                 setMonthlyRows(rows);
+                                
+                                // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
+                                const accountMoney = getAccountMoney(todayKey);
+                                const reserve = getCurrentReserve();
+                                updateAllProgressFromAccountMoney(accountMoney, reserve);
+                                setTimeout(() => {
+                                  setPossessions(getAllPossessions());
+                                }, 100);
                                 
                                 // Disparar evento para atualizar Display e outros componentes
                                 if (typeof window !== "undefined") {
@@ -3910,6 +3971,16 @@ function BoardPageInner() {
                                     });
                                     
                                     setMonthlyReserveItems(allReserveItems);
+                                    
+                                    // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
+                                    const today = new Date();
+                                    const todayKey = formatDateKey(today);
+                                    const accountMoney = getAccountMoney(todayKey);
+                                    const reserve = getCurrentReserve();
+                                    updateAllProgressFromAccountMoney(accountMoney, reserve);
+                                    setTimeout(() => {
+                                      setPossessions(getAllPossessions());
+                                    }, 100);
                                   },
                                 });
                               }}
@@ -4473,6 +4544,16 @@ function BoardPageInner() {
             const items = getDailyExpenses(formatDateKey(selectedDate));
             setDailyItems(items);
             setIsAddExpenseModalOpen(false);
+            
+            // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
+            const today = new Date();
+            const todayKey = formatDateKey(today);
+            const accountMoney = getAccountMoney(todayKey);
+            const reserve = getCurrentReserve();
+            updateAllProgressFromAccountMoney(accountMoney, reserve);
+            setTimeout(() => {
+              setPossessions(getAllPossessions());
+            }, 100);
           }}
         />
       )}
@@ -4496,6 +4577,17 @@ function BoardPageInner() {
               const reset = getResetDate(monthKey) || 1;
               const rows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getEntriesForDate);
               setMonthlyRows(rows);
+              
+              // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
+              const today = new Date();
+              const todayKey = formatDateKey(today);
+              const accountMoney = getAccountMoney(todayKey);
+              const reserve = getCurrentReserve();
+              updateAllProgressFromAccountMoney(accountMoney, reserve);
+              setTimeout(() => {
+                setPossessions(getAllPossessions());
+              }, 100);
+              
               // Disparar evento para atualizar outros componentes
               if (typeof window !== "undefined") {
                 window.dispatchEvent(new Event("pixel-life-storage-change"));
@@ -4735,6 +4827,16 @@ function BoardPageInner() {
           setDailyItems(items);
           
           setIsCSVImporterOpen(false);
+          
+          // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
+          const today = new Date();
+          const todayKey = formatDateKey(today);
+          const accountMoney = getAccountMoney(todayKey);
+          const reserve = getCurrentReserve();
+          updateAllProgressFromAccountMoney(accountMoney, reserve);
+          setTimeout(() => {
+            setPossessions(getAllPossessions());
+          }, 100);
         }}
       />
 
@@ -4769,6 +4871,16 @@ function BoardPageInner() {
             
             setMonthlyReserveItems(allReserveItems);
             setIsAddReserveModalOpen(false);
+            
+            // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
+            const today = new Date();
+            const todayKey = formatDateKey(today);
+            const accountMoney = getAccountMoney(todayKey);
+            const reserve = getCurrentReserve();
+            updateAllProgressFromAccountMoney(accountMoney, reserve);
+            setTimeout(() => {
+              setPossessions(getAllPossessions());
+            }, 100);
           }}
         />
       )}
@@ -4789,6 +4901,16 @@ function BoardPageInner() {
             const reset = getResetDate(monthKey) || 1;
             const rows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getEntriesForDate);
             setMonthlyRows(rows);
+            
+            // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
+            const today = new Date();
+            const todayKey = formatDateKey(today);
+            const accountMoney = getAccountMoney(todayKey);
+            const reserve = getCurrentReserve();
+            updateAllProgressFromAccountMoney(accountMoney, reserve);
+            setTimeout(() => {
+              setPossessions(getAllPossessions());
+            }, 100);
             
             // Disparar evento para atualizar Display e outros componentes
             if (typeof window !== "undefined") {
@@ -4863,6 +4985,16 @@ function BoardPageInner() {
             removeDailyExpense(dateKey, expenseId);
             const expenses = getExpensesByGoalId(selectedPossession.id);
             setSelectedExpenses(expenses);
+            
+            // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
+            const today = new Date();
+            const todayKey = formatDateKey(today);
+            const accountMoney = getAccountMoney(todayKey);
+            const reserve = getCurrentReserve();
+            updateAllProgressFromAccountMoney(accountMoney, reserve);
+            setTimeout(() => {
+              setPossessions(getAllPossessions());
+            }, 100);
           }}
         />
       )}

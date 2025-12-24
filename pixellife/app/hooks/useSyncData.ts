@@ -6,7 +6,7 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { saveToSupabase, loadFromSupabase, testSupabaseConnection } from "../lib/supabase-sync";
-import { exportExpensesData, exportTreeData } from "../lib/sync-helpers";
+import { exportExpensesData, exportTreeData, exportFinancialEntriesData, importFinancialEntriesData } from "../lib/sync-helpers";
 import { withRetry } from "../lib/retry";
 import { useToastContext } from "../context/ToastContext";
 
@@ -86,6 +86,14 @@ export function useSyncData() {
           console.log("✅ Expenses carregados");
         } else if (expensesError && expensesError.code !== "PGRST116") {
           console.warn("⚠️ Erro ao carregar expenses:", expensesError);
+        }
+
+        // Carregar financial_entries
+        const { data: financialEntriesData, error: financialEntriesError } = await loadFromSupabase(user.id, "financial_entries");
+        if (!financialEntriesError && financialEntriesData && Array.isArray(financialEntriesData) && financialEntriesData.length > 0) {
+          console.log("✅ Financial entries carregados:", financialEntriesData.length);
+        } else if (financialEntriesError && financialEntriesError.code !== "PGRST116") {
+          console.warn("⚠️ Erro ao carregar financial_entries:", financialEntriesError);
         }
 
         // Carregar possessions
@@ -232,48 +240,76 @@ export function useSyncExpenses() {
       }
     };
 
-    // Carregar dados do Supabase a cada 30 segundos
+    // Função para salvar dados (com debounce)
+    const handleSave = () => {
+      const currentData = JSON.stringify(exportExpensesData());
+      if (currentData === lastDataRef.current) return; // Não mudou, não fazer nada
+      
+      lastDataRef.current = currentData;
+
+      // Limpar timeout anterior
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+
+      // Salvar após 500ms de inatividade (debounce reduzido para resposta mais rápida)
+      saveTimeoutRef.current = setTimeout(async () => {
+        console.log("💾 Salvando expenses no Supabase...");
+        try {
+          await withRetry(
+            async () => {
+              const { error } = await saveToSupabase(user.id, "expenses", exportExpensesData());
+              if (error) throw error;
+            },
+            {
+              maxRetries: 3,
+              initialDelay: 1000,
+              onRetry: (attempt) => {
+                console.warn(`⚠️ Tentativa ${attempt} de salvamento falhou, tentando novamente...`);
+              },
+            }
+          );
+          lastSyncTimeRef.current = Date.now();
+          console.log("✅ Expenses salvos com sucesso");
+        } catch (err) {
+          console.error("❌ Erro ao salvar expenses após múltiplas tentativas:", err);
+          showToast("Erro ao salvar dados. Verifique sua conexão.", "error");
+        }
+      }, 500);
+    };
+
+    // Escutar eventos de mudança (abordagem híbrida)
+    const handleStorageChange = (e: StorageEvent) => {
+      // Evento de storage disparado por outras abas ou quando localStorage muda
+      if (e.key && e.key.startsWith("pixel-life-expenses-v1:")) {
+        console.log("🔄 Mudança em expenses detectada via storage event (outra aba), agendando salvamento...");
+        handleSave();
+      } else if (!e.key) {
+        // Evento disparado sem key específica (mudança geral)
+        handleSave();
+      }
+    };
+
+    const handleCustomStorageChange = () => {
+      // Evento customizado disparado quando há mudança na mesma aba
+      console.log("🔄 Mudança em expenses detectada via custom event, agendando salvamento...");
+      handleSave();
+    };
+
+    // Adicionar listeners de eventos
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("pixel-life-storage-change", handleCustomStorageChange);
+    window.addEventListener("expenses-updated", handleCustomStorageChange);
+
+    // Carregar dados do Supabase a cada 30 segundos (polling apenas para carregar mudanças remotas)
     const loadInterval = setInterval(() => {
       reloadExpenses();
     }, 30000);
 
-    // Verificar mudanças no localStorage a cada 3 segundos
+    // Polling como fallback (verificar mudanças a cada 5 segundos - menos frequente já que eventos são primários)
     const saveInterval = setInterval(() => {
-      const currentData = JSON.stringify(exportExpensesData());
-      if (currentData !== lastDataRef.current) {
-        lastDataRef.current = currentData;
-
-        // Limpar timeout anterior
-        if (saveTimeoutRef.current) {
-          clearTimeout(saveTimeoutRef.current);
-        }
-
-        // Salvar após 2 segundos de inatividade (com retry)
-        saveTimeoutRef.current = setTimeout(async () => {
-          console.log("💾 Salvando expenses no Supabase...");
-          try {
-            await withRetry(
-              async () => {
-                const { error } = await saveToSupabase(user.id, "expenses", exportExpensesData());
-                if (error) throw error;
-              },
-              {
-                maxRetries: 3,
-                initialDelay: 1000,
-                onRetry: (attempt) => {
-                  console.warn(`⚠️ Tentativa ${attempt} de salvamento falhou, tentando novamente...`);
-                },
-              }
-            );
-            lastSyncTimeRef.current = Date.now();
-            console.log("✅ Expenses salvos com sucesso");
-          } catch (err) {
-            console.error("❌ Erro ao salvar expenses após múltiplas tentativas:", err);
-            showToast("Erro ao salvar dados. Verifique sua conexão.", "error");
-          }
-        }, 2000);
-      }
-    }, 3000);
+      handleSave();
+    }, 5000);
 
     // Carregar dados imediatamente ao montar
     reloadExpenses();
@@ -281,6 +317,9 @@ export function useSyncExpenses() {
     return () => {
       clearInterval(loadInterval);
       clearInterval(saveInterval);
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("pixel-life-storage-change", handleCustomStorageChange);
+      window.removeEventListener("expenses-updated", handleCustomStorageChange);
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
@@ -645,6 +684,135 @@ export function useSyncCosmetics() {
       clearInterval(interval);
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [user?.id]);
+}
+
+/**
+ * Hook para monitorar mudanças em financial entries e sincronizar
+ */
+export function useSyncFinancialEntries() {
+  const { user } = useAuth();
+  const { showToast } = useToastContext();
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastDataRef = useRef<string>("");
+  const lastSyncTimeRef = useRef<number>(0);
+  const lastRemoteUpdateRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Função para carregar dados do Supabase (só se realmente mudou)
+    const reloadFinancialEntries = async () => {
+      try {
+        const { data, error } = await loadFromSupabase(user.id, "financial_entries");
+        if (!error && data && Array.isArray(data)) {
+          // Verificar se realmente mudou comparando hash
+          const dataHash = JSON.stringify(data);
+          const currentHash = JSON.stringify(exportFinancialEntriesData());
+          
+          // Só atualizar se os dados forem diferentes
+          if (dataHash !== currentHash) {
+            console.log("📥 Financial entries recarregados do Supabase (dados atualizados)");
+            // Os dados já são importados para localStorage automaticamente pelo loadFromSupabase
+            // Forçar atualização da UI emitindo evento de storage
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new Event("storage"));
+              window.dispatchEvent(new CustomEvent("financial-entries-updated"));
+            }
+          } else {
+            console.log("ℹ️ Dados já estão sincronizados, pulando recarregamento");
+          }
+        }
+      } catch (err) {
+        console.error("❌ Erro ao recarregar financial entries:", err);
+      }
+    };
+
+    // Função para salvar dados (com debounce)
+    const handleSave = () => {
+      const currentData = JSON.stringify(exportFinancialEntriesData());
+      if (currentData === lastDataRef.current) return; // Não mudou, não fazer nada
+      
+      lastDataRef.current = currentData;
+
+      // Limpar timeout anterior
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+
+      // Salvar após 500ms de inatividade (debounce reduzido para resposta mais rápida)
+      saveTimeoutRef.current = setTimeout(async () => {
+        console.log("💾 Salvando financial entries no Supabase...");
+        try {
+          await withRetry(
+            async () => {
+              const { error } = await saveToSupabase(user.id, "financial_entries", exportFinancialEntriesData());
+              if (error) throw error;
+            },
+            {
+              maxRetries: 3,
+              initialDelay: 1000,
+              onRetry: (attempt) => {
+                console.warn(`⚠️ Tentativa ${attempt} de salvamento falhou, tentando novamente...`);
+              },
+            }
+          );
+          lastSyncTimeRef.current = Date.now();
+          console.log("✅ Financial entries salvos com sucesso");
+        } catch (err) {
+          console.error("❌ Erro ao salvar financial entries após múltiplas tentativas:", err);
+          showToast("Erro ao salvar dados. Verifique sua conexão.", "error");
+        }
+      }, 500);
+    };
+
+    // Escutar eventos de mudança (abordagem híbrida)
+    const handleStorageChange = (e: StorageEvent) => {
+      // Evento de storage disparado por outras abas ou quando localStorage muda
+      if (e.key === "pixel-life-financial-entries-v1" || !e.key) {
+        console.log("🔄 Mudança em financial entries detectada via storage event (outra aba), agendando salvamento...");
+        handleSave();
+      }
+    };
+
+    const handleCustomStorageChange = () => {
+      // Evento customizado disparado quando há mudança na mesma aba
+      console.log("🔄 Mudança em financial entries detectada via custom event, agendando salvamento...");
+      handleSave();
+    };
+
+    // Adicionar listeners de eventos
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("pixel-life-storage-change", handleCustomStorageChange);
+    window.addEventListener("financial-entries-updated", handleCustomStorageChange);
+
+    // Carregar dados do Supabase a cada 30 segundos (polling apenas para carregar mudanças remotas)
+    const loadInterval = setInterval(() => {
+      reloadFinancialEntries();
+    }, 30000);
+
+    // Polling como fallback (verificar mudanças a cada 5 segundos - menos frequente já que eventos são primários)
+    const saveInterval = setInterval(() => {
+      handleSave();
+    }, 5000);
+
+    // Carregar dados imediatamente ao montar
+    reloadFinancialEntries();
+
+    return () => {
+      clearInterval(loadInterval);
+      clearInterval(saveInterval);
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("pixel-life-storage-change", handleCustomStorageChange);
+      window.removeEventListener("financial-entries-updated", handleCustomStorageChange);
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
       }
     };
   }, [user?.id]);

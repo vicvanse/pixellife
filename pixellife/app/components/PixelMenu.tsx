@@ -441,42 +441,6 @@ export default function PixelMenu({
             )}
           </div>
           <span className="text-sm font-pixel font-bold" style={{ color: mode === 'board' ? '#111' : '#000000' }}>PIXELLIFE</span>
-          
-          {/* Toggle de modo de visualização (apenas no modo board) */}
-          {mode === 'board' && (
-            <div className="flex items-center gap-2 ml-4">
-              <span className="text-xs font-pixel" style={{ color: '#666' }}>
-                {viewMode === 'continuous' ? 'Visão contínua' : 'Visão focada'}
-              </span>
-              <button
-                onClick={() => {
-                  toggleViewMode();
-                  // Quando muda para visão focada, sempre direcionar para display
-                  if (viewMode === 'continuous') {
-                    setTimeout(() => {
-                      setActiveSection('display');
-                      router.push('/board#display');
-                      if (typeof window !== 'undefined') {
-                        window.dispatchEvent(new CustomEvent('boardSectionChange', { detail: { section: 'display' } }));
-                      }
-                    }, 100);
-                  }
-                }}
-                className="relative w-12 h-6 rounded-full transition-colors touch-manipulation"
-                style={{
-                  backgroundColor: viewMode === 'continuous' ? '#4d82ff' : '#d0d0d0',
-                }}
-                aria-label={viewMode === 'continuous' ? 'Alternar para visão focada' : 'Alternar para visão contínua'}
-              >
-                <div
-                  className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform"
-                  style={{
-                    transform: viewMode === 'continuous' ? 'translateX(0)' : 'translateX(24px)',
-                  }}
-                />
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Navegação horizontal no centro */}
@@ -749,6 +713,42 @@ export default function PixelMenu({
           )}
 
         </div>
+
+        {/* Toggle de modo de visualização à direita (apenas no modo board) */}
+        {mode === 'board' && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-pixel" style={{ color: '#666' }}>
+              {viewMode === 'continuous' ? 'Visão contínua' : 'Visão focada'}
+            </span>
+            <button
+              onClick={() => {
+                toggleViewMode();
+                // Quando muda para visão focada, sempre direcionar para display
+                if (viewMode === 'continuous') {
+                  setTimeout(() => {
+                    setActiveSection('display');
+                    router.push('/board#display');
+                    if (typeof window !== 'undefined') {
+                      window.dispatchEvent(new CustomEvent('boardSectionChange', { detail: { section: 'display' } }));
+                    }
+                  }, 100);
+                }
+              }}
+              className="relative w-12 h-6 rounded-full transition-colors touch-manipulation"
+              style={{
+                backgroundColor: viewMode === 'continuous' ? '#4d82ff' : '#d0d0d0',
+              }}
+              aria-label={viewMode === 'continuous' ? 'Alternar para visão focada' : 'Alternar para visão contínua'}
+            >
+              <div
+                className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform"
+                style={{
+                  transform: viewMode === 'continuous' ? 'translateX(0)' : 'translateX(24px)',
+                }}
+              />
+            </button>
+          </div>
+        )}
       </nav>
     </>
   );

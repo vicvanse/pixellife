@@ -325,7 +325,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Toast removido - não mostrar mensagem de login automático
-        router.push("/display");
+        router.push("/board");
       }
 
       return { error: null };
@@ -438,7 +438,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else if (data.session) {
         // Login automático após registro
         // Toast removido - não mostrar mensagem de registro automático
-        router.push("/display");
+        router.push("/board");
       }
 
       return { error: null };

@@ -19,7 +19,7 @@ function CallbackContent() {
         const code = searchParams.get("code");
         const error = searchParams.get("error");
         const errorDescription = searchParams.get("error_description");
-        const next = searchParams.get("next") || "/display";
+        const next = searchParams.get("next") || "/board";
 
         if (error) {
           console.error("❌ Erro no callback:", error, errorDescription);

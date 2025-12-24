@@ -90,6 +90,12 @@ function writeJSON<T>(key: string, value: T) {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
+    
+    // Emitir eventos para sincronização imediata se for uma chave de expenses
+    if (key.startsWith("pixel-life-expenses-v1:")) {
+      window.dispatchEvent(new Event("storage"));
+      window.dispatchEvent(new CustomEvent("expenses-updated"));
+    }
   } catch (error) {
     if (error instanceof DOMException && error.name === 'QuotaExceededError') {
       console.warn("⚠️ localStorage cheio! Limpando dados antigos...");

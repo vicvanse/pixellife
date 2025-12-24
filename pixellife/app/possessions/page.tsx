@@ -76,6 +76,24 @@ export default function PossessionsPage() {
     };
 
     loadPossessions();
+    
+    // Listener para atualizar objetivos quando há mudanças no storage (movimentações financeiras)
+    const handleStorageChange = () => {
+      const today = new Date();
+      const todayKey = formatDateKey(today);
+      const accountMoney = getAccountMoney(todayKey);
+      const reserve = getCurrentReserve();
+      updateAllProgressFromAccountMoney(accountMoney, reserve);
+      setTimeout(() => {
+        setPossessions(getAllPossessions());
+      }, 100);
+    };
+
+    window.addEventListener('pixel-life-storage-change', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('pixel-life-storage-change', handleStorageChange);
+    };
   }, [getAllPossessions, formatDateKey, getAccountMoney, getCurrentReserve, updateAllProgressFromAccountMoney]);
 
   const handleCardClick = (possession: AssetGoal) => {
