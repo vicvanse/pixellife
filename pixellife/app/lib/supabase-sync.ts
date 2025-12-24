@@ -536,9 +536,17 @@ export async function testSupabaseConnection(userId: string): Promise<{ success:
       });
 
     if (insertError) {
-      console.error("❌ Erro ao inserir teste:", insertError);
+      // Não logar erro se for problema de RLS ou tabela não existe (configuração esperada)
+      if (insertError.code === 'PGRST116' || insertError.message.includes('does not exist') || insertError.message.includes('permission denied')) {
+        console.warn("⚠️ Supabase não configurado ou sem permissão. Verifique SUPABASE_DATABASE_SETUP.md");
+      } else {
+        console.error("❌ Erro ao inserir teste:", insertError);
+      }
       return { success: false, error: insertError.message };
     }
+
+    // Aguardar um pouco para garantir que o registro foi propagado
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Tentar ler o registro de teste
     const { data, error: selectError } = await supabase
@@ -549,12 +557,19 @@ export async function testSupabaseConnection(userId: string): Promise<{ success:
       .maybeSingle();
 
     if (selectError) {
-      console.error("❌ Erro ao ler teste:", selectError);
+      // Não logar erro se for problema de RLS ou tabela não existe
+      if (selectError.code === 'PGRST116' || selectError.message.includes('does not exist') || selectError.message.includes('permission denied')) {
+        console.warn("⚠️ Supabase não configurado ou sem permissão. Verifique SUPABASE_DATABASE_SETUP.md");
+      } else {
+        console.error("❌ Erro ao ler teste:", selectError);
+      }
       return { success: false, error: selectError.message };
     }
 
     if (!data) {
-      console.warn("⚠️ Registro de teste não encontrado após inserção");
+      // Não logar warning se for problema de configuração esperada
+      // (já foi tratado acima no insertError)
+      console.warn("⚠️ Registro de teste não encontrado após inserção (pode ser delay de propagação ou problema de RLS)");
       return { success: false, error: "Registro de teste não encontrado" };
     }
 

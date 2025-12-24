@@ -1194,15 +1194,15 @@ function BoardPageInner() {
                                   cursor: 'pointer',
                                 }}
                                     onDoubleClick={() => {
-                                      // Editar entrada
-                                      const entry = financialEntries.find(e => e.id === item.id);
-                                      if (entry) {
-                                        // Abrir modal de edição
-                                        setEditingFinancialEntry(entry);
-                                        setIsAddFinancialEntryModalOpen(true);
-                                      } else {
-                                        // Se for do sistema antigo, não há edição ainda
-                                        alert('Edição de entradas do sistema antigo ainda não implementada');
+                                      // Editar entrada (double-click também funciona)
+                                      const isLegacy = dailyItems.find(d => d.id === item.id);
+                                      if (!isLegacy) {
+                                        // Sistema novo: buscar e editar
+                                        const entry = financialEntries.find(e => e.id === item.id);
+                                        if (entry) {
+                                          setEditingFinancialEntry(entry);
+                                          setIsAddFinancialEntryModalOpen(true);
+                                        }
                                       }
                                     }}
                                     onClick={(e) => {
@@ -1228,65 +1228,102 @@ function BoardPageInner() {
                                   >
                                     R$ {Math.abs(item.value).toFixed(2).replace('.', ',')}
                                   </span>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (confirm(`Remover "${item.description}"?`)) {
-                                            // Se for do sistema antigo, usar removeDailyExpense
-                                            if (dailyItems.find(d => d.id === item.id)) {
-                                      removeDailyExpense(formatDateKey(selectedDate), item.id);
-                                      // Recarregar dados e recalcular monthlyRows após um pequeno delay
-                                      setTimeout(() => {
-                                        const dateKey = formatDateKey(selectedDate);
-                                        const items = getDailyExpenses(dateKey);
-                                        setDailyItems(items);
-                                        const monthKey = formatMonthKey(selectedMonth);
-                                        const desired = getDesiredMonthlyExpense(monthKey) || 0;
-                                        const reset = getResetDate(monthKey) || 1;
-                                        const rows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getEntriesForDate);
-                                        setMonthlyRows(rows);
-                                      }, 50);
-                                            } else {
-                                              // Se for do novo sistema
-                                              const dateKey = formatDateKey(selectedDate);
-                                              const financialEntries = getEntriesForDate(dateKey);
-                                              const entryToRemove = financialEntries.find(e => e.id === item.id);
-                                              
-                                              if (entryToRemove && entryToRemove.frequency === 'recorrente') {
-                                                // Se for recorrente, encerrar recorrência (não deletar)
-                                                endRecurrence(entryToRemove.id, dateKey);
-                                              } else {
-                                                // Se for pontual, remover completamente
-                                                removeFinancialEntry(item.id);
-                                              }
-                                              // Recarregar dados após um pequeno delay
-                                              setTimeout(() => {
-                                                const items = getDailyExpenses(dateKey);
-                                                setDailyItems(items);
-                                                const monthKey = formatMonthKey(selectedMonth);
-                                                const desired = getDesiredMonthlyExpense(monthKey) || 0;
-                                                const reset = getResetDate(monthKey) || 1;
-                                                const rows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getEntriesForDate);
-                                                setMonthlyRows(rows);
-                                              }, 50);
-                                            }
-                                            
-                                            // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
-                                            const today = new Date();
-                                            const todayKey = formatDateKey(today);
-                                            const accountMoney = getAccountMoney(todayKey);
-                                            const reserve = getCurrentReserve();
-                                            updateAllProgressFromAccountMoney(accountMoney, reserve);
-                                            setTimeout(() => {
-                                              setPossessions(getAllPossessions());
-                                            }, 100);
+                                  <div className="flex items-center gap-1 ml-2">
+                                    {/* Botão de Editar */}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const isLegacy = dailyItems.find(d => d.id === item.id);
+                                        if (!isLegacy) {
+                                          // Sistema novo: buscar e editar
+                                          const entry = financialEntries.find(e => e.id === item.id);
+                                          if (entry) {
+                                            setEditingFinancialEntry(entry);
+                                            setIsAddFinancialEntryModalOpen(true);
                                           }
-                                        }}
-                                        className="text-gray-400 hover:text-gray-600 ml-2"
-                                        style={{ fontSize: '16px', cursor: 'pointer' }}
-                                >
-                                  ×
-                                </button>
+                                        }
+                                      }}
+                                      className="text-gray-500 hover:text-blue-600 transition-colors"
+                                      style={{ fontSize: '12px', padding: '2px 6px' }}
+                                      title="Editar"
+                                    >
+                                      ✏️
+                                    </button>
+                                    {/* Botão de Excluir */}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const confirmMessage = item.frequency === 'recorrente' 
+                                          ? `Encerrar recorrência "${item.description}"? (A entrada será removida apenas desta data)` 
+                                          : `Remover "${item.description}"?`;
+                                        if (confirm(confirmMessage)) {
+                                          // Se for do sistema antigo, usar removeDailyExpense
+                                          if (dailyItems.find(d => d.id === item.id)) {
+                                            removeDailyExpense(formatDateKey(selectedDate), item.id);
+                                            // Recarregar dados e recalcular monthlyRows após um pequeno delay
+                                            setTimeout(() => {
+                                              const dateKey = formatDateKey(selectedDate);
+                                              const items = getDailyExpenses(dateKey);
+                                              setDailyItems(items);
+                                              const monthKey = formatMonthKey(selectedMonth);
+                                              const desired = getDesiredMonthlyExpense(monthKey) || 0;
+                                              const reset = getResetDate(monthKey) || 1;
+                                              const rows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getEntriesForDate);
+                                              setMonthlyRows(rows);
+                                              
+                                              // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
+                                              const today = new Date();
+                                              const todayKey = formatDateKey(today);
+                                              const accountMoney = getAccountMoney(todayKey);
+                                              const reserve = getCurrentReserve();
+                                              updateAllProgressFromAccountMoney(accountMoney, reserve);
+                                              setTimeout(() => {
+                                                setPossessions(getAllPossessions());
+                                              }, 100);
+                                            }, 50);
+                                          } else {
+                                            // Se for do novo sistema
+                                            const dateKey = formatDateKey(selectedDate);
+                                            const financialEntries = getEntriesForDate(dateKey);
+                                            const entryToRemove = financialEntries.find(e => e.id === item.id);
+                                            
+                                            if (entryToRemove && entryToRemove.frequency === 'recorrente') {
+                                              // Se for recorrente, encerrar recorrência (definir endDate)
+                                              endRecurrence(entryToRemove.id, dateKey);
+                                            } else {
+                                              // Se for pontual, remover completamente
+                                              removeFinancialEntry(item.id);
+                                            }
+                                            // Recarregar dados após um pequeno delay
+                                            setTimeout(() => {
+                                              const items = getDailyExpenses(dateKey);
+                                              setDailyItems(items);
+                                              const monthKey = formatMonthKey(selectedMonth);
+                                              const desired = getDesiredMonthlyExpense(monthKey) || 0;
+                                              const reset = getResetDate(monthKey) || 1;
+                                              const rows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getEntriesForDate);
+                                              setMonthlyRows(rows);
+                                              
+                                              // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
+                                              const today = new Date();
+                                              const todayKey = formatDateKey(today);
+                                              const accountMoney = getAccountMoney(todayKey);
+                                              const reserve = getCurrentReserve();
+                                              updateAllProgressFromAccountMoney(accountMoney, reserve);
+                                              setTimeout(() => {
+                                                setPossessions(getAllPossessions());
+                                              }, 100);
+                                            }, 50);
+                                          }
+                                        }
+                                      }}
+                                      className="text-gray-400 hover:text-red-600 transition-colors"
+                                      style={{ fontSize: '16px', cursor: 'pointer', padding: '2px 6px' }}
+                                      title="Excluir"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
                                     </div>
                               </div>
                             ))
@@ -3105,16 +3142,17 @@ function BoardPageInner() {
                             boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                           }}
                               onDoubleClick={() => {
-                                // Abrir modal de edição para entradas do novo sistema
-                                if (item.frequency && item.frequency !== 'pontual' || !dailyItems.find(d => d.id === item.id)) {
-                                  // É uma entrada do novo sistema - buscar e editar
+                                // Abrir modal de edição (double-click também funciona)
+                                const isLegacy = dailyItems.find(d => d.id === item.id);
+                                if (!isLegacy) {
+                                  // Sistema novo: buscar e editar
                                   const financialEntries = getEntriesForDate(dateKey);
                                   const entryToEdit = financialEntries.find(e => e.id === item.id);
                                   if (entryToEdit) {
                                     setEditingFinancialEntry(entryToEdit);
                                     setIsAddFinancialEntryModalOpen(true);
                                   }
-                            }
+                                }
                           }}
                         >
                           <div className="flex items-center gap-2 flex-1">
@@ -3180,55 +3218,85 @@ function BoardPageInner() {
                               R$ {Math.abs(item.value).toFixed(2).replace('.', ',')}
                             </span>
                           </div>
-                              {item.frequency === 'pontual' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (confirm(`Remover "${item.description}"?`)) {
-                                      // Se for do sistema antigo, usar removeDailyExpense
-                                      if (dailyItems.find(d => d.id === item.id)) {
-                                        removeDailyExpense(dateKey, item.id);
-                                      } else {
-                                        // Se for do novo sistema
-                                        const financialEntries = getEntriesForDate(dateKey);
-                                        const entryToRemove = financialEntries.find(e => e.id === item.id);
-                                        
-                                        if (entryToRemove && entryToRemove.frequency === 'recorrente') {
-                                          // Se for recorrente, encerrar recorrência (não deletar)
-                                          endRecurrence(entryToRemove.id, dateKey);
-                                        } else {
-                                          // Se for pontual, remover completamente
-                                          removeFinancialEntry(item.id);
-                                        }
-                                      }
-                                      // Recarregar dados após um pequeno delay
-                                      setTimeout(() => {
-                                        const items = getDailyExpenses(dateKey);
-                                        setDailyItems(items);
-                                        const monthKey = formatMonthKey(selectedMonth);
-                                        const desired = getDesiredMonthlyExpense(monthKey) || 0;
-                                        const reset = getResetDate(monthKey) || 1;
-                                        const rows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getEntriesForDate);
-                                        setMonthlyRows(rows);
-                                        
-                                        // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
-                                        const today = new Date();
-                                        const todayKey = formatDateKey(today);
-                                        const accountMoney = getAccountMoney(todayKey);
-                                        const reserve = getCurrentReserve();
-                                        updateAllProgressFromAccountMoney(accountMoney, reserve);
-                                        setTimeout(() => {
-                                          setPossessions(getAllPossessions());
-                                        }, 100);
-                                      }, 50);
-                              }
-                            }}
-                            className="ml-2 text-gray-400 hover:text-gray-600"
-                            style={{ fontSize: '18px' }}
-                          >
-                            ×
-                          </button>
-                              )}
+                          <div className="flex items-center gap-2 ml-4">
+                            {/* Botão de Editar */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Verificar se é do sistema antigo ou novo
+                                const isLegacy = dailyItems.find(d => d.id === item.id);
+                                if (isLegacy) {
+                                  // Sistema antigo: converter para formato de edição (não suportado ainda)
+                                  alert('Edição de entradas do sistema antigo: use o modal de adicionar gasto para criar uma nova entrada');
+                                } else {
+                                  // Sistema novo: buscar e editar
+                                  const financialEntries = getEntriesForDate(dateKey);
+                                  const entryToEdit = financialEntries.find(e => e.id === item.id);
+                                  if (entryToEdit) {
+                                    setEditingFinancialEntry(entryToEdit);
+                                    setIsAddFinancialEntryModalOpen(true);
+                                  }
+                                }
+                              }}
+                              className="text-gray-500 hover:text-blue-600 transition-colors"
+                              style={{ fontSize: '14px', padding: '4px 8px' }}
+                              title="Editar"
+                            >
+                              ✏️
+                            </button>
+                            {/* Botão de Excluir */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const confirmMessage = item.frequency === 'recorrente' 
+                                  ? `Encerrar recorrência "${item.description}"? (A entrada será removida apenas desta data)` 
+                                  : `Remover "${item.description}"?`;
+                                if (confirm(confirmMessage)) {
+                                  // Se for do sistema antigo, usar removeDailyExpense
+                                  if (dailyItems.find(d => d.id === item.id)) {
+                                    removeDailyExpense(dateKey, item.id);
+                                  } else {
+                                    // Se for do novo sistema
+                                    const financialEntries = getEntriesForDate(dateKey);
+                                    const entryToRemove = financialEntries.find(e => e.id === item.id);
+                                    
+                                    if (entryToRemove && entryToRemove.frequency === 'recorrente') {
+                                      // Se for recorrente, encerrar recorrência (definir endDate)
+                                      endRecurrence(entryToRemove.id, dateKey);
+                                    } else {
+                                      // Se for pontual, remover completamente
+                                      removeFinancialEntry(item.id);
+                                    }
+                                  }
+                                  // Recarregar dados após um pequeno delay
+                                  setTimeout(() => {
+                                    const items = getDailyExpenses(dateKey);
+                                    setDailyItems(items);
+                                    const monthKey = formatMonthKey(selectedMonth);
+                                    const desired = getDesiredMonthlyExpense(monthKey) || 0;
+                                    const reset = getResetDate(monthKey) || 1;
+                                    const rows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getEntriesForDate);
+                                    setMonthlyRows(rows);
+                                    
+                                    // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
+                                    const today = new Date();
+                                    const todayKey = formatDateKey(today);
+                                    const accountMoney = getAccountMoney(todayKey);
+                                    const reserve = getCurrentReserve();
+                                    updateAllProgressFromAccountMoney(accountMoney, reserve);
+                                    setTimeout(() => {
+                                      setPossessions(getAllPossessions());
+                                    }, 100);
+                                  }, 50);
+                                }
+                              }}
+                              className="text-gray-400 hover:text-red-600 transition-colors"
+                              style={{ fontSize: '18px', padding: '4px 8px' }}
+                              title="Excluir"
+                            >
+                              ×
+                            </button>
+                          </div>
                         </div>
                       ))
                     )}
@@ -4586,13 +4654,23 @@ function BoardPageInner() {
       )}
 
 
-      {/* Modal de Adicionar Entrada Financeira (Novo Sistema) */}
+      {/* Modal de Adicionar/Editar Entrada Financeira (Novo Sistema) */}
       {isAddFinancialEntryModalOpen && (
         <AddFinancialEntryModal
           isOpen={isAddFinancialEntryModalOpen}
-          onClose={() => setIsAddFinancialEntryModalOpen(false)}
+          onClose={() => {
+            setIsAddFinancialEntryModalOpen(false);
+            setEditingFinancialEntry(undefined);
+          }}
           onSave={(entry) => {
-            addFinancialEntry(entry);
+            if (editingFinancialEntry) {
+              // Modo edição: atualizar entrada existente
+              updateFinancialEntry(editingFinancialEntry.id, entry);
+              setEditingFinancialEntry(undefined);
+            } else {
+              // Modo criação: adicionar nova entrada
+              addFinancialEntry(entry);
+            }
             setIsAddFinancialEntryModalOpen(false);
             // Forçar atualização do estado
             setTimeout(() => {
@@ -4622,6 +4700,7 @@ function BoardPageInner() {
             }, 100);
           }}
           initialDate={formatDateKey(selectedDate)}
+          editingEntry={editingFinancialEntry}
         />
       )}
 

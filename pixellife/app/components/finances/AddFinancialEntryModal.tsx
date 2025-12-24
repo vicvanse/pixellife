@@ -22,6 +22,7 @@ export function AddFinancialEntryModal({
   onClose,
   onSave,
   initialDate,
+  editingEntry,
 }: AddFinancialEntryModalProps) {
   const [frequency, setFrequency] = useState<EntryFrequency>("pontual");
   const [nature, setNature] = useState<EntryNature>("gasto");
@@ -37,22 +38,49 @@ export function AddFinancialEntryModal({
   const [category, setCategory] = useState("");
   const [installments, setInstallments] = useState<{ total: number; current: number } | null>(null);
 
-  // Reset ao abrir/fechar
+  // Reset ao abrir/fechar ou quando editingEntry mudar
   useEffect(() => {
     if (isOpen) {
-      setFrequency("pontual");
-      setNature("gasto");
-      setDescription("");
-      setAmount("");
-      setDate(initialDate || new Date().toISOString().substring(0, 10));
-      setStartDate(new Date().toISOString().substring(0, 10));
-      setEndDate(null);
-      setRecurrence("mensal");
-      setPaymentMethod("dinheiro");
-      setCategory("");
-      setInstallments(null);
+      if (editingEntry) {
+        // Modo edição: preencher com dados existentes
+        setFrequency(editingEntry.frequency);
+        setNature(editingEntry.nature);
+        setDescription(editingEntry.description);
+        setAmount(Math.abs(editingEntry.amount).toFixed(2).replace('.', ','));
+        setCategory(editingEntry.category || "");
+        
+        if (editingEntry.frequency === "pontual") {
+          setDate(editingEntry.date || initialDate || new Date().toISOString().substring(0, 10));
+          if (editingEntry.paymentMethod) {
+            setPaymentMethod(editingEntry.paymentMethod);
+          }
+        } else {
+          setStartDate(editingEntry.startDate || new Date().toISOString().substring(0, 10));
+          setEndDate(editingEntry.endDate || null);
+          setRecurrence(editingEntry.recurrence || "mensal");
+          if (editingEntry.paymentMethod) {
+            setPaymentMethod(editingEntry.paymentMethod);
+          }
+          if (editingEntry.installments) {
+            setInstallments(editingEntry.installments);
+          }
+        }
+      } else {
+        // Modo criação: resetar campos
+        setFrequency("pontual");
+        setNature("gasto");
+        setDescription("");
+        setAmount("");
+        setDate(initialDate || new Date().toISOString().substring(0, 10));
+        setStartDate(new Date().toISOString().substring(0, 10));
+        setEndDate(null);
+        setRecurrence("mensal");
+        setPaymentMethod("dinheiro");
+        setCategory("");
+        setInstallments(null);
+      }
     }
-  }, [isOpen, initialDate]);
+  }, [isOpen, initialDate, editingEntry]);
 
   if (!isOpen) return null;
 
@@ -112,7 +140,7 @@ export function AddFinancialEntryModal({
       >
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-pixel-bold" style={{ color: '#333', fontSize: '16px', fontWeight: 600 }}>
-            Adicionar Entrada Financeira
+            {editingEntry ? 'Editar Entrada Financeira' : 'Adicionar Entrada Financeira'}
           </h2>
           <button
             onClick={onClose}
@@ -411,7 +439,7 @@ export function AddFinancialEntryModal({
             className="flex-1 px-3 py-2 rounded font-pixel-bold transition-colors hover:opacity-90 bg-green-400 text-white text-sm"
             style={{ border: '1px solid #0f9d58' }}
           >
-            Salvar
+            {editingEntry ? 'Salvar Alterações' : 'Salvar'}
           </button>
           <button
             onClick={onClose}

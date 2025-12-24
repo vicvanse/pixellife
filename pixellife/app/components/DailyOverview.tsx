@@ -117,17 +117,20 @@ export function DailyOverview() {
       if (preserveMoodNumber && currentMoodNumber !== null) {
         // Manter o número atual
       } else {
-        // Sempre usar o número salvo se existir, caso contrário usar padrão baseado no mood
-        setCurrentMoodNumber(entry.moodNumber !== undefined ? entry.moodNumber : (entry.mood === 'bad' ? 2 : entry.mood === 'neutral' ? 5 : 8));
+        // IMPORTANTE: Se não há moodNumber salvo E não há mood, não definir número padrão
+        // Só definir número padrão se houver mood mas não houver moodNumber
+        if (entry.mood !== null && entry.mood !== undefined) {
+          setCurrentMoodNumber(entry.moodNumber !== undefined && entry.moodNumber !== null ? entry.moodNumber : undefined);
+        } else {
+          setCurrentMoodNumber(null);
+        }
       }
       setText(entry.text);
       setIsTextExpanded(!!entry.text); // Expandir se houver texto
       setQuickNotes(entry.quickNotes.map((note) => ({ id: note.id, text: note.text })));
     } else {
       setMood(null);
-      if (!preserveMoodNumber) {
-        setCurrentMoodNumber(null);
-      }
+      setCurrentMoodNumber(null); // Sempre limpar quando não há entrada
       setText('');
       setIsTextExpanded(false); // Colapsar se não houver texto
       setQuickNotes([]);
@@ -135,14 +138,30 @@ export function DailyOverview() {
   };
 
   // Sincronizar quickNotes quando o journal do dia selecionado mudar (para sincronizar com exclusões no histórico)
+  // IMPORTANTE: Usar um ref para rastrear se estamos em uma operação de deleção para evitar sincronização prematura
+  const isDeletingRef = useRef(false);
+  
   useEffect(() => {
     if (!selectedDate) return;
+    // Se estamos deletando, não sincronizar ainda (aguardar a operação completar)
+    if (isDeletingRef.current) {
+      // Resetar a flag após um pequeno delay para permitir que a deleção complete
+      setTimeout(() => {
+        isDeletingRef.current = false;
+      }, 100);
+      return;
+    }
+    
     const entry = getEntry(selectedDate);
     if (entry && entry.quickNotes) {
-      // Comparar se os quickNotes mudaram para evitar loops infinitos
+      // Comparar IDs e textos para detectar mudanças reais
+      const currentNotesIds = quickNotes.map(n => n.id).sort().join('|');
+      const journalNotesIds = entry.quickNotes.map(n => n.id).sort().join('|');
       const currentNotesText = quickNotes.map(n => n.text).join('|');
       const journalNotesText = entry.quickNotes.map(n => n.text).join('|');
-      if (currentNotesText !== journalNotesText) {
+      
+      // Só atualizar se houver diferença real (IDs ou textos diferentes)
+      if (currentNotesIds !== journalNotesIds || currentNotesText !== journalNotesText) {
         setQuickNotes(entry.quickNotes.map((note) => ({ id: note.id, text: note.text })));
       }
     } else if (!entry && quickNotes.length > 0) {
@@ -188,9 +207,10 @@ export function DailyOverview() {
       // Se não há mood mas há texto ou quickNotes, criar entrada sem mood (não forçar neutro)
       // Se há mood, usar o mood selecionado
       // Sempre salvar o moodNumber atual se houver mood
+      // IMPORTANTE: Se mood é null, garantir que moodNumber também seja undefined/null
       updateJournalEntry(selectedDate, { 
         mood: mood || undefined, // Não criar mood neutro automaticamente
-        moodNumber: mood !== null ? (currentMoodNumber !== null ? currentMoodNumber : undefined) : undefined,
+        moodNumber: mood !== null ? (currentMoodNumber !== null && currentMoodNumber !== undefined ? currentMoodNumber : undefined) : undefined,
         text, 
         quickNotes: filteredQuickNotes
       });
@@ -331,12 +351,12 @@ export function DailyOverview() {
       setJournalDates(getAllDates().filter(date => date !== selectedDate));
     } else {
       // Preservar texto e quickNotes, apenas atualizar/remover o mood
-      updateJournalEntry(selectedDate, { 
-        mood: newMood || undefined,
-        moodNumber: newMood === null ? undefined : (currentMoodNumber ?? undefined),
-        text: existingText, 
-        quickNotes: existingQuickNotes
-      });
+        updateJournalEntry(selectedDate, { 
+          mood: newMood || undefined,
+          moodNumber: newMood === null ? undefined : (currentMoodNumber !== null && currentMoodNumber !== undefined ? currentMoodNumber : undefined),
+          text: existingText, 
+          quickNotes: existingQuickNotes
+        });
       setJournalDates(getAllDates());
     }
   };
@@ -365,7 +385,7 @@ export function DailyOverview() {
       // Preservar texto e quickNotes, apenas atualizar/remover o mood
       updateJournalEntry(selectedDate, { 
         mood: newMood || undefined,
-        moodNumber: num ?? undefined,
+        moodNumber: (num !== null && num !== undefined) ? num : undefined,
         text: existingText, 
         quickNotes: existingQuickNotes
       });
@@ -450,9 +470,20 @@ export function DailyOverview() {
 
   const handleRemoveQuickNote = (noteId: string) => {
     if (selectedDate) {
+      // Marcar que estamos deletando para evitar sincronização prematura
+      isDeletingRef.current = true;
+      
+      // Remover do estado local imediatamente para feedback visual
+      setQuickNotes(prev => prev.filter(n => n.id !== noteId));
+      
+      // Remover do journal
       removeQuickNote(selectedDate, noteId);
       setJournalDates(getAllDates());
-      // O useEffect vai sincronizar automaticamente os quickNotes quando o journal mudar
+      
+      // Resetar a flag após um delay para permitir sincronização futura
+      setTimeout(() => {
+        isDeletingRef.current = false;
+      }, 300);
     }
   };
 
@@ -990,7 +1021,208 @@ export function DailyOverview() {
             </button>
           </div>
 
-          {/* Quick Thoughts - SEMPRE aparece primeiro, antes do histórico/textarea */}
+          {/* Container para Histórico e Text Area - aparece primeiro */}
+          <div className="w-full mb-6">
+            {/* Botão Histórico - acima do textarea */}
+            <div className="flex justify-end mb-2">
+              <button
+                onClick={() => {
+                  setShowJournalHistory(!showJournalHistory);
+                }}
+                className="px-3 py-1 rounded font-pixel text-xs transition-colors"
+                            style={{ 
+                  backgroundColor: '#f0f0f0',
+                  color: '#333',
+                              border: '1px solid #e0e0e0',
+                            }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#e0e0e0';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f0f0f0';
+                }}
+              >
+                {showJournalHistory ? t('common.hide') : t('common.history')}
+              </button>
+                    </div>
+
+            {/* Histórico de Journal Entries - aparece acima do textarea quando ativo, empurrando-o para baixo */}
+            {showJournalHistory && (() => {
+              // Filtrar apenas entradas com texto longo anteriores à data selecionada
+              const selectedDateObj = selectedDate ? new Date(selectedDate + 'T00:00:00') : null;
+              
+              const entriesWithText = journalDates
+                .map((date) => {
+                  const entry = getEntry(date);
+                  if (!entry || !entry.text || !entry.text.trim()) return null;
+                  
+                  // Filtrar apenas datas anteriores à data selecionada
+                  if (selectedDateObj) {
+                    const dateObj = new Date(date + 'T00:00:00');
+                    if (dateObj >= selectedDateObj) return null; // Ignorar data selecionada e futuras
+                  }
+                  
+                  return { date, entry };
+                })
+                .filter((item): item is { date: string; entry: NonNullable<ReturnType<typeof getEntry>> } => item !== null)
+                .sort((a, b) => {
+                  // Ordenar por data (mais recente primeiro)
+                  const dateA = new Date(a.date + 'T00:00:00').getTime();
+                  const dateB = new Date(b.date + 'T00:00:00').getTime();
+                  return dateB - dateA;
+                })
+                .slice(0, 5); // Limitar a 5 entradas
+              
+              return (
+                <div className="mb-4 space-y-3" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  {entriesWithText.length === 0 ? (
+                    <p className="font-pixel text-center py-8" style={{ color: '#999', fontSize: '14px' }}>
+                      {t('journal.noThoughtsThisMonth')}
+                    </p>
+                  ) : (
+                    entriesWithText.map(({ date, entry }) => {
+                    
+                    const dateObj = new Date(date + 'T00:00:00');
+                    const moodInfo = entry.mood ? {
+                      good: { label: t('journal.moodGood'), emoji: '🙂' },
+                      neutral: { label: t('journal.moodNeutral'), emoji: '😐' },
+                      bad: { label: t('journal.moodBad'), emoji: '🙁' },
+                    }[entry.mood] : null;
+                    
+                        return (
+                          <div
+                            key={date}
+                                onClick={() => {
+                          // Salvar o texto da data atual antes de mudar
+                          saveCurrentEntry();
+                          setSelectedDate(date);
+                          loadJournalEntry(date);
+                          setShowJournalHistory(false);
+                        }}
+                        className="p-4 rounded-lg cursor-pointer transition-all"
+                                style={{
+                                  backgroundColor: '#fafafa',
+                          border: '1px solid #e5e5e5',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                                }}
+                                onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f0f0f0';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#fafafa';
+                                }}
+                              >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-pixel-bold" style={{ color: '#333', fontSize: '16px' }}>
+                            {formatDateForHistory(date)}
+                          </span>
+                          {entry.moodNumber !== undefined ? (
+                            <span 
+                              className="font-pixel-bold px-2 py-1 rounded-full border" 
+                                    style={{
+                                backgroundColor: '#e8e8e8',
+                                fontSize: '14px', 
+                                color: '#111',
+                                border: '1px solid #e8e8e2'
+                              }}
+                            >
+                              {entry.moodNumber}
+                            </span>
+                          ) : (
+                            moodInfo && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">{moodInfo.emoji}</span>
+                                <span className="font-pixel text-xs" style={{ color: '#666' }}>{moodInfo.label}</span>
+                              </div>
+                            )
+                          )}
+                        </div>
+                        {entry.text && (
+                                    <p
+                            className="font-pixel mb-2" 
+                                      style={{
+                              fontSize: '14px', 
+                              color: '#555', 
+                                        lineHeight: '1.4',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {entry.text}
+                          </p>
+                        )}
+                        {entry.quickNotes && entry.quickNotes.length > 0 && (
+                          <p 
+                            className="font-pixel text-xs" 
+                            style={{ color: '#999' }}
+                                    >
+                            {entry.quickNotes.length} {tString('journal.quickThoughts').toLowerCase()}
+                                    </p>
+                        )}
+                                  </div>
+                    );
+                  })
+                                )}
+                              </div>
+              );
+            })()}
+
+            {/* Label e Text Area */}
+            <div>
+              <label className="font-pixel-bold mb-2 block" style={{ color: '#333', fontSize: '14px' }}>
+                {t('journal.longText')}:
+              </label>
+              {!isTextExpanded && text ? (
+                              <div
+                  onClick={() => setIsTextExpanded(true)}
+                  className="w-full p-4 rounded-lg cursor-pointer font-pixel"
+                                style={{
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #e0e0e0',
+                    color: '#333',
+                    fontSize: '16px',
+                    minHeight: '60px',
+                    maxHeight: '120px',
+                    overflow: 'hidden',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: 'vertical',
+                    lineHeight: '1.5',
+                                }}
+                              >
+                  {text}
+                </div>
+              ) : (
+                                <textarea
+                  value={text}
+                                  onChange={(e) => {
+                    setText(e.target.value);
+                    setIsTextExpanded(true);
+                                  }}
+                                  onBlur={() => {
+                    if (!text.trim()) {
+                      setIsTextExpanded(false);
+                                    }
+                                  }}
+                  placeholder={tString('journal.writeAboutDay')}
+                  className="w-full p-4 rounded-lg resize-none font-pixel focus:outline-none journal-textarea-scrollbar"
+                                  style={{
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #e0e0e0',
+                                    color: '#333',
+                    fontSize: '16px',
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: 'transparent transparent',
+                    minHeight: text.trim() || isTextExpanded ? '198px' : '80px',
+                  }}
+                />
+              )}
+                              </div>
+                          </div>
+
+          {/* Quick Thoughts - aparece DEPOIS do texto longo */}
           {!showQuickThoughtsView ? (
             // Visualização Simples
                 <div 
@@ -1436,11 +1668,18 @@ export function DailyOverview() {
                                         onClick={(e) => {
                                           e.preventDefault();
                                           e.stopPropagation();
-                                          // Não mudar a data selecionada, apenas remover o pensamento
+                                          // Marcar que estamos deletando para evitar sincronização prematura
+                                          isDeletingRef.current = true;
+                                          
                                           // Remover o pensamento rápido usando a função do hook
                                           removeQuickNote(dateStr, note.id);
-                                          // O useEffect vai sincronizar automaticamente os quickNotes quando o journal mudar
                                           setJournalDates(getAllDates());
+                                          
+                                          // Resetar a flag após um delay para permitir sincronização futura
+                                          setTimeout(() => {
+                                            isDeletingRef.current = false;
+                                          }, 300);
+                                          
                                           // Prevenir qualquer scroll automático
                                           if (e.currentTarget) {
                                             e.currentTarget.blur();
@@ -1584,206 +1823,6 @@ export function DailyOverview() {
             })()
           )}
 
-          {/* Container para Histórico e Textarea - garante ordem correta */}
-          <div className="w-full">
-            {/* Botão Histórico - acima do textarea */}
-            <div className="flex justify-end mb-2">
-              <button
-                onClick={() => {
-                  setShowJournalHistory(!showJournalHistory);
-                }}
-                className="px-3 py-1 rounded font-pixel text-xs transition-colors"
-                            style={{ 
-                  backgroundColor: '#f0f0f0',
-                  color: '#333',
-                              border: '1px solid #e0e0e0',
-                            }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#e0e0e0';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f0f0f0';
-                }}
-              >
-                {showJournalHistory ? t('common.hide') : t('common.history')}
-              </button>
-                    </div>
-
-            {/* Histórico de Journal Entries - aparece acima do textarea quando ativo, empurrando-o para baixo */}
-            {showJournalHistory && (() => {
-              // Filtrar apenas entradas com texto longo anteriores à data selecionada
-              const selectedDateObj = selectedDate ? new Date(selectedDate + 'T00:00:00') : null;
-              
-              const entriesWithText = journalDates
-                .map((date) => {
-                  const entry = getEntry(date);
-                  if (!entry || !entry.text || !entry.text.trim()) return null;
-                  
-                  // Filtrar apenas datas anteriores à data selecionada
-                  if (selectedDateObj) {
-                    const dateObj = new Date(date + 'T00:00:00');
-                    if (dateObj >= selectedDateObj) return null; // Ignorar data selecionada e futuras
-                  }
-                  
-                  return { date, entry };
-                })
-                .filter((item): item is { date: string; entry: NonNullable<ReturnType<typeof getEntry>> } => item !== null)
-                .sort((a, b) => {
-                  // Ordenar por data (mais recente primeiro)
-                  const dateA = new Date(a.date + 'T00:00:00').getTime();
-                  const dateB = new Date(b.date + 'T00:00:00').getTime();
-                  return dateB - dateA;
-                })
-                .slice(0, 5); // Limitar a 5 entradas
-              
-              return (
-                <div className="mb-4 space-y-3" style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                  {entriesWithText.length === 0 ? (
-                    <p className="font-pixel text-center py-8" style={{ color: '#999', fontSize: '14px' }}>
-                      {t('journal.noThoughtsThisMonth')}
-                    </p>
-                  ) : (
-                    entriesWithText.map(({ date, entry }) => {
-                    
-                    const dateObj = new Date(date + 'T00:00:00');
-                    const moodInfo = entry.mood ? {
-                      good: { label: t('journal.moodGood'), emoji: '🙂' },
-                      neutral: { label: t('journal.moodNeutral'), emoji: '😐' },
-                      bad: { label: t('journal.moodBad'), emoji: '🙁' },
-                    }[entry.mood] : null;
-                    
-                        return (
-                          <div
-                            key={date}
-                                onClick={() => {
-                          // Salvar o texto da data atual antes de mudar
-                          saveCurrentEntry();
-                          setSelectedDate(date);
-                          loadJournalEntry(date);
-                          setShowJournalHistory(false);
-                        }}
-                        className="p-4 rounded-lg cursor-pointer transition-all"
-                                style={{
-                                  backgroundColor: '#fafafa',
-                          border: '1px solid #e5e5e5',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                                }}
-                                onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#f0f0f0';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = '#fafafa';
-                                }}
-                              >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-pixel-bold" style={{ color: '#333', fontSize: '16px' }}>
-                            {formatDateForHistory(date)}
-                          </span>
-                          {entry.moodNumber !== undefined ? (
-                            <span 
-                              className="font-pixel-bold px-2 py-1 rounded-full border" 
-                                    style={{
-                                backgroundColor: '#e8e8e8',
-                                fontSize: '14px', 
-                                color: '#111',
-                                border: '1px solid #e8e8e2'
-                              }}
-                            >
-                              {entry.moodNumber}
-                            </span>
-                          ) : (
-                            moodInfo && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-lg">{moodInfo.emoji}</span>
-                                <span className="font-pixel text-xs" style={{ color: '#666' }}>{moodInfo.label}</span>
-                              </div>
-                            )
-                          )}
-                        </div>
-                        {entry.text && (
-                                    <p
-                            className="font-pixel mb-2" 
-                                      style={{
-                              fontSize: '14px', 
-                              color: '#555', 
-                                        lineHeight: '1.4',
-                              display: '-webkit-box',
-                              WebkitLineClamp: 3,
-                              WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden',
-                            }}
-                          >
-                            {entry.text}
-                          </p>
-                        )}
-                        {entry.quickNotes && entry.quickNotes.length > 0 && (
-                          <p 
-                            className="font-pixel text-xs" 
-                            style={{ color: '#999' }}
-                                    >
-                            {entry.quickNotes.length} {tString('journal.quickThoughts').toLowerCase()}
-                                    </p>
-                        )}
-                                  </div>
-                    );
-                  })
-                                )}
-                              </div>
-              );
-            })()}
-
-            {/* Label e Text Area */}
-            <div>
-              <label className="font-pixel-bold mb-2 block" style={{ color: '#333', fontSize: '14px' }}>
-                {t('journal.longText')}:
-              </label>
-              {!isTextExpanded && text ? (
-                              <div
-                  onClick={() => setIsTextExpanded(true)}
-                  className="w-full p-4 rounded-lg cursor-pointer font-pixel"
-                                style={{
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #e0e0e0',
-                    color: '#333',
-                    fontSize: '16px',
-                    minHeight: '60px',
-                    maxHeight: '120px',
-                    overflow: 'hidden',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: 'vertical',
-                    lineHeight: '1.5',
-                                }}
-                              >
-                  {text}
-                </div>
-              ) : (
-                                <textarea
-                  value={text}
-                                  onChange={(e) => {
-                    setText(e.target.value);
-                    setIsTextExpanded(true);
-                                  }}
-                                  onBlur={() => {
-                    if (!text.trim()) {
-                      setIsTextExpanded(false);
-                                    }
-                                  }}
-                  placeholder={tString('journal.writeAboutDay')}
-                  className="w-full p-4 rounded-lg resize-none font-pixel focus:outline-none journal-textarea-scrollbar"
-                                  style={{
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #e0e0e0',
-                                    color: '#333',
-                    fontSize: '16px',
-                    scrollbarWidth: 'thin',
-                    scrollbarColor: 'transparent transparent',
-                    minHeight: text.trim() || isTextExpanded ? '198px' : '80px',
-                  }}
-                />
-              )}
-                              </div>
-                          </div>
         </PixelCard>
       </div>
 

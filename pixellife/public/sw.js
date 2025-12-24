@@ -45,6 +45,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Ignora requisições com schemes não suportados (chrome-extension, etc)
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return;
+  }
+
   // Ignora requisições para Supabase (sempre network)
   if (url.hostname.includes('supabase.co')) {
     return;
@@ -66,10 +71,24 @@ self.addEventListener('fetch', (event) => {
           if (response.status === 200) {
             const responseToCache = response.clone();
             caches.open(RUNTIME_CACHE).then((cache) => {
-              cache.put(request, responseToCache);
+              // Verificar novamente se o request é válido antes de fazer cache
+              try {
+                cache.put(request, responseToCache).catch((error) => {
+                  // Ignorar erros de cache silenciosamente (especialmente para chrome-extension)
+                  if (!error.message.includes('chrome-extension')) {
+                    console.warn('[SW] Cache error:', error);
+                  }
+                });
+              } catch (error) {
+                // Ignorar erros silenciosamente
+              }
             });
           }
           return response;
+        }).catch((error) => {
+          // Se falhar, retornar erro silenciosamente
+          console.warn('[SW] Fetch error:', error);
+          throw error;
         });
       })
     );
