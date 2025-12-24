@@ -117,11 +117,14 @@ export function DailyOverview() {
       if (preserveMoodNumber && currentMoodNumber !== null) {
         // Manter o número atual
       } else {
-        // IMPORTANTE: Se não há moodNumber salvo E não há mood, não definir número padrão
-        // Só definir número padrão se houver mood mas não houver moodNumber
-        if (entry.mood !== null && entry.mood !== undefined) {
-          setCurrentMoodNumber(entry.moodNumber !== undefined && entry.moodNumber !== null ? entry.moodNumber : null);
+        // IMPORTANTE: Se moodNumber é undefined, significa que foi explicitamente deselecionado
+        // NÃO inferir número padrão - manter null para preservar a deseleção
+        if (entry.moodNumber !== undefined && entry.moodNumber !== null) {
+          // Há um número salvo, usar ele
+          setCurrentMoodNumber(entry.moodNumber);
         } else {
+          // Se moodNumber é undefined ou null, sempre definir como null
+          // Isso garante que quando o usuário deseleciona, permanece deselecionado
           setCurrentMoodNumber(null);
         }
       }
@@ -404,12 +407,18 @@ export function DailyOverview() {
       const entry = selectedDate ? getEntry(selectedDate) : null;
       const savedMoodNumber = entry?.moodNumber;
       
-      if (currentMoodNumber === null && savedMoodNumber === undefined) {
+      // IMPORTANTE: Se savedMoodNumber é undefined, significa que foi explicitamente deselecionado
+      // NÃO inferir número padrão - manter null para preservar a deseleção
+      if (savedMoodNumber === undefined) {
+        // Não inferir número padrão se foi explicitamente deselecionado
+        setCurrentMoodNumber(null);
+      } else if (currentMoodNumber === null && savedMoodNumber === undefined) {
+        // Este caso não deve acontecer (já tratado acima), mas mantido por segurança
         // Só definir número padrão se não houver número definido nem salvo
         if (mood === 'bad') setCurrentMoodNumber(2);
         else if (mood === 'neutral') setCurrentMoodNumber(5);
         else if (mood === 'good') setCurrentMoodNumber(8);
-      } else if (savedMoodNumber !== undefined && currentMoodNumber !== savedMoodNumber) {
+      } else if (savedMoodNumber !== undefined && savedMoodNumber !== null && currentMoodNumber !== savedMoodNumber) {
         // Se há um número salvo diferente do atual, usar o salvo
         setCurrentMoodNumber(savedMoodNumber);
       }
