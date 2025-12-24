@@ -52,7 +52,7 @@ export function DailyOverview() {
     // Marcar que a carga inicial foi concluída após um pequeno delay
     setTimeout(() => {
       isInitialLoadRef.current = false;
-    }, 100);
+    }, 200); // Aumentado para garantir que loadJournalEntry terminou
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -117,9 +117,9 @@ export function DailyOverview() {
       if (preserveMoodNumber && currentMoodNumber !== null) {
         // Manter o número atual
       } else {
-        // IMPORTANTE: Se moodNumber é undefined, significa que foi explicitamente deselecionado
+        // IMPORTANTE: Se moodNumber é null ou undefined, significa que foi explicitamente deselecionado
         // NÃO inferir número padrão - manter null para preservar a deseleção
-        if (entry.moodNumber !== undefined && entry.moodNumber !== null) {
+        if (entry.moodNumber !== null && entry.moodNumber !== undefined) {
           // Há um número salvo, usar ele
           setCurrentMoodNumber(entry.moodNumber);
         } else {
@@ -169,6 +169,32 @@ export function DailyOverview() {
       }
     } else if (!entry && quickNotes.length > 0) {
       setQuickNotes([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [journal, selectedDate]);
+  
+  // IMPORTANTE: Recarregar entrada completa quando o journal mudar externamente (ex: quando volta à seção)
+  // Isso garante que mood e moodNumber estejam sincronizados com o que está salvo
+  useEffect(() => {
+    if (!selectedDate) return;
+    // Não recarregar durante carga inicial ou durante operações de deleção
+    if (isInitialLoadRef.current || isDeletingRef.current) return;
+    
+    const entry = getEntry(selectedDate);
+    if (entry) {
+      // Verificar se há diferença entre o estado atual e o salvo
+      const moodChanged = mood !== entry.mood;
+      const moodNumberChanged = currentMoodNumber !== (entry.moodNumber ?? null);
+      
+      // Só recarregar se houver diferença real (para evitar loops infinitos)
+      if (moodChanged || moodNumberChanged) {
+        // Marcar como carga para evitar que outros useEffects interfiram
+        isInitialLoadRef.current = true;
+        loadJournalEntry(selectedDate);
+        setTimeout(() => {
+          isInitialLoadRef.current = false;
+        }, 200);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [journal, selectedDate]);
@@ -319,9 +345,10 @@ export function DailyOverview() {
     setSelectedDate(date);
     loadJournalEntry(date);
     // Permitir salvamento após carregar a nova data
+    // Aumentar um pouco para garantir que loadJournalEntry terminou e evitar sobreposição
     setTimeout(() => {
       isInitialLoadRef.current = false;
-    }, 100);
+    }, 200);
   };
 
   const handleMoodClick = (newMood: Mood | null) => {
@@ -400,34 +427,41 @@ export function DailyOverview() {
   // Sincronizar número quando mood muda externamente (apenas se não estiver usando seletor numérico)
   // IMPORTANTE: Não sobrescrever o número quando o usuário alterna entre emoji e números
   // IMPORTANTE: Não sobrescrever o número quando o usuário seleciona um número específico
+  // IMPORTANTE: Este useEffect só deve rodar quando o mood muda POR INTERAÇÃO DO USUÁRIO, não durante carregamento
   useEffect(() => {
+    // Não fazer nada durante a carga inicial para evitar sobreposição
+    if (isInitialLoadRef.current) return;
+    
+    // Não fazer nada se não há data selecionada
+    if (!selectedDate) return;
+    
     if (!showNumericMood && mood !== null) {
-      // Só atualizar se o mood foi mudado pelos emojis, não quando alterna a visualização
-      // Se já existe um número específico, mantê-lo
       // Verificar se há um número salvo no journal antes de usar padrão
-      const entry = selectedDate ? getEntry(selectedDate) : null;
+      const entry = getEntry(selectedDate);
       const savedMoodNumber = entry?.moodNumber;
       
-      // IMPORTANTE: Se savedMoodNumber é undefined, significa que foi explicitamente deselecionado
+      // IMPORTANTE: Se savedMoodNumber é null ou undefined, significa que foi explicitamente deselecionado
       // NÃO inferir número padrão - manter null para preservar a deseleção
-      if (savedMoodNumber === undefined) {
+      if (savedMoodNumber === null || savedMoodNumber === undefined) {
         // Não inferir número padrão se foi explicitamente deselecionado
-        setCurrentMoodNumber(null);
-      } else if (currentMoodNumber === null && savedMoodNumber === undefined) {
-        // Este caso não deve acontecer (já tratado acima), mas mantido por segurança
-        // Só definir número padrão se não houver número definido nem salvo
-        if (mood === 'bad') setCurrentMoodNumber(2);
-        else if (mood === 'neutral') setCurrentMoodNumber(5);
-        else if (mood === 'good') setCurrentMoodNumber(8);
-      } else if (savedMoodNumber !== undefined && savedMoodNumber !== null && currentMoodNumber !== savedMoodNumber) {
+        // Só atualizar se o currentMoodNumber não estiver já como null (evitar re-renders desnecessários)
+        if (currentMoodNumber !== null) {
+          setCurrentMoodNumber(null);
+        }
+      } else if (savedMoodNumber !== null && savedMoodNumber !== undefined && currentMoodNumber !== savedMoodNumber) {
         // Se há um número salvo diferente do atual, usar o salvo
         setCurrentMoodNumber(savedMoodNumber);
       }
+      // NÃO inferir número padrão baseado no mood - isso só deve acontecer quando o usuário seleciona um emoji pela primeira vez
+      // e não há número salvo. Mas isso já é tratado em handleMoodClick.
     } else if (mood === null) {
-      setCurrentMoodNumber(null);
+      // Se mood é null, garantir que moodNumber também seja null
+      if (currentMoodNumber !== null) {
+        setCurrentMoodNumber(null);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mood, showNumericMood]); // Adicionado showNumericMood para não interferir quando está em modo numérico
+  }, [mood, showNumericMood, selectedDate]); // Adicionar selectedDate para reagir quando muda de data
 
   const handleAddQuickNote = () => {
     if (newQuickNote.trim() && selectedDate) {

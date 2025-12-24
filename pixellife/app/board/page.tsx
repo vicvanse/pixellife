@@ -469,12 +469,29 @@ function BoardPageInner() {
       }, 100);
     };
 
+    const handleFinancialEntriesUpdate = () => {
+      // Forçar atualização quando entradas financeiras mudarem
+      setRecurringEntriesUpdateKey(prev => prev + 1);
+      // Recarregar dados do dia atual
+      const dateKey = formatDateKey(selectedDate);
+      const items = getDailyExpenses(dateKey);
+      setDailyItems(items);
+      // Recarregar dados mensais
+      const monthKey = formatMonthKey(selectedMonth);
+      const desired = getDesiredMonthlyExpense(monthKey) || 0;
+      const reset = getResetDate(monthKey) || 1;
+      const rows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getEntriesForDate);
+      setMonthlyRows(rows);
+    };
+
     window.addEventListener('pixel-life-storage-change', handleStorageChange);
+    window.addEventListener('financial-entries-updated', handleFinancialEntriesUpdate);
     
     return () => {
       window.removeEventListener('pixel-life-storage-change', handleStorageChange);
+      window.removeEventListener('financial-entries-updated', handleFinancialEntriesUpdate);
     };
-  }, [selectedMonth, formatMonthKey, getDesiredMonthlyExpense, getResetDate, calculateMonthlyData, getEntriesForDate, formatDateKey, getAccountMoney, getCurrentReserve, updateAllProgressFromAccountMoney, getAllPossessions]);
+  }, [selectedMonth, selectedDate, formatMonthKey, formatDateKey, getDesiredMonthlyExpense, getResetDate, calculateMonthlyData, getEntriesForDate, getDailyExpenses, getAccountMoney, getCurrentReserve, updateAllProgressFromAccountMoney, getAllPossessions]);
 
 
   // Carregar todas as movimentações de reserva do mês
@@ -1294,11 +1311,13 @@ function BoardPageInner() {
                                             if (entryToRemove && entryToRemove.frequency === 'recorrente') {
                                               // Se for recorrente, encerrar recorrência (definir endDate)
                                               endRecurrence(entryToRemove.id, dateKey);
+                                              // Forçar atualização da lista de recorrentes
+                                              setRecurringEntriesUpdateKey(prev => prev + 1);
                                             } else {
                                               // Se for pontual, remover completamente
                                               removeFinancialEntry(item.id);
                                             }
-                                            // Recarregar dados após um pequeno delay
+                                            // Recarregar dados após um delay maior para garantir que o localStorage foi atualizado
                                             setTimeout(() => {
                                               const items = getDailyExpenses(dateKey);
                                               setDailyItems(items);
@@ -1317,7 +1336,7 @@ function BoardPageInner() {
                                               setTimeout(() => {
                                                 setPossessions(getAllPossessions());
                                               }, 100);
-                                            }, 50);
+                                            }, 200);
                                           }
                                         }
                                       }}
@@ -2133,6 +2152,8 @@ function BoardPageInner() {
                       // Forçar atualização quando recurringEntriesUpdateKey mudar
                       const activeRecurring = getActiveRecurringEntries();
                       const today = new Date().toISOString().substring(0, 10);
+                      // Usar recurringEntriesUpdateKey para forçar re-render quando mudar
+                      const _ = recurringEntriesUpdateKey;
                       const currentMonthStart = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1).toISOString().substring(0, 10);
                       const currentMonthEnd = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0).toISOString().substring(0, 10);
                       const categoryAnalysis = getCategoryAnalysis(currentMonthStart, currentMonthEnd);
@@ -3270,12 +3291,14 @@ function BoardPageInner() {
                                     if (entryToRemove && entryToRemove.frequency === 'recorrente') {
                                       // Se for recorrente, encerrar recorrência (definir endDate)
                                       endRecurrence(entryToRemove.id, dateKey);
+                                      // Forçar atualização da lista de recorrentes
+                                      setRecurringEntriesUpdateKey(prev => prev + 1);
                                     } else {
                                       // Se for pontual, remover completamente
                                       removeFinancialEntry(item.id);
                                     }
                                   }
-                                  // Recarregar dados após um pequeno delay
+                                  // Recarregar dados após um delay maior para garantir que o localStorage foi atualizado
                                   setTimeout(() => {
                                     const items = getDailyExpenses(dateKey);
                                     setDailyItems(items);
@@ -3294,7 +3317,7 @@ function BoardPageInner() {
                                     setTimeout(() => {
                                       setPossessions(getAllPossessions());
                                     }, 100);
-                                  }, 50);
+                                  }, 200);
                                 }
                               }}
                               className="text-gray-400 hover:text-red-600 transition-colors"
@@ -4100,8 +4123,11 @@ function BoardPageInner() {
               )}
 
               {activeFinanceTab === 'analysis' && (() => {
+                // Forçar atualização quando recurringEntriesUpdateKey mudar
                 const activeRecurring = getActiveRecurringEntries();
                 const today = new Date().toISOString().substring(0, 10);
+                // Usar recurringEntriesUpdateKey para forçar re-render quando mudar
+                const _ = recurringEntriesUpdateKey;
                 const currentMonthStart = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1).toISOString().substring(0, 10);
                 const currentMonthEnd = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0).toISOString().substring(0, 10);
                 const categoryAnalysis = getCategoryAnalysis(currentMonthStart, currentMonthEnd);
