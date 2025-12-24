@@ -1,0 +1,63 @@
+================================================================================
+ANÁLISE DETALHADA: Participante 2, Condição 5050, Sessão 2
+================================================================================
+
+1. A Lógica da Análise
+--------------------------------------------------------------------------------
+Ao invés de medir quanto tempo (segundos) o olho ficou em um lado,
+contamos quantos trials consecutivos (TRIAL_INDEX) a escolha (LADO) se manteve a mesma.
+
+Visita (Run): Uma sequência de escolhas para o mesmo lado (ex: Direita, Direita, Direita).
+Saída (Switch): O momento em que a escolha muda no trial seguinte (ex: ...Direita -> Esquerda).
+Taxa de Saída (λ): Calculada como 1 / Média de Trials por Visita.
+
+2. Resultado da Análise com seus Dados
+--------------------------------------------------------------------------------
+Total de Trials: 120
+
+Lado 1 (Esquerda):
+  Total de escolhas: 78
+  Número de 'visitas' (sequências): 34
+  Média de trials por visita: 2.29
+  Taxa de saída estimada (λ₁): 0.436
+    → Sai rápido
+
+Lado 2 (Direita):
+  Total de escolhas: 42
+  Número de 'visitas' (sequências): 34
+  Média de trials por visita: 1.24
+  Taxa de saída estimada (λ₂): 0.810
+    → Sai rápido
+
+3. Verificação do 'Leaving-Matching'
+--------------------------------------------------------------------------------
+O modelo prevê que a proporção de escolhas em um lado deve ser igual à
+taxa relativa de saída do outro lado.
+
+Proporção Real (Lado 1): 78 / 120 = 0.650
+Previsão pelo Modelo: λ₂/(λ₁ + λ₂) = 0.810/(0.436 + 0.810) = 0.650
+
+O resultado foi exatamente igual (0.650 vs 0.650).
+
+4. Análise da Probabilidade de Saída ao Longo dos Trials Consecutivos
+--------------------------------------------------------------------------------
+Teste crítico: verificar se a probabilidade de sair é constante
+(distribuição geométrica/exponencial).
+
+Lado 1 (Esquerda):
+  Posição 1: Probabilidade de sair = 32.4% (continuaram: 23, saíram: 11, total: 34)
+  Posição 2: Probabilidade de sair = 43.5% (continuaram: 13, saíram: 10, total: 23)
+  Posição 3: Probabilidade de sair = 53.8% (continuaram: 6, saíram: 7, total: 13)
+  Posição 4: Probabilidade de sair = 66.7% (continuaram: 2, saíram: 4, total: 6)
+  Posição 5: Probabilidade de sair = 100.0% (continuaram: 0, saíram: 2, total: 2)
+
+Lado 2 (Direita):
+  Posição 1: Probabilidade de sair = 82.4% (continuaram: 6, saíram: 28, total: 34)
+  Posição 2: Probabilidade de sair = 66.7% (continuaram: 2, saíram: 4, total: 6)
+  Posição 3: Probabilidade de sair = 100.0% (continuaram: 0, saíram: 2, total: 2)
+
+5. Interpretação
+--------------------------------------------------------------------------------
+Se a probabilidade de saída variar ao longo das posições consecutivas,
+isso sugere que o modelo de taxa constante (geometric/exponential)
+pode não se aplicar perfeitamente.

@@ -1,0 +1,20 @@
+[33m8c0ac31[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix: Remover toda lógica de deleção automática baseada em conteúdo vazio - null agora significa estado válido deselecionado
+[33mdea3246[m Fix: Remover borda preta do dossiê, adicionar salvamento imediato ao sair do campo e remover order-* do Diário
+[33mca9cb15[m Fix: Corrigir sincronização de estado no Dossiê e Diário, e alterar cor de fundo do textarea do dossiê para branco
+[33mf9bfb8a[m Fix: Sincronizar showNumeric no MoodSelector e ajustar campo Conteúdo do Dossiê para expandir dinamicamente
+[33m9714f91[m Fix: Corrigir erro de compilação - chapters não acessível no escopo de renderização
+[33md9aff97[m Fix: Corrigir carregamento do mood no diário e ajustar hierarquia timeline (períodos dentro de eras)
+[33m9047fdb[m Fix: Adicionar campo touched ao JournalEntry e corrigir ordem visual do diário
+[33m5a6633a[m Corrige ordem do diário e deseleção de mood; adiciona símbolo de perigo ao lado do nome em objetivos; ajusta design do botão + Novo de atributos
+[33md916754[m Ajustes em biografia: remove linha divisória em Sobre mim, renomeia Inventário pessoal para Atributos, e atualiza design do botão + Novo
+[33m346495e[m Corrige erro de tipo removendo 'attributes' do handler de eventos da biografia
+[33m579022c[m Reorganiza diário (texto longo primeiro), move atributos para dentro de sobremim, e adiciona marcações no início e fim dos capítulos na timeline
+[33mb6643e2[m Corrige erro React #310 na timeline usando eventsSignature estável
+[33m529ea66[m Corrige erro React #310 na timeline e mantém marcador de perigo para problemas legais
+[33me17f9a8[m Remove checkmark de objetivos quitados e corrige erro de compilação TimelineEventCard
+[33mb6b1dff[m Atualizações: timeline colapsável, ordem de abas biografia, mapas progresso, ordem de seções revertida
+[33mf45295c[m Refatora design de Atributos para bloco único Clean Pixel; adiciona datas início/fim em capítulos; ajusta posicionamento de gaps na timeline
+[33md1bdbcc[m Corrige erro de tipo em TimelineModal: adiciona validação para category antes de atualizar estado
+[33meed4501[m Corrige erro de tipo em AttributesView: adiciona verificação para category undefined antes de usar como índice
+[33m9e70388[m Corrige erro de tipo: remove referência a propriedade 'name' inexistente em AssetGoal, usa apenas 'title'
+[33mf57fe03[m Adiciona sistema de Atributos inspirado em Project Zomboid - características trackeáveis na biografia

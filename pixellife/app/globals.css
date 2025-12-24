@@ -1,0 +1,635 @@
+@import "tailwindcss";
+
+/* Touch targets e acessibilidade mobile */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Garantir área mínima de toque de 48px para elementos interativos */
+button, a, [role="button"], [role="link"] {
+  min-height: 44px; /* Apple guideline mínimo */
+}
+
+@media (min-width: 768px) {
+  /* Em desktop, pode ser menor */
+  button, a, [role="button"], [role="link"] {
+    min-height: auto;
+  }
+}
+
+/* Pixel Operator Regular - Fonte principal para login */
+@font-face {
+  font-family: 'Pixel Operator';
+  src: url('/fonts/PixelOperator.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pixel Operator';
+  src: url('/fonts/PixelOperator-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Pixel Operator Mono - Mantida para outros componentes */
+@font-face {
+  font-family: 'Pixel Operator Mono';
+  src: url('/fonts/PixelOperatorMono.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pixel Operator Mono';
+  src: url('/fonts/PixelOperatorMono-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --font-pixel-operator: 'Pixel Operator', monospace;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-pixel-operator-mono, 'Pixel Operator Mono', monospace);
+  --font-pixel-operator: 'Pixel Operator', monospace;
+  --font-family-pixel: 'Pixel Operator', monospace, Arial, sans-serif;
+  --font-family-pixel-operator: 'Pixel Operator', monospace, Arial, sans-serif;
+  --font-pixel: 'Pixel Operator', monospace, Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: #FFFFFF;
+  color: #333;
+  font-family: 'Pixel Operator', sans-serif;
+  font-weight: 400;
+  /* Prevenir scroll horizontal no mobile */
+  overflow-x: hidden;
+}
+
+/* Fundo branco no mobile - estilo ficha de personagem */
+@media (max-width: 767px) {
+  body {
+    background: #FFFFFF;
+  }
+  
+  .mobile-cream-bg {
+    background: #FFFFFF;
+  }
+
+  /* Libertar o fantasma - remover card branco no mobile */
+  .mobile-profile-header {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 16px !important;
+  }
+
+  /* Nome do usuário maior no mobile */
+  .mobile-username {
+    font-size: 24px !important;
+  }
+
+  /* ProfilePanel com fundo cinza no mobile */
+  .mobile-profile-panel {
+    background: #EEEEEE !important;
+    border: none !important;
+    border-radius: 16px !important;
+    padding: 16px !important;
+  }
+
+  /* Slots de dinheiro brancos dentro do módulo cinza */
+  .mobile-finance-slot {
+    background: #FFFFFF !important;
+    border-radius: 8px !important;
+  }
+
+  /* Esconder título "Display" no mobile */
+  .mobile-hide-title {
+    display: none !important;
+  }
+
+  /* Barra de navegação inferior - estilo deck */
+  .mobile-bottom-nav-deck {
+    background: #FFFFFF;
+    border-top: 2px solid #000;
+    box-shadow: 0px -2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Ajustar padding do conteúdo para a barra inferior - reduzido para aproximar do deck */
+  .mobile-content-wrapper {
+    padding-bottom: calc(60px + max(env(safe-area-inset-bottom, 0px), 8px)) !important;
+  }
+
+
+  /* Bio mais curta no mobile */
+  .mobile-bio {
+    margin-bottom: 12px !important;
+  }
+
+  .mobile-bio-label {
+    display: none !important;
+  }
+}
+
+/* Garantir que o html também não tenha overflow horizontal */
+html {
+  overflow-x: hidden;
+}
+
+/* Reduzir padding vertical do container principal - aplicado em todas as telas */
+.board-main-container {
+  padding-top: 16px !important;
+  padding-bottom: 0px !important;
+}
+
+/* Reduzir margin-bottom da primeira seção (display) - aplicado em todas as telas */
+#display {
+  margin-bottom: 8px !important;
+}
+
+/* Reduzir margin-bottom da semi-barra abaixo do display - aplicado em todas as telas */
+.semi-bar-below-display {
+  margin-bottom: 8px !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+}
+
+/* Espaçamento para o menu lateral esquerdo (mobile) */
+body.with-left-nav {
+  padding-left: 80px;
+}
+
+/* Espaçamento para o menu superior (desktop) */
+body.with-top-nav {
+  padding-top: 60px;
+}
+
+/* Mobile: sidebar colapsável */
+@media (max-width: 768px) {
+  body.with-left-nav {
+    padding-left: 0;
+    padding-top: 50px; /* Espaço para o header */
+  }
+  
+  /* Sidebar oculta por padrão no mobile, aparece ao clicar no hamburger */
+  .mobile-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  .mobile-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+  
+  /* Overlay escuro quando sidebar está aberta */
+  .mobile-sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z: 40;
+  }
+  
+  .mobile-sidebar-overlay.active {
+    display: block;
+  }
+}
+
+/* Melhorias para mobile/iPhone */
+@media (max-width: 768px) {
+  /* Garantir que containers não ultrapassem a largura da tela */
+  * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  
+  /* Prevenir scroll horizontal */
+  body, html {
+    width: 100%;
+    overflow-x: hidden;
+    position: relative;
+  }
+  
+  /* Ajustar padding para safe-area no mobile */
+  body {
+    padding-left: max(env(safe-area-inset-left), 0px);
+    padding-right: max(env(safe-area-inset-right), 0px);
+  }
+  
+  /* Garantir que imagens não ultrapassem a largura */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  /* Melhorar área de toque em mobile */
+  button, a, [role="button"], [role="link"] {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Ajustar section-box para mobile - Design comercial "Soft Pixel" */
+  .section-box {
+    padding: 20px !important;
+    margin: 16px auto !important;
+    background: #FFFFFF !important;
+    border-radius: 16px !important;
+    border: none !important;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05) !important;
+  }
+  
+  /* Prevenir overscroll que aumenta distância */
+  body {
+    overscroll-behavior-y: contain;
+  }
+  
+  html {
+    overscroll-behavior-y: contain;
+  }
+  
+  /* Ajustar tamanhos de fonte para mobile */
+  h1 {
+    font-size: 20px !important;
+  }
+  
+  /* Cards empilhados verticalmente */
+  .grid {
+    gap: 12px !important;
+  }
+  
+  /* Tabelas com scroll horizontal quando necessário */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Classe Tailwind para usar a fonte Pixel Operator */
+.font-pixel {
+  font-family: 'Pixel Operator', sans-serif !important;
+}
+
+/* Classe para Pixel Operator Bold */
+.font-pixel-bold {
+  font-family: 'Pixel Operator', sans-serif !important;
+  font-weight: 700;
+}
+
+/* Registrar a fonte no Tailwind v4 para uso como classe utilitária */
+@utility font-pixel {
+  font-family: 'Pixel Operator', sans-serif;
+}
+
+@utility font-pixel-bold {
+  font-family: 'Pixel Operator', sans-serif;
+  font-weight: 700;
+}
+
+.image-render-pixel {
+  image-rendering: -moz-crisp-edges; /* Firefox */
+  image-rendering: -webkit-crisp-edges; /* Safari */
+  image-rendering: crisp-edges; /* Standard */
+  image-rendering: pixelated; /* Fallback */
+  -ms-interpolation-mode: nearest-neighbor; /* IE */
+  transform: translateZ(0); /* Force hardware acceleration */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: auto;
+}
+
+/* Estilos para os modos de UI */
+.game-ui {
+  image-rendering: pixelated;
+  font-family: 'Pixel Operator', sans-serif;
+}
+
+.board-ui {
+  image-rendering: auto;
+  font-family: 'Pixel Operator', sans-serif;
+  background: #FFFFFF;
+}
+
+.section-box {
+  background: #F8F9FB; /* Cinza azulado frio em vez de #f3f3f3 */
+  padding: 32px;
+  width: 100%;
+  margin: 40px auto;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(224, 224, 224, 0.5);
+  transition: border-color 0.2s ease;
+}
+
+/* Botões táteis para mobile - estilo Focumon */
+@media (max-width: 767px) {
+  /* Botões principais com estilo tátil - borda inferior grossa */
+  button[style*="backgroundColor"]:not([style*="border-bottom"]):not(.no-tactile) {
+    position: relative;
+    border-radius: 8px !important;
+  }
+  
+  /* Aplicar borda inferior tátil em botões com cores específicas */
+  button[style*="backgroundColor: '#9e9e9e'"],
+  button[style*="backgroundColor: '#7aff7a'"],
+  button[style*="backgroundColor: '#6daffe'"],
+  button[style*="backgroundColor: '#4d82ff'"] {
+    border-bottom: 4px solid !important;
+    border-bottom-color: rgba(0, 0, 0, 0.2) !important;
+    transition: all 0.1s ease !important;
+  }
+  
+  button[style*="backgroundColor: '#9e9e9e'"]:active,
+  button[style*="backgroundColor: '#7aff7a'"]:active,
+  button[style*="backgroundColor: '#6daffe'"]:active,
+  button[style*="backgroundColor: '#4d82ff'"]:active {
+    transform: translateY(2px) !important;
+    border-bottom-width: 2px !important;
+  }
+  
+  /* Botões internos (dentro de cards) - mais suaves */
+  .section-box button {
+    border-radius: 6px !important;
+  }
+}
+
+.section-box:first-of-type {
+  margin-top: 24px;
+}
+
+/* Animação de fade para transição entre modos */
+.fade {
+  transition: opacity 0.25s ease;
+}
+
+/* Scroll suave para âncoras */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Animação pop para modais */
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* PixelWindow 9-slice component */
+.pixel-window {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto 1fr auto;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  background-color: #c0c0c0; /* Cor de fundo estilo Windows 95 */
+  border: 2px solid #000000;
+  box-shadow: 
+    inset -1px -1px 0 0 #808080,
+    inset 1px 1px 0 0 #ffffff,
+    2px 2px 0 0 #000000;
+}
+
+/* Cantos - com fallback CSS pixel art estilo Windows 95 */
+.pixel-window > .tl {
+  width: 16px;
+  height: 16px;
+  background: url('/ui/frame/tl.png') no-repeat;
+  background-color: #c0c0c0;
+  border-right: 2px solid #000000;
+  border-bottom: 2px solid #000000;
+  box-shadow: 
+    inset -1px -1px 0 0 #808080,
+    inset 1px 1px 0 0 #ffffff;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.pixel-window > .t {
+  height: 16px;
+  background: url('/ui/frame/t.png') repeat-x;
+  background-color: #c0c0c0;
+  border-bottom: 2px solid #000000;
+  box-shadow: 
+    inset 0 -1px 0 0 #808080,
+    inset 0 1px 0 0 #ffffff;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.pixel-window > .tr {
+  width: 16px;
+  height: 16px;
+  background: url('/ui/frame/tr.png') no-repeat;
+  background-color: #c0c0c0;
+  border-left: 2px solid #000000;
+  border-bottom: 2px solid #000000;
+  box-shadow: 
+    inset -1px -1px 0 0 #808080,
+    inset 1px 1px 0 0 #ffffff;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.pixel-window > .l {
+  width: 16px;
+  background: url('/ui/frame/l.png') repeat-y;
+  background-color: #c0c0c0;
+  border-right: 2px solid #000000;
+  box-shadow: 
+    inset -1px 0 0 0 #808080,
+    inset 1px 0 0 0 #ffffff;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.pixel-window > .mid {
+  background: url('/ui/frame/mid.png') repeat;
+  background-color: #c0c0c0;
+  min-height: 0; /* Permite que o conteúdo defina a altura */
+  overflow: visible; /* Permite que o conteúdo seja visível */
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.pixel-window > .r {
+  width: 16px;
+  background: url('/ui/frame/r.png') repeat-y;
+  background-color: #c0c0c0;
+  border-left: 2px solid #000000;
+  box-shadow: 
+    inset -1px 0 0 0 #808080,
+    inset 1px 0 0 0 #ffffff;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.pixel-window > .bl {
+  width: 16px;
+  height: 16px;
+  background: url('/ui/frame/bl.png') no-repeat;
+  background-color: #c0c0c0;
+  border-right: 2px solid #000000;
+  border-top: 2px solid #000000;
+  box-shadow: 
+    inset -1px -1px 0 0 #808080,
+    inset 1px 1px 0 0 #ffffff;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.pixel-window > .b {
+  height: 16px;
+  background: url('/ui/frame/b.png') repeat-x;
+  background-color: #c0c0c0;
+  border-top: 2px solid #000000;
+  box-shadow: 
+    inset 0 -1px 0 0 #808080,
+    inset 0 1px 0 0 #ffffff;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.pixel-window > .br {
+  width: 16px;
+  height: 16px;
+  background: url('/ui/frame/br.png') no-repeat;
+  background-color: #c0c0c0;
+  border-left: 2px solid #000000;
+  border-top: 2px solid #000000;
+  box-shadow: 
+    inset -1px -1px 0 0 #808080,
+    inset 1px 1px 0 0 #ffffff;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* Scrollbar sem fundo branco */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background: transparent;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
+}
+
+/* Scrollbar específico para área de Pensamentos Rápidos - sem fundo branco */
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+/* Scrollbar horizontal para Pensamentos Rápidos - apenas o cilindro */
+.quick-thoughts-horizontal-scrollbar::-webkit-scrollbar {
+  height: 8px;
+}
+
+.quick-thoughts-horizontal-scrollbar::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.quick-thoughts-horizontal-scrollbar::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 4px;
+}
+
+.quick-thoughts-horizontal-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
+}
+
+/* Scrollbar vertical para lista de pensamentos rápidos dentro dos cards */
+.quick-notes-vertical-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.quick-notes-vertical-scrollbar::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.quick-notes-vertical-scrollbar::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 4px;
+}
+
+.quick-notes-vertical-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
+}
+
+/* Scrollbar customizada para textarea do diário - apenas o cilindro, sem fundo branco */
+.journal-textarea-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.journal-textarea-scrollbar::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.journal-textarea-scrollbar::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 4px;
+}
+
+.journal-textarea-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
+}
+
+/* Remover outline e ring de foco padrão dos textareas para evitar sombras azuis/roxas */
+textarea:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  --tw-ring-offset-shadow: none !important;
+  --tw-ring-shadow: none !important;
+  ring: none !important;
+}
+
+textarea {
+  outline: none;
+  --tw-ring-offset-shadow: none;
+  --tw-ring-shadow: none;
+}

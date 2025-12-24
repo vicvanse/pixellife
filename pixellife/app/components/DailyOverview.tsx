@@ -1,0 +1,2100 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { useJournal, type Mood } from '../hooks/useJournal';
+import { useHabits, type Habit } from '../hooks/useHabits';
+import { PixelCard } from './PixelCard';
+import { useConfirmation } from '../context/ConfirmationContext';
+import { useApp } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
+
+export function DailyOverview() {
+  const { t, tString, language } = useLanguage();
+  const { getTodayDate, getEntry, updateJournalEntry, addQuickNote, removeQuickNote, getAllDates, journal, updateQuickNote } = useJournal();
+  const { setJournal } = useApp();
+  const { habits, toggleCheck, addHabit, updateHabit, deleteHabit } = useHabits();
+  const [selectedDate, setSelectedDate] = useState('');
+  const [mood, setMood] = useState<Mood | null>(null);
+  const [text, setText] = useState('');
+  const [quickNotes, setQuickNotes] = useState<Array<{ id: string; text: string }>>([]);
+  const [newQuickNote, setNewQuickNote] = useState('');
+  const [isAddingQuickNote, setIsAddingQuickNote] = useState(false);
+  const [editingQuickNoteDate, setEditingQuickNoteDate] = useState<string | null>(null); // Data do card que está sendo editado
+  const [inlineQuickNoteText, setInlineQuickNoteText] = useState(''); // Texto do input inline
+  const [days, setDays] = useState<string[]>([]);
+  const [selectedHabit, setSelectedHabit] = useState<Habit | null>(null);
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [quickThoughtsMonth, setQuickThoughtsMonth] = useState(new Date());
+  const [journalDates, setJournalDates] = useState<string[]>([]);
+  const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
+  const { showConfirmation } = useConfirmation();
+  const [showNumericMood, setShowNumericMood] = useState(false);
+  const [currentMoodNumber, setCurrentMoodNumber] = useState<number | null>(null);
+  const [showDateCalendar, setShowDateCalendar] = useState(false);
+  const [dateCalendarMonth, setDateCalendarMonth] = useState(new Date());
+  const [isTextExpanded, setIsTextExpanded] = useState(false);
+  const [blocksMode, setBlocksMode] = useState(false);
+  const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
+  const [editingBlockText, setEditingBlockText] = useState('');
+  const [editingQuickNote, setEditingQuickNote] = useState<{ date: string; noteId: string } | null>(null);
+  const [editingQuickNoteText, setEditingQuickNoteText] = useState('');
+  const quickThoughtsScrollRef = useRef<HTMLDivElement>(null);
+  const [showQuickThoughtsView, setShowQuickThoughtsView] = useState(false);
+  const [showJournalHistory, setShowJournalHistory] = useState(false);
+  const isInitialLoadRef = useRef(true);
+
+  // Inicializar com data de hoje
+  useEffect(() => {
+    const todayDate = getTodayDate();
+    setSelectedDate(todayDate);
+    loadJournalEntry(todayDate);
+    setJournalDates(getAllDates());
+    // Marcar que a carga inicial foi concluída após um pequeno delay
+    setTimeout(() => {
+      isInitialLoadRef.current = false;
+    }, 100);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Scroll para o primeiro dia catalogado quando o mês mudar
+  useEffect(() => {
+    if (quickThoughtsScrollRef.current) {
+      // Encontrar o primeiro dia com pensamentos
+      const firstDayWithNotes = Object.keys(journal)
+        .filter(date => {
+          const entry = journal[date];
+          if (!entry?.quickNotes || entry.quickNotes.length === 0) return false;
+          const [y, m] = date.split('-').map(Number);
+          const currentMonth = quickThoughtsMonth.getMonth();
+          const currentYear = quickThoughtsMonth.getFullYear();
+          return y === currentYear && m - 1 === currentMonth;
+        })
+        .sort()
+        .reverse()[0];
+      
+      if (firstDayWithNotes) {
+        const [y, m, d] = firstDayWithNotes.split('-').map(Number);
+        const daysInMonth = new Date(y, m, 0).getDate();
+        const dayIndex = daysInMonth - d; // Ordem decrescente
+        const scrollPosition = dayIndex * 200;
+        quickThoughtsScrollRef.current.scrollLeft = scrollPosition;
+      }
+    }
+  }, [quickThoughtsMonth]); // Removido journal das dependências para não scrollar ao deletar
+
+  // Atualizar os 7 dias (últimos 7 dias incluindo hoje)
+  useEffect(() => {
+    const updateDays = () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const d = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const da = String(date.getDate()).padStart(2, "0");
+        d.push(`${y}-${m}-${da}`);
+      }
+      setDays(d);
+    };
+
+    updateDays();
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    const ms = tomorrow.getTime() - now.getTime();
+    const timeoutId = setTimeout(() => updateDays(), ms);
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  const loadJournalEntry = (date: string, preserveMoodNumber: boolean = false) => {
+    const entry = getEntry(date);
+    if (entry) {
+      setMood(entry.mood);
+      // Preservar o número atual se preserveMoodNumber for true, caso contrário usar o salvo
+      if (preserveMoodNumber && currentMoodNumber !== null) {
+        // Manter o número atual
+      } else {
+        // Sempre usar o número salvo se existir, caso contrário usar padrão baseado no mood
+        setCurrentMoodNumber(entry.moodNumber !== undefined ? entry.moodNumber : (entry.mood === 'bad' ? 2 : entry.mood === 'neutral' ? 5 : 8));
+      }
+      setText(entry.text);
+      setIsTextExpanded(!!entry.text); // Expandir se houver texto
+      setQuickNotes(entry.quickNotes.map((note) => ({ id: note.id, text: note.text })));
+    } else {
+      setMood(null);
+      if (!preserveMoodNumber) {
+        setCurrentMoodNumber(null);
+      }
+      setText('');
+      setIsTextExpanded(false); // Colapsar se não houver texto
+      setQuickNotes([]);
+    }
+  };
+
+  // Sincronizar quickNotes quando o journal do dia selecionado mudar (para sincronizar com exclusões no histórico)
+  useEffect(() => {
+    if (!selectedDate) return;
+    const entry = getEntry(selectedDate);
+    if (entry && entry.quickNotes) {
+      // Comparar se os quickNotes mudaram para evitar loops infinitos
+      const currentNotesText = quickNotes.map(n => n.text).join('|');
+      const journalNotesText = entry.quickNotes.map(n => n.text).join('|');
+      if (currentNotesText !== journalNotesText) {
+        setQuickNotes(entry.quickNotes.map((note) => ({ id: note.id, text: note.text })));
+      }
+    } else if (!entry && quickNotes.length > 0) {
+      setQuickNotes([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [journal, selectedDate]);
+
+  // Auto-save journal text (salva apenas se houver interação explícita)
+  // Aumentado debounce para melhorar performance no mobile
+  useEffect(() => {
+    if (!selectedDate) return;
+    
+    // Não salvar durante a carga inicial
+    if (isInitialLoadRef.current) return;
+    
+    // Não salvar se não houver conteúdo (texto, quickNotes ou mood selecionado)
+    const hasText = text.trim().length > 0;
+    const hasQuickNotes = quickNotes.some(n => n.text && n.text.trim().length > 0);
+    const hasMood = mood !== null;
+    
+    if (!hasText && !hasQuickNotes && !hasMood) return;
+    
+    const timeout = setTimeout(() => {
+      // Obter a entrada atual do journal para preservar os IDs dos quickNotes
+      const currentEntry = getEntry(selectedDate);
+      const existingQuickNotes = currentEntry?.quickNotes || [];
+      
+      // Filtrar pensamentos vazios antes de salvar, preservando IDs quando possível
+      const filteredQuickNotes = quickNotes
+        .filter(n => n.text && n.text.trim().length > 0)
+        .map(n => {
+          // Tentar encontrar o quickNote correspondente no journal para preservar ID e time
+          const existing = existingQuickNotes.find(e => e.id === n.id) || 
+                          existingQuickNotes.find(e => e.text.trim() === n.text.trim());
+          return {
+            id: existing?.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9)),
+            time: existing?.time || '',
+            text: n.text.trim()
+          };
+        });
+      
+      // Se não há mood mas há texto ou quickNotes, criar entrada sem mood (não forçar neutro)
+      // Se há mood, usar o mood selecionado
+      // Sempre salvar o moodNumber atual se houver mood
+      updateJournalEntry(selectedDate, { 
+        mood: mood || undefined, // Não criar mood neutro automaticamente
+        moodNumber: mood !== null ? (currentMoodNumber !== null ? currentMoodNumber : undefined) : undefined,
+        text, 
+        quickNotes: filteredQuickNotes
+      });
+      setJournalDates(getAllDates());
+    }, 2000); // Aumentado de 1000ms para 2000ms para reduzir salvamentos frequentes
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, selectedDate, mood, currentMoodNumber, setJournal, quickNotes]);
+
+  // Salvar texto antes de sair da página ou desmontar componente
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (!selectedDate) return;
+      
+      // Verificar se há conteúdo para salvar
+      const hasText = text.trim().length > 0;
+      const hasQuickNotes = quickNotes.some(n => n.text && n.text.trim().length > 0);
+      const hasMood = mood !== null;
+      
+      // Só salvar se houver conteúdo
+      if (hasText || hasQuickNotes || hasMood) {
+        // Obter a entrada atual do journal para preservar os IDs dos quickNotes
+        const currentEntry = getEntry(selectedDate);
+        const existingQuickNotes = currentEntry?.quickNotes || [];
+        
+        // Filtrar pensamentos vazios antes de salvar, preservando IDs quando possível
+        const filteredQuickNotes = quickNotes
+          .filter(n => n.text && n.text.trim().length > 0)
+          .map(n => {
+            // Tentar encontrar o quickNote correspondente no journal para preservar ID e time
+            const existing = existingQuickNotes.find(e => e.id === n.id) || 
+                            existingQuickNotes.find(e => e.text.trim() === n.text.trim());
+            return {
+              id: existing?.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9)),
+              time: existing?.time || '',
+              text: n.text.trim()
+            };
+          });
+        updateJournalEntry(selectedDate, { 
+          mood: mood || undefined, // Não criar mood neutro automaticamente
+          moodNumber: mood !== null ? (currentMoodNumber !== null ? currentMoodNumber : undefined) : undefined,
+          text, 
+          quickNotes: filteredQuickNotes
+        });
+      }
+    };
+
+    // Salvar quando o componente for desmontado
+    const handleUnload = () => {
+      handleBeforeUnload();
+    };
+
+    // Adicionar listeners
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handleUnload);
+
+    // Cleanup: salvar antes de remover listeners
+    return () => {
+      handleBeforeUnload(); // Salvar antes de desmontar
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handleUnload);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, selectedDate, mood, currentMoodNumber, quickNotes, updateJournalEntry]);
+
+  // Função auxiliar para salvar antes de mudar de data
+  const saveCurrentEntry = () => {
+    if (selectedDate && (text.trim() || mood !== null || quickNotes.length > 0)) {
+      // Se não há mood mas há texto, cria uma entrada com mood neutro
+      const entryMood = mood || 'neutral';
+      
+      // Obter a entrada atual do journal para preservar os IDs dos quickNotes
+      const currentEntry = getEntry(selectedDate);
+      const existingQuickNotes = currentEntry?.quickNotes || [];
+      
+      // Filtrar pensamentos vazios antes de salvar, preservando IDs quando possível
+      const filteredQuickNotes = quickNotes
+        .filter(n => n.text && n.text.trim().length > 0)
+        .map(n => {
+          // Tentar encontrar o quickNote correspondente no journal para preservar ID e time
+          const existing = existingQuickNotes.find(e => e.id === n.id) || 
+                          existingQuickNotes.find(e => e.text.trim() === n.text.trim());
+          return {
+            id: existing?.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9)),
+            time: existing?.time || '',
+            text: n.text.trim()
+          };
+        });
+      updateJournalEntry(selectedDate, { 
+        mood: entryMood as Mood,
+        moodNumber: currentMoodNumber ?? (mood === null ? 5 : undefined),
+        text, 
+        quickNotes: filteredQuickNotes
+      });
+      setJournalDates(getAllDates());
+    }
+  };
+
+  const handleDateChange = (date: string) => {
+    // Salvar o texto da data atual antes de mudar
+    saveCurrentEntry();
+    // Marcar como carga inicial ao mudar de data
+    isInitialLoadRef.current = true;
+    setSelectedDate(date);
+    loadJournalEntry(date);
+    // Permitir salvamento após carregar a nova data
+    setTimeout(() => {
+      isInitialLoadRef.current = false;
+    }, 100);
+  };
+
+  const handleMoodClick = (newMood: Mood | null) => {
+    if (!selectedDate) return;
+    setMood(newMood);
+    // Atualizar número correspondente ao mood apenas se não estiver usando seletor numérico
+    if (newMood !== null && !showNumericMood) {
+      if (newMood === 'bad') setCurrentMoodNumber(2);
+      else if (newMood === 'neutral') setCurrentMoodNumber(5);
+      else setCurrentMoodNumber(8);
+    } else if (newMood === null) {
+      setCurrentMoodNumber(null);
+    }
+    
+    // Obter a entrada atual do journal para preservar texto e quickNotes
+    const currentEntry = getEntry(selectedDate);
+    const existingQuickNotes = currentEntry?.quickNotes || [];
+    const existingText = currentEntry?.text || text;
+    
+    // Se não há mood, texto e quickNotes, então pode deletar a entrada
+    // Caso contrário, apenas remove o mood mas preserva o resto
+    if (newMood === null && !existingText.trim() && existingQuickNotes.length === 0) {
+      // Remove entrada apenas se não houver texto nem quickNotes
+      setJournal((prev) => {
+        const updated = { ...prev };
+        delete updated[selectedDate];
+        return updated;
+      });
+      setJournalDates(getAllDates().filter(date => date !== selectedDate));
+    } else {
+      // Preservar texto e quickNotes, apenas atualizar/remover o mood
+      updateJournalEntry(selectedDate, { 
+        mood: newMood || undefined,
+        moodNumber: newMood === null ? undefined : (currentMoodNumber ?? undefined),
+        text: existingText, 
+        quickNotes: existingQuickNotes
+      });
+      setJournalDates(getAllDates());
+    }
+  };
+
+  const handleNumberClick = (num: number | null, newMood: Mood | null) => {
+    if (!selectedDate) return;
+    setCurrentMoodNumber(num);
+    setMood(newMood);
+    
+    // Obter a entrada atual do journal para preservar texto e quickNotes
+    const currentEntry = getEntry(selectedDate);
+    const existingQuickNotes = currentEntry?.quickNotes || [];
+    const existingText = currentEntry?.text || text;
+    
+    // Se não há mood, texto e quickNotes, então pode deletar a entrada
+    // Caso contrário, apenas remove o mood mas preserva o resto
+    if (newMood === null && !existingText.trim() && existingQuickNotes.length === 0) {
+      // Remove entrada apenas se não houver texto nem quickNotes
+      setJournal((prev) => {
+        const updated = { ...prev };
+        delete updated[selectedDate];
+        return updated;
+      });
+      setJournalDates(getAllDates().filter(date => date !== selectedDate));
+    } else {
+      // Preservar texto e quickNotes, apenas atualizar/remover o mood
+      updateJournalEntry(selectedDate, { 
+        mood: newMood || undefined,
+        moodNumber: num ?? undefined,
+        text: existingText, 
+        quickNotes: existingQuickNotes
+      });
+      setJournalDates(getAllDates());
+    }
+  };
+
+  // Sincronizar número quando mood muda externamente (apenas se não estiver usando seletor numérico)
+  // IMPORTANTE: Não sobrescrever o número quando o usuário alterna entre emoji e números
+  // IMPORTANTE: Não sobrescrever o número quando o usuário seleciona um número específico
+  useEffect(() => {
+    if (!showNumericMood && mood !== null) {
+      // Só atualizar se o mood foi mudado pelos emojis, não quando alterna a visualização
+      // Se já existe um número específico, mantê-lo
+      // Verificar se há um número salvo no journal antes de usar padrão
+      const entry = selectedDate ? getEntry(selectedDate) : null;
+      const savedMoodNumber = entry?.moodNumber;
+      
+      if (currentMoodNumber === null && savedMoodNumber === undefined) {
+        // Só definir número padrão se não houver número definido nem salvo
+        if (mood === 'bad') setCurrentMoodNumber(2);
+        else if (mood === 'neutral') setCurrentMoodNumber(5);
+        else if (mood === 'good') setCurrentMoodNumber(8);
+      } else if (savedMoodNumber !== undefined && currentMoodNumber !== savedMoodNumber) {
+        // Se há um número salvo diferente do atual, usar o salvo
+        setCurrentMoodNumber(savedMoodNumber);
+      }
+    } else if (mood === null) {
+      setCurrentMoodNumber(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mood, showNumericMood]); // Adicionado showNumericMood para não interferir quando está em modo numérico
+
+  const handleAddQuickNote = () => {
+    if (newQuickNote.trim() && selectedDate) {
+      addQuickNote(selectedDate, newQuickNote.trim());
+      const newNote = { id: Date.now().toString(), text: newQuickNote.trim() };
+      setQuickNotes([...quickNotes, newNote]);
+      setNewQuickNote('');
+      setIsAddingQuickNote(false);
+    }
+  };
+
+  const handleAddInlineQuickNote = (dateStr: string) => {
+    const textToAdd = inlineQuickNoteText.trim();
+    if (!textToAdd) return;
+    
+    // Limpar o estado primeiro para evitar conflitos
+    setInlineQuickNoteText('');
+    setEditingQuickNoteDate(null);
+    
+    // Obter a entrada atual do journal para garantir que estamos trabalhando com dados atualizados
+    const currentEntry = getEntry(dateStr);
+    
+    // Obter o texto longo da data selecionada para preservá-lo
+    const selectedEntry = selectedDate ? getEntry(selectedDate) : null;
+    const textToPreserve = selectedEntry?.text || '';
+    
+    // Se não existe entrada para esta data, criar uma com o texto preservado antes de adicionar o quickNote
+    if (!currentEntry) {
+      updateJournalEntry(dateStr, {
+        mood: undefined,
+        moodNumber: undefined,
+        text: textToPreserve, // Preservar o texto longo da data selecionada
+        quickNotes: [],
+      });
+    }
+    
+    // Usar apenas addQuickNote para adicionar o pensamento rápido (evita duplicação)
+    // O useEffect vai sincronizar automaticamente os quickNotes quando o journal mudar
+    addQuickNote(dateStr, textToAdd);
+    
+    // Atualizar as datas do journal
+    setJournalDates(getAllDates());
+  };
+
+  const handleQuickNoteKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleAddQuickNote();
+    }
+  };
+
+  const handleRemoveQuickNote = (noteId: string) => {
+    if (selectedDate) {
+      removeQuickNote(selectedDate, noteId);
+      setJournalDates(getAllDates());
+      // O useEffect vai sincronizar automaticamente os quickNotes quando o journal mudar
+    }
+  };
+
+  // Funções para modo blocos
+  const handleToggleBlocksMode = () => {
+    setBlocksMode(!blocksMode);
+    if (!blocksMode && quickNotes.length === 0 && text.trim()) {
+      // Se não há quick notes mas há texto, converter texto em primeiro bloco
+      const firstBlock = { 
+        id: Date.now().toString(), 
+        text: text.trim(),
+        createdAt: new Date().toISOString()
+      };
+      setQuickNotes([firstBlock]);
+    }
+  };
+
+  const handleAddBlock = () => {
+    const newBlock = {
+      id: Date.now().toString(),
+      text: '',
+      createdAt: new Date().toISOString()
+    };
+    const updatedNotes = [...quickNotes, newBlock];
+    setQuickNotes(updatedNotes);
+    setEditingBlockId(newBlock.id);
+    setEditingBlockText('');
+  };
+
+  const handleEditBlock = (blockId: string) => {
+    const block = quickNotes.find(n => n.id === blockId);
+    if (block) {
+      setEditingBlockId(blockId);
+      setEditingBlockText(block.text);
+    }
+  };
+
+  const handleSaveBlock = (blockId: string) => {
+    if (selectedDate) {
+      const updatedNotes = editingBlockText.trim()
+        ? quickNotes.map(note => 
+            note.id === blockId 
+              ? { ...note, text: editingBlockText.trim() }
+              : note
+          )
+        : quickNotes.filter(note => note.id !== blockId); // Remove se estiver vazio
+      
+      setQuickNotes(updatedNotes);
+      // Obter a entrada atual do journal para preservar os IDs e times dos quickNotes
+      const currentEntry = getEntry(selectedDate);
+      const existingQuickNotes = currentEntry?.quickNotes || [];
+      
+      // Salvar no journal, preservando IDs e times quando possível
+      updateJournalEntry(selectedDate, {
+        mood: mood as Mood,
+        moodNumber: currentMoodNumber ?? undefined,
+        text,
+        quickNotes: updatedNotes.map(n => {
+          // Tentar encontrar o quickNote correspondente no journal para preservar ID e time
+          const existing = existingQuickNotes.find(e => e.id === n.id);
+          return {
+            id: existing?.id || n.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9)),
+            time: existing?.time || '',
+            text: n.text
+          };
+        })
+      });
+    }
+    setEditingBlockId(null);
+    setEditingBlockText('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingBlockId(null);
+    setEditingBlockText('');
+  };
+
+  const handleRemoveBlock = (blockId: string) => {
+    if (selectedDate) {
+      const updatedNotes = quickNotes.filter(n => n.id !== blockId);
+      setQuickNotes(updatedNotes);
+      // Obter a entrada atual do journal para preservar os IDs e times dos quickNotes
+      const currentEntry = getEntry(selectedDate);
+      const existingQuickNotes = currentEntry?.quickNotes || [];
+      
+      // Atualizar no journal, preservando IDs e times quando possível
+      updateJournalEntry(selectedDate, {
+        mood: mood as Mood,
+        moodNumber: currentMoodNumber ?? undefined,
+        text,
+        quickNotes: updatedNotes.map(n => {
+          // Tentar encontrar o quickNote correspondente no journal para preservar ID e time
+          const existing = existingQuickNotes.find(e => e.id === n.id);
+          return {
+            id: existing?.id || n.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9)),
+            time: existing?.time || '',
+            text: n.text
+          };
+        })
+      });
+    }
+  };
+
+  const handleAddHabit = () => {
+    const name = prompt('Novo nome do hábito:');
+    if (name && name.trim()) {
+      const trimmedName = name.trim().substring(0, 35); // Limitar a 35 caracteres
+      if (trimmedName) addHabit(trimmedName);
+    }
+  };
+
+  const handleRenameHabit = (habitId: number, currentName: string) => {
+    const newName = prompt('Novo nome do hábito:', currentName);
+    if (!newName || newName.trim() === "") return;
+    updateHabit(habitId, { name: newName.trim() });
+    if (selectedHabit && selectedHabit.id === habitId) {
+      setSelectedHabit({ ...selectedHabit, name: newName.trim() });
+    }
+  };
+
+  const handleDeleteHabit = (habitId: number, habitName: string) => {
+    showConfirmation({
+      message: `Tem certeza que deseja excluir o hábito "${habitName}"?\n\nEsta ação não pode ser desfeita.`,
+      onConfirm: () => {
+        deleteHabit(habitId);
+        if (selectedHabit && selectedHabit.id === habitId) {
+          setSelectedHabit(null);
+        }
+      },
+    });
+  };
+
+  const formatDisplayDate = (dateStr: string) => {
+    const date = new Date(dateStr + 'T00:00:00');
+    // Mapeamento de dias e meses por idioma
+    const daysMap: Record<string, string[]> = {
+      'pt': ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'],
+      'en': ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+      'es': ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
+      'ko': ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'],
+      'ja': ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'],
+      'de': ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'],
+      'fr': ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'],
+      'it': ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'],
+      'zh-CN': ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'],
+      'zh-TW': ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'],
+    };
+    const monthsMap: Record<string, string[]> = {
+      'pt': ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+      'en': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+      'es': ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+      'ko': ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+      'ja': ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+      'de': ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
+      'fr': ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'],
+      'it': ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'],
+      'zh-CN': ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+      'zh-TW': ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+    };
+    
+    const days = daysMap[language] || daysMap['pt'];
+    const months = monthsMap[language] || monthsMap['pt'];
+    
+    return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`;
+  };
+
+  const formatDateShort = (dateStr: string) => {
+    return dateStr.substring(5).replace('-', '-');
+  };
+
+  const formatDateForHistory = (dateStr: string) => {
+    const date = new Date(dateStr + "T00:00:00");
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  const getMoodLabel = (mood: string, moodNumber?: number) => {
+    const moods: { [key: string]: { label: string; emoji: string } } = {
+      good: { label: tString('journal.moodGood'), emoji: "😊" },
+      neutral: { label: tString('journal.moodNeutral'), emoji: "😐" },
+      bad: { label: tString('journal.moodBad'), emoji: "😞" },
+    };
+    return moods[mood] || moods.neutral;
+  };
+
+  // Navegação de datas
+  const navigateDate = (direction: 'prev' | 'next') => {
+    if (!selectedDate) return;
+    const current = new Date(selectedDate + 'T00:00:00');
+    if (direction === 'prev') {
+      current.setDate(current.getDate() - 1);
+    } else {
+      current.setDate(current.getDate() + 1);
+    }
+    const y = current.getFullYear();
+    const m = String(current.getMonth() + 1).padStart(2, "0");
+    const da = String(current.getDate()).padStart(2, "0");
+    const newDate = `${y}-${m}-${da}`;
+    handleDateChange(newDate);
+  };
+
+  // Calendário de hábitos
+  const goToPreviousMonth = () => {
+    setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1));
+  };
+
+  const goToNextMonth = () => {
+    setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1));
+  };
+
+  // Calendário de seleção de data
+  const goToPreviousDateMonth = () => {
+    setDateCalendarMonth(new Date(dateCalendarMonth.getFullYear(), dateCalendarMonth.getMonth() - 1, 1));
+  };
+
+  const goToNextDateMonth = () => {
+    setDateCalendarMonth(new Date(dateCalendarMonth.getFullYear(), dateCalendarMonth.getMonth() + 1, 1));
+  };
+
+  // Verifica se uma entrada tem conteúdo válido (texto, pensamentos rápidos ou mood selecionado)
+  const hasValidEntry = (dateStr: string): boolean => {
+    const entry = getEntry(dateStr);
+    if (!entry) return false;
+    
+    // Verifica se tem texto escrito
+    const hasText = entry.text && entry.text.trim().length > 0;
+    // Verifica se tem pensamentos rápidos
+    const hasQuickNotes = entry.quickNotes && entry.quickNotes.length > 0;
+    // Verifica se tem mood selecionado (não é null e existe)
+    const hasMood = entry.mood !== null && entry.mood !== undefined;
+    
+    // Retorna true se tiver pelo menos um desses
+    return hasText || hasQuickNotes || hasMood;
+  };
+
+  // Helper para formatar data sem problemas de fuso horário
+  const formatDateKey = (date: Date): string => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const getDateCalendarDays = (): Array<{ date: Date; isCurrentMonth: boolean; isToday: boolean; hasEntry: boolean }> => {
+    const year = dateCalendarMonth.getFullYear();
+    const month = dateCalendarMonth.getMonth();
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const firstDayOfWeek = firstDay.getDay();
+    
+    const today = new Date();
+    const todayStr = formatDateKey(today);
+    
+    const prevMonthDays: Array<{ date: Date; isCurrentMonth: boolean; isToday: boolean; hasEntry: boolean }> = [];
+    // Calcular dias do mês anterior
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      const day = prevMonthLastDay - i;
+      const date = new Date(year, month - 1, day);
+      const dateStr = formatDateKey(date);
+      prevMonthDays.push({
+        date,
+        isCurrentMonth: false,
+        isToday: dateStr === todayStr,
+        hasEntry: hasValidEntry(dateStr),
+      });
+    }
+    
+    const currentMonthDays: Array<{ date: Date; isCurrentMonth: boolean; isToday: boolean; hasEntry: boolean }> = [];
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+      const date = new Date(year, month, day);
+      const dateStr = formatDateKey(date);
+      currentMonthDays.push({
+        date,
+        isCurrentMonth: true,
+        isToday: dateStr === todayStr,
+        hasEntry: hasValidEntry(dateStr),
+      });
+    }
+    
+    const totalDays = prevMonthDays.length + currentMonthDays.length;
+    const remainingDays = 42 - totalDays;
+    const nextMonthDays: Array<{ date: Date; isCurrentMonth: boolean; isToday: boolean; hasEntry: boolean }> = [];
+    for (let day = 1; day <= remainingDays; day++) {
+      const date = new Date(year, month + 1, day);
+      const dateStr = formatDateKey(date);
+      nextMonthDays.push({
+        date,
+        isCurrentMonth: false,
+        isToday: dateStr === todayStr,
+        hasEntry: hasValidEntry(dateStr),
+      });
+    }
+    
+    return [...prevMonthDays, ...currentMonthDays, ...nextMonthDays];
+  };
+
+  const handleDateSelect = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const da = String(date.getDate()).padStart(2, "0");
+    const newDate = `${y}-${m}-${da}`;
+    handleDateChange(newDate);
+    setShowDateCalendar(false);
+  };
+
+  const getMonthCalendarDays = (): Array<{ date: Date; isCurrentMonth: boolean; isToday: boolean }> => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const firstDayOfWeek = firstDay.getDay();
+    
+    const prevMonthDays: Array<{ date: Date; isCurrentMonth: boolean; isToday: boolean }> = [];
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      const date = new Date(year, month, -i);
+      const dateStr = date.toISOString().substring(0, 10);
+      const todayStr = new Date().toISOString().substring(0, 10);
+      prevMonthDays.push({
+        date,
+        isCurrentMonth: false,
+        isToday: dateStr === todayStr,
+      });
+    }
+    
+    const currentMonthDays: Array<{ date: Date; isCurrentMonth: boolean; isToday: boolean }> = [];
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+      const date = new Date(year, month, day);
+      const dateStr = date.toISOString().substring(0, 10);
+      const todayStr = new Date().toISOString().substring(0, 10);
+      currentMonthDays.push({
+        date,
+        isCurrentMonth: true,
+        isToday: dateStr === todayStr,
+      });
+    }
+    
+    const totalDays = prevMonthDays.length + currentMonthDays.length;
+    const remainingDays = 42 - totalDays;
+    const nextMonthDays: Array<{ date: Date; isCurrentMonth: boolean; isToday: boolean }> = [];
+    for (let day = 1; day <= remainingDays; day++) {
+      const date = new Date(year, month + 1, day);
+      const dateStr = date.toISOString().substring(0, 10);
+      const todayStr = new Date().toISOString().substring(0, 10);
+      nextMonthDays.push({
+        date,
+        isCurrentMonth: false,
+        isToday: dateStr === todayStr,
+      });
+    }
+    
+    return [...prevMonthDays, ...currentMonthDays, ...nextMonthDays];
+  };
+
+  // ===============================
+  // Calculate monthly progress
+  // ===============================
+  const calculateMonthlyProgress = (habit: Habit, month: Date): number => {
+    const year = month.getFullYear();
+    const monthIndex = month.getMonth();
+    const firstDay = new Date(year, monthIndex, 1);
+    const lastDay = new Date(year, monthIndex + 1, 0);
+    
+    // Get habit creation date
+    const habitCreatedAt = habit.createdAt ? new Date(habit.createdAt) : firstDay;
+    habitCreatedAt.setHours(0, 0, 0, 0);
+    const startDate = habitCreatedAt > firstDay ? habitCreatedAt : firstDay;
+    
+    // Calculate days in the month that the habit was active
+    // No primeiro mês: dias de check / dias restantes do mês (desde criação até hoje)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endDate = lastDay > today ? today : lastDay;
+    
+    let totalDays = 0;
+    let checkedDays = 0;
+    
+    // Iterar pelos dias desde a criação do hábito até hoje (ou fim do mês)
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      const dateStr = formatDateKey(d);
+      totalDays++;
+      if (habit.checks[dateStr]) {
+        checkedDays++;
+      }
+    }
+    
+    return totalDays > 0 ? checkedDays / totalDays : 0;
+  };
+
+  const getProgressColor = (progress: number): string => {
+    if (progress >= 0.75) return '#22c55e'; // verde escuro
+    if (progress >= 0.50) return '#4ade80'; // verde sólido
+    if (progress >= 0.25) return '#86efac'; // verde claro
+    return '#d1d5db'; // cinza
+  };
+
+  const formatMonthYear = (date: Date): string => {
+    const monthsFull = t('journal.monthsFull') as string[];
+    const monthName = monthsFull[date.getMonth()];
+    return `${monthName} ${t('common.of')} ${date.getFullYear()}`;
+  };
+
+  return (
+    <div>
+      <div>
+        {/* Journal Card */}
+        <PixelCard className="p-6">
+          {/* Cabeçalho com navegação de datas */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigateDate('prev')}
+                className="w-8 h-8 flex items-center justify-center rounded border border-[#d8d4c7] hover:bg-[#ece8dd] transition-colors font-pixel-bold"
+                style={{ color: '#111' }}
+              >
+                ←
+              </button>
+              <h2 
+                className="text-sm font-pixel-bold cursor-pointer hover:underline" 
+                style={{ color: '#333', fontSize: '16px' }}
+                title="Clique para selecionar uma data"
+                onClick={() => {
+                  if (selectedDate) {
+                    const date = new Date(selectedDate + 'T00:00:00');
+                    setDateCalendarMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+                  }
+                  setShowDateCalendar(true);
+                }}
+              >
+                {selectedDate ? formatDisplayDate(selectedDate) : 'Loading...'}
+              </h2>
+              <button
+                onClick={() => navigateDate('next')}
+                className="w-8 h-8 flex items-center justify-center rounded border border-[#d8d4c7] hover:bg-[#ece8dd] transition-colors font-pixel-bold"
+                style={{ color: '#111' }}
+              >
+                →
+              </button>
+            </div>
+          </div>
+
+          {/* Mood Selector */}
+          <div 
+            className="flex justify-center gap-4 mb-4 items-center"
+            onClick={(e) => {
+              // Prevenir que cliques nos botões de mood propaguem para elementos pais
+              e.stopPropagation();
+            }}
+            onMouseDown={(e) => {
+              // Prevenir que cliques nos botões de mood propaguem para elementos pais
+              e.stopPropagation();
+            }}
+          >
+            {!showNumericMood ? (
+              <>
+                {(['bad', 'neutral', 'good'] as Mood[]).map((m) => {
+                  const isSelected = mood === m;
+                  const borderColor = m === 'good' ? '#81C784' : m === 'neutral' ? '#FFD54F' : '#EF5350';
+                  return (
+                    <button
+                      key={m}
+                      onClick={() => handleMoodClick(isSelected ? null : m)}
+                      className="w-12 h-12 rounded-full flex items-center justify-center transition-all"
+                      style={{
+                        backgroundColor: isSelected 
+                          ? (m === 'good' ? '#C8E6C9' : m === 'neutral' ? '#FFF9C4' : '#FFCDD2')
+                          : '#F5F5F5',
+                        border: `1px solid ${isSelected ? borderColor : '#d8d4c7'}`,
+                        boxShadow: isSelected ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
+                      }}
+                    >
+                      <span className="text-xl">
+                        {m === 'good' ? '🙂' : m === 'neutral' ? '😐' : '🙁'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </>
+            ) : (
+              <div className="flex gap-2 flex-wrap justify-center">
+                  {Array.from({ length: 11 }, (_, i) => i).map((num) => {
+                    const mappedMood = num <= 3 ? 'bad' : num <= 6 ? 'neutral' : 'good';
+                    const isSelected = mood === mappedMood && currentMoodNumber === num;
+                    return (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (isSelected) {
+                            handleNumberClick(null, null);
+                          } else {
+                            const newMood = mappedMood as Mood;
+                            handleNumberClick(num, newMood);
+                          }
+                        }}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                        onTouchStart={(e) => {
+                          e.stopPropagation();
+                        }}
+                        className="w-10 h-10 rounded-full border-2 border-black font-mono font-bold text-sm flex items-center justify-center transition-all touch-manipulation"
+                        style={{
+                          backgroundColor: isSelected ? '#6daffe' : '#F5F5F5',
+                          borderColor: isSelected ? '#000' : '#d8d4c7',
+                          minWidth: '40px',
+                          minHeight: '40px',
+                          pointerEvents: 'auto',
+                          userSelect: 'none',
+                          position: 'relative',
+                          zIndex: 10,
+                        }}
+                      >
+                        {num}
+                      </button>
+                    );
+                  })}
+              </div>
+            )}
+            <button
+              onClick={() => setShowNumericMood(!showNumericMood)}
+              className="w-10 h-10 rounded-full border-2 border-black bg-gray-300 font-mono font-bold text-sm flex items-center justify-center hover:bg-gray-400 transition-all"
+              style={{ borderColor: '#d8d4c7' }}
+              aria-label={showNumericMood ? "Mostrar emojis" : "Mostrar números"}
+              title={showNumericMood ? "Mostrar emojis" : "Mostrar números"}
+            >
+              {showNumericMood ? '😊' : '#'}
+            </button>
+          </div>
+
+          {/* Quick Thoughts - SEMPRE aparece primeiro, antes do histórico/textarea */}
+          {!showQuickThoughtsView ? (
+            // Visualização Simples
+                <div 
+                  className="border border-[#e0e0e0] rounded-lg p-4 mb-6"
+                  style={{
+                    backgroundColor: '#e8e8e8',
+                  }}
+                >
+                  <div className="flex justify-between items-center mb-3">
+                    <p className="text-xs tracking-widest font-pixel-bold" style={{ color: '#333' }}>
+                      {t('journal.quickThoughts')}
+                    </p>
+                    <button
+                      onClick={() => {
+                        // Fechar histórico do journal se estiver aberto
+                        if (showJournalHistory) {
+                          setShowJournalHistory(false);
+                        }
+                        setShowQuickThoughtsView(true);
+                      }}
+                      className="px-3 py-1 rounded font-pixel text-xs transition-colors"
+                      style={{
+                        backgroundColor: '#f0f0f0',
+                        color: '#333',
+                        border: '1px solid #e0e0e0',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#e0e0e0';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f0f0f0';
+                      }}
+                    >
+                      {t('common.history')}
+                    </button>
+                  </div>
+
+              <div className="flex flex-col gap-2" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                {quickNotes.map((note, idx) => (
+                      <div
+                        key={note.id}
+                        className="p-2 rounded-md font-pixel text-gray-800 flex justify-between items-center relative group border border-[#e0e0e0]"
+                        style={{ 
+                          fontSize: '16px',
+                          backgroundColor: '#FFFFFF',
+                          transition: 'background-color 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#ececec';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#FFFFFF';
+                        }}
+                      >
+                    {editingQuickNote && editingQuickNote.date === selectedDate && editingQuickNote.noteId === note.id ? (
+                      <input
+                        type="text"
+                        value={editingQuickNoteText}
+                        onChange={(e) => setEditingQuickNoteText(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            if (selectedDate && editingQuickNoteText.trim()) {
+                              updateQuickNote(selectedDate, note.id, editingQuickNoteText.trim());
+                              setEditingQuickNote(null);
+                              setEditingQuickNoteText('');
+                            }
+                          } else if (e.key === 'Escape') {
+                            setEditingQuickNote(null);
+                            setEditingQuickNoteText('');
+                          }
+                        }}
+                        onBlur={() => {
+                          if (selectedDate && editingQuickNoteText.trim()) {
+                            updateQuickNote(selectedDate, note.id, editingQuickNoteText.trim());
+                          }
+                          setEditingQuickNote(null);
+                          setEditingQuickNoteText('');
+                        }}
+                        className="flex-1 px-2 py-1 rounded font-pixel border"
+                        style={{
+                          backgroundColor: '#FFFFFF',
+                          borderColor: '#d0d0d0',
+                          color: '#333',
+                          fontSize: '16px',
+                        }}
+                        autoFocus
+                      />
+                    ) : (
+                      <span 
+                        className="flex-1 cursor-text"
+                        onDoubleClick={() => {
+                          if (selectedDate) {
+                            setEditingQuickNote({ date: selectedDate, noteId: note.id });
+                            setEditingQuickNoteText(note.text);
+                          }
+                        }}
+                      >
+                        {note.text}
+                      </span>
+                    )}
+                        <button
+                          onClick={() => handleRemoveQuickNote(note.id)}
+                          className="text-red-500 ml-2 transition-opacity"
+                          style={{ fontSize: '20px', opacity: 1 }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Input inline para adicionar quick thought */}
+                    <div className="flex gap-2 mt-4">
+                      <div className="flex-1 relative">
+                        <input
+                          type="text"
+                          value={newQuickNote}
+                          onChange={(e) => {
+                            setNewQuickNote(e.target.value);
+                            if (e.target.value.trim()) {
+                              setIsAddingQuickNote(true);
+                            }
+                          }}
+                          onKeyPress={handleQuickNoteKeyPress}
+                          onFocus={() => setIsAddingQuickNote(true)}
+                          onBlur={() => {
+                            if (!newQuickNote.trim()) {
+                              setIsAddingQuickNote(false);
+                            }
+                          }}
+                          placeholder={tString('journal.addQuickThought')}
+                          className="w-full px-4 py-3 rounded-md font-pixel"
+                          style={{
+                            backgroundColor: '#9e9e9e',
+                            border: '1px solid #9e9e9e',
+                            color: '#FFFFFF',
+                            fontSize: '16px',
+                          }}
+                        />
+                      </div>
+                      {isAddingQuickNote && newQuickNote.trim() && (
+                        <button
+                          onClick={handleAddQuickNote}
+                          className="px-6 py-3 rounded-md font-pixel-bold transition-all hover:opacity-95"
+                          style={{
+                            backgroundColor: '#9e9e9e',
+                            border: '1px solid #9e9e9e',
+                            color: '#FFFFFF',
+                            fontSize: '16px',
+                          }}
+                        >
+                          Enviar
+                        </button>
+                      )}
+                    </div>
+                </div>
+          ) : (
+            // Visualização em Tabela - aparece no mesmo lugar da visualização simples
+            (() => {
+              // Agrupar quick notes por data
+              const thoughtsByDate: Array<{ date: string; notes: Array<{ time: string; text: string; index: number }> }> = [];
+              Object.keys(journal)
+                .sort()
+                .reverse()
+                .forEach((date) => {
+                  const entry = journal[date];
+                  if (entry && entry.quickNotes && entry.quickNotes.length > 0) {
+                    const notes = entry.quickNotes.map((note, index) => ({
+                      time: note.time || '',
+                      text: note.text,
+                      index,
+                    }));
+                    thoughtsByDate.push({ date, notes });
+                  }
+                });
+
+              const today = new Date();
+              const todayYearForHighlight = today.getFullYear();
+              const todayMonthForHighlight = today.getMonth() + 1;
+              const todayDayForHighlight = today.getDate();
+
+              const getMonthName = () => {
+                const monthsFull = t('journal.monthsFull') as string[];
+                return monthsFull[quickThoughtsMonth.getMonth()];
+              };
+                  
+              const getDaysInMonth = (month: number, year: number) => {
+                return new Date(year, month + 1, 0).getDate();
+              };
+
+              const getFirstDayOfMonth = (month: number, year: number) => {
+                return new Date(year, month, 1).getDay();
+              };
+
+              const month = quickThoughtsMonth.getMonth();
+              const year = quickThoughtsMonth.getFullYear();
+              const daysInMonth = getDaysInMonth(month, year);
+              const firstDay = getFirstDayOfMonth(month, year);
+                  
+                  return (
+                <div className="mb-6" style={{ backgroundColor: '#e8e8e8', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '16px' }}>
+                  <div className="flex justify-between items-center mb-4">
+                    <p className="text-xs tracking-widest font-pixel-bold" style={{ color: '#333' }}>
+                      {t('journal.quickThoughts')}
+                    </p>
+                    <button
+                      onClick={() => setShowQuickThoughtsView(false)}
+                      className="px-3 py-1 rounded font-pixel text-xs transition-colors"
+                      style={{
+                        backgroundColor: '#f0f0f0',
+                        color: '#333',
+                        border: '1px solid #e0e0e0',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#e0e0e0';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f0f0f0';
+                      }}
+                    >
+                      {t('common.hide')}
+                    </button>
+                            </div>
+
+                  <div className="flex items-center justify-between mb-4">
+                    <button
+                      onClick={() => {
+                        const monthIndex = quickThoughtsMonth.getMonth();
+                        setQuickThoughtsMonth((prev) => {
+                          const newDate = new Date(prev);
+                          newDate.setMonth(monthIndex - 1);
+                          return newDate;
+                        });
+                      }}
+                      className="px-3 py-1 rounded font-pixel text-xs transition-colors"
+            style={{
+                        backgroundColor: '#f0f0f0',
+              color: '#333',
+                        border: '1px solid #e0e0e0',
+            }}
+                    >
+                      ←
+                    </button>
+                    <span className="font-pixel-bold text-sm" style={{ color: '#333' }}>
+                      {getMonthName().toUpperCase()} · {quickThoughtsMonth.getFullYear()}
+                    </span>
+            <button
+              onClick={() => {
+                        const monthIndex = quickThoughtsMonth.getMonth();
+                        setQuickThoughtsMonth((prev) => {
+                          const newDate = new Date(prev);
+                          newDate.setMonth(monthIndex + 1);
+                          return newDate;
+                        });
+                      }}
+                      disabled={(() => {
+                        const today = new Date();
+                        const currentMonth = today.getMonth();
+                        const currentYear = today.getFullYear();
+                        const viewMonth = quickThoughtsMonth.getMonth();
+                        const viewYear = quickThoughtsMonth.getFullYear();
+                        // Desabilitar se o próximo mês for futuro
+                        const nextMonth = viewMonth === 11 ? 0 : viewMonth + 1;
+                        const nextYear = viewMonth === 11 ? viewYear + 1 : viewYear;
+                        return nextYear > currentYear || (nextYear === currentYear && nextMonth > currentMonth);
+                      })()}
+              className="px-3 py-1 rounded font-pixel text-xs transition-colors"
+              style={{
+                backgroundColor: '#f0f0f0',
+                color: '#333',
+                border: '1px solid #e0e0e0',
+                        opacity: (() => {
+                          const today = new Date();
+                          const currentMonth = today.getMonth();
+                          const currentYear = today.getFullYear();
+                          const viewMonth = quickThoughtsMonth.getMonth();
+                          const viewYear = quickThoughtsMonth.getFullYear();
+                          const nextMonth = viewMonth === 11 ? 0 : viewMonth + 1;
+                          const nextYear = viewMonth === 11 ? viewYear + 1 : viewYear;
+                          return nextYear > currentYear || (nextYear === currentYear && nextMonth > currentMonth) ? 0.5 : 1;
+                        })(),
+                        cursor: (() => {
+                          const today = new Date();
+                          const currentMonth = today.getMonth();
+                          const currentYear = today.getFullYear();
+                          const viewMonth = quickThoughtsMonth.getMonth();
+                          const viewYear = quickThoughtsMonth.getFullYear();
+                          const nextMonth = viewMonth === 11 ? 0 : viewMonth + 1;
+                          const nextYear = viewMonth === 11 ? viewYear + 1 : viewYear;
+                          return nextYear > currentYear || (nextYear === currentYear && nextMonth > currentMonth) ? 'not-allowed' : 'pointer';
+                        })(),
+                      }}
+                    >
+                      →
+            </button>
+          </div>
+
+                  <div
+                    ref={quickThoughtsScrollRef}
+                    className="overflow-x-auto quick-thoughts-horizontal-scrollbar"
+                    style={{
+                      scrollbarWidth: 'thin',
+                      scrollbarColor: '#d0d0d0 transparent',
+                    }}
+                    onScroll={(e) => {
+                      const scrollPosition = e.currentTarget.scrollLeft;
+                      if (typeof window !== 'undefined') {
+                        sessionStorage.setItem('quickThoughtsScroll', scrollPosition.toString());
+                }
+                    }}
+                  >
+                    <div className="inline-flex gap-3" style={{ minWidth: 'max-content' }}>
+                      {(() => {
+                        // Obter data de hoje
+                        const today = new Date();
+                        const todayYear = today.getFullYear();
+                        const todayMonth = today.getMonth() + 1;
+                        const todayDay = today.getDate();
+            
+                        // Verificar se estamos no mês atual
+                        const isCurrentMonth = year === todayYear && month + 1 === todayMonth;
+            
+                        // Gerar array de dias: apenas até hoje, em ordem decrescente (hoje primeiro)
+                        const daysToShow: number[] = [];
+                        if (isCurrentMonth) {
+                          // Mês atual: mostrar de hoje até o dia 1
+                          for (let d = todayDay; d >= 1; d--) {
+                            daysToShow.push(d);
+                          }
+                        } else if (year < todayYear || (year === todayYear && month + 1 < todayMonth)) {
+                          // Mês passado: mostrar todos os dias em ordem decrescente
+                          for (let d = daysInMonth; d >= 1; d--) {
+                            daysToShow.push(d);
+                          }
+                        } else {
+                          // Mês futuro: não mostrar nada
+                          return <div key="no-days" className="text-center p-4 font-pixel text-sm" style={{ color: '#999' }}>Nenhum dia disponível</div>;
+                        }
+                        
+                        if (daysToShow.length === 0) {
+                          return <div key="no-days" className="text-center p-4 font-pixel text-sm" style={{ color: '#999' }}>Nenhum dia disponível</div>;
+                        }
+                        
+                        return daysToShow.map((day) => {
+              const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                          const entry = journal[dateStr];
+                          const quickNotesForDay = entry?.quickNotes || [];
+                          const isToday = year === todayYearForHighlight && 
+                                         month + 1 === todayMonthForHighlight && 
+                                         day === todayDayForHighlight;
+                          
+                          // Verificar se é um dia futuro (não deve aparecer, mas por segurança)
+                          const dateObj = new Date(year, month, day);
+                          const todayDate = new Date();
+                          todayDate.setHours(0, 0, 0, 0);
+                          dateObj.setHours(0, 0, 0, 0);
+                          const isFuture = dateObj > todayDate;
+                          
+                          if (isFuture) return null;
+
+                          return (
+                            <div
+                              key={day}
+                              className="flex-shrink-0 border rounded-lg p-2 flex flex-col"
+                              style={{
+                                width: 'calc((100vw - 200px) / 5)',
+                                maxWidth: '280px',
+                                minWidth: '200px',
+                                minHeight: '328px', // Reduzido 5% (345px * 0.95 = 327.75px)
+                                maxHeight: '328px', // Limitar altura máxima para garantir que o botão apareça
+                                backgroundColor: isToday ? '#9e9e9e' : '#FFFFFF',
+                                borderColor: isToday ? '#9e9e9e' : '#e0e0e0',
+                              }}
+                            >
+                              <div className="font-pixel-bold mb-2 flex-shrink-0" style={{ color: '#666', fontSize: '14px', textAlign: 'center' }}>
+                                {day} {(t('journal.daysShort') as string[])[new Date(year, month, day).getDay()]}
+                              </div>
+                              <div className="space-y-1 quick-notes-vertical-scrollbar flex-1 overflow-y-auto" style={{ minHeight: 0, scrollbarWidth: 'thin', scrollbarColor: '#d0d0d0 transparent' }}>
+                                {quickNotesForDay.map((note) => {
+                                  const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                  const isEditing = editingQuickNote && editingQuickNote.date === dateStr && editingQuickNote.noteId === note.id;
+                                  
+                                  return (
+                                    <div
+                                      key={note.id}
+                                      className="p-1 rounded font-pixel relative group"
+                                      style={{
+                                        backgroundColor: '#f0f0f0',
+                                        fontSize: '16px',
+                                        color: '#333',
+                                        wordBreak: 'break-word',
+                                        textAlign: 'center',
+                                      }}
+                                    >
+                                      {isEditing ? (
+                                        <input
+                                          type="text"
+                                          value={editingQuickNoteText}
+                                          onChange={(e) => setEditingQuickNoteText(e.target.value)}
+                                          onKeyPress={(e) => {
+                                            if (e.key === 'Enter') {
+                                              if (editingQuickNoteText.trim()) {
+                                                updateQuickNote(dateStr, note.id, editingQuickNoteText.trim());
+                setEditingQuickNote(null);
+                setEditingQuickNoteText('');
+                                              }
+                                            } else if (e.key === 'Escape') {
+                setEditingQuickNote(null);
+                setEditingQuickNoteText('');
+              }
+                                          }}
+                                          onBlur={() => {
+                                            if (editingQuickNoteText.trim()) {
+                                              updateQuickNote(dateStr, note.id, editingQuickNoteText.trim());
+                                            }
+              setEditingQuickNote(null);
+              setEditingQuickNoteText('');
+                                          }}
+                                          className="w-full px-2 py-1 rounded font-pixel border"
+                style={{
+                                            backgroundColor: '#FFFFFF',
+                                            borderColor: '#d0d0d0',
+                                            color: '#333',
+                                            fontSize: '16px',
+                                            textAlign: 'center',
+                                          }}
+                                          autoFocus
+                                        />
+                                      ) : (
+                                        <span 
+                                          className="cursor-text"
+                                          onDoubleClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setEditingQuickNote({ date: dateStr, noteId: note.id });
+                                            setEditingQuickNoteText(note.text);
+                                          }}
+                                        >
+                                          {note.text}
+                                        </span>
+                                      )}
+                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          // Não mudar a data selecionada, apenas remover o pensamento
+                                          // Remover o pensamento rápido usando a função do hook
+                                          removeQuickNote(dateStr, note.id);
+                                          // O useEffect vai sincronizar automaticamente os quickNotes quando o journal mudar
+                                          setJournalDates(getAllDates());
+                                          // Prevenir qualquer scroll automático
+                                          if (e.currentTarget) {
+                                            e.currentTarget.blur();
+                                          }
+                                        }}
+                                        onMouseDown={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                        }}
+                                        className="absolute top-0 right-0 w-5 h-5 flex items-center justify-center rounded-full bg-red-400 hover:bg-red-500 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                        style={{ fontSize: '12px' }}
+                                        title="Excluir"
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {/* Botão de adicionar fora da área de scroll para sempre estar visível */}
+                              {editingQuickNoteDate === `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}` ? (
+                                  <div className="mt-1 flex flex-col gap-1 flex-shrink-0">
+                                    <input
+                                      type="text"
+                                      value={inlineQuickNoteText}
+                                      onChange={(e) => setInlineQuickNoteText(e.target.value)}
+                                      onKeyPress={(e) => {
+                                        if (e.key === 'Enter') {
+                                          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                          handleAddInlineQuickNote(dateStr);
+                                        }
+                                      }}
+                                      onBlur={(e) => {
+                                        // Verificar se o blur foi causado por um clique em um botão
+                                        // Se sim, não fechar o input
+                                        const relatedTarget = e.relatedTarget as HTMLElement;
+                                        if (relatedTarget && (relatedTarget.tagName === 'BUTTON' || relatedTarget.closest('button'))) {
+                                          return; // Não fechar se foi um clique em botão
+                                        }
+                                        // Não fechar automaticamente ao perder foco, apenas se estiver vazio
+                                        // Usar setTimeout para evitar conflitos com cliques e scroll
+                                        setTimeout(() => {
+                                          if (!inlineQuickNoteText.trim() && editingQuickNoteDate === `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`) {
+                                            setEditingQuickNoteDate(null);
+                                            setInlineQuickNoteText('');
+                                          }
+                                        }, 200);
+                                      }}
+                                      placeholder={tString('journal.addQuickThought')}
+                                      className="w-full px-2 py-1 rounded font-pixel border"
+                      style={{
+                                        backgroundColor: isToday ? '#FFFFFF' : '#f0f0f0',
+                                        borderColor: '#d0d0d0',
+                        color: '#333',
+                                        fontSize: '16px',
+                      }}
+                                      autoFocus
+                                    />
+                                    <div className="flex gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                          // Focar no botão antes de adicionar para evitar blur prematuro
+                                          e.currentTarget.focus();
+                                          handleAddInlineQuickNote(dateStr);
+                      }}
+                                        onMouseDown={(e) => {
+                                          e.preventDefault(); // Prevenir blur do input
+                                          e.stopPropagation();
+                                        }}
+                                        className="flex-1 px-2 py-1 rounded font-pixel text-xs"
+                                        style={{
+                                          backgroundColor: '#9e9e9e',
+                                          color: '#FFFFFF',
+                                          fontSize: '12px',
+                      }}
+                    >
+                                        Adicionar
+                    </button>
+                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          setEditingQuickNoteDate(null);
+                                          setInlineQuickNoteText('');
+                                        }}
+                                        onMouseDown={(e) => {
+                                          e.preventDefault(); // Prevenir blur do input
+                                          e.stopPropagation();
+                                        }}
+                                        className="px-2 py-1 rounded font-pixel text-xs"
+                        style={{ 
+                                          backgroundColor: '#e0e0e0',
+                                          color: '#666',
+                          fontSize: '12px',
+                        }}
+                      >
+                                        Cancelar
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                      <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      // NÃO mudar a data selecionada, apenas abrir input inline
+                                      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                      setEditingQuickNoteDate(dateStr);
+                                      setInlineQuickNoteText('');
+                                    }}
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                    }}
+                                    className="w-full mt-1 p-1 rounded font-pixel border border-dashed flex-shrink-0"
+                                    style={{
+                                      backgroundColor: isToday ? '#FFFFFF' : 'transparent',
+                                      borderColor: isToday ? '#FFFFFF' : '#d0d0d0',
+                                      color: isToday ? '#333' : '#999',
+                                      fontSize: '13px',
+                                      textAlign: 'center',
+                                    }}
+                      >
+                                    + {t('journal.clickToAdd')}
+                      </button>
+                                )}
+                    </div>
+                          );
+                        });
+                      })()}
+                  </div>
+                </div>
+                </div>
+              );
+            })()
+          )}
+
+          {/* Container para Histórico e Textarea - garante ordem correta */}
+          <div className="w-full">
+            {/* Botão Histórico - acima do textarea */}
+            <div className="flex justify-end mb-2">
+              <button
+                onClick={() => {
+                  setShowJournalHistory(!showJournalHistory);
+                }}
+                className="px-3 py-1 rounded font-pixel text-xs transition-colors"
+                            style={{ 
+                  backgroundColor: '#f0f0f0',
+                  color: '#333',
+                              border: '1px solid #e0e0e0',
+                            }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#e0e0e0';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f0f0f0';
+                }}
+              >
+                {showJournalHistory ? t('common.hide') : t('common.history')}
+              </button>
+                    </div>
+
+            {/* Histórico de Journal Entries - aparece acima do textarea quando ativo, empurrando-o para baixo */}
+            {showJournalHistory && (() => {
+              // Filtrar apenas entradas com texto longo anteriores à data selecionada
+              const selectedDateObj = selectedDate ? new Date(selectedDate + 'T00:00:00') : null;
+              
+              const entriesWithText = journalDates
+                .map((date) => {
+                  const entry = getEntry(date);
+                  if (!entry || !entry.text || !entry.text.trim()) return null;
+                  
+                  // Filtrar apenas datas anteriores à data selecionada
+                  if (selectedDateObj) {
+                    const dateObj = new Date(date + 'T00:00:00');
+                    if (dateObj >= selectedDateObj) return null; // Ignorar data selecionada e futuras
+                  }
+                  
+                  return { date, entry };
+                })
+                .filter((item): item is { date: string; entry: NonNullable<ReturnType<typeof getEntry>> } => item !== null)
+                .sort((a, b) => {
+                  // Ordenar por data (mais recente primeiro)
+                  const dateA = new Date(a.date + 'T00:00:00').getTime();
+                  const dateB = new Date(b.date + 'T00:00:00').getTime();
+                  return dateB - dateA;
+                })
+                .slice(0, 5); // Limitar a 5 entradas
+              
+              return (
+                <div className="mb-4 space-y-3" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  {entriesWithText.length === 0 ? (
+                    <p className="font-pixel text-center py-8" style={{ color: '#999', fontSize: '14px' }}>
+                      {t('journal.noThoughtsThisMonth')}
+                    </p>
+                  ) : (
+                    entriesWithText.map(({ date, entry }) => {
+                    
+                    const dateObj = new Date(date + 'T00:00:00');
+                    const moodInfo = entry.mood ? {
+                      good: { label: t('journal.moodGood'), emoji: '🙂' },
+                      neutral: { label: t('journal.moodNeutral'), emoji: '😐' },
+                      bad: { label: t('journal.moodBad'), emoji: '🙁' },
+                    }[entry.mood] : null;
+                    
+                        return (
+                          <div
+                            key={date}
+                                onClick={() => {
+                          // Salvar o texto da data atual antes de mudar
+                          saveCurrentEntry();
+                          setSelectedDate(date);
+                          loadJournalEntry(date);
+                          setShowJournalHistory(false);
+                        }}
+                        className="p-4 rounded-lg cursor-pointer transition-all"
+                                style={{
+                                  backgroundColor: '#fafafa',
+                          border: '1px solid #e5e5e5',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                                }}
+                                onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f0f0f0';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#fafafa';
+                                }}
+                              >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-pixel-bold" style={{ color: '#333', fontSize: '16px' }}>
+                            {formatDateForHistory(date)}
+                          </span>
+                          {entry.moodNumber !== undefined ? (
+                            <span 
+                              className="font-pixel-bold px-2 py-1 rounded-full border" 
+                                    style={{
+                                backgroundColor: '#e8e8e8',
+                                fontSize: '14px', 
+                                color: '#111',
+                                border: '1px solid #e8e8e2'
+                              }}
+                            >
+                              {entry.moodNumber}
+                            </span>
+                          ) : (
+                            moodInfo && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">{moodInfo.emoji}</span>
+                                <span className="font-pixel text-xs" style={{ color: '#666' }}>{moodInfo.label}</span>
+                              </div>
+                            )
+                          )}
+                        </div>
+                        {entry.text && (
+                                    <p
+                            className="font-pixel mb-2" 
+                                      style={{
+                              fontSize: '14px', 
+                              color: '#555', 
+                                        lineHeight: '1.4',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {entry.text}
+                          </p>
+                        )}
+                        {entry.quickNotes && entry.quickNotes.length > 0 && (
+                          <p 
+                            className="font-pixel text-xs" 
+                            style={{ color: '#999' }}
+                                    >
+                            {entry.quickNotes.length} {tString('journal.quickThoughts').toLowerCase()}
+                                    </p>
+                        )}
+                                  </div>
+                    );
+                  })
+                                )}
+                              </div>
+              );
+            })()}
+
+            {/* Label e Text Area */}
+            <div>
+              <label className="font-pixel-bold mb-2 block" style={{ color: '#333', fontSize: '14px' }}>
+                {t('journal.longText')}:
+              </label>
+              {!isTextExpanded && text ? (
+                              <div
+                  onClick={() => setIsTextExpanded(true)}
+                  className="w-full p-4 rounded-lg cursor-pointer font-pixel"
+                                style={{
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #e0e0e0',
+                    color: '#333',
+                    fontSize: '16px',
+                    minHeight: '60px',
+                    maxHeight: '120px',
+                    overflow: 'hidden',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: 'vertical',
+                    lineHeight: '1.5',
+                                }}
+                              >
+                  {text}
+                </div>
+              ) : (
+                                <textarea
+                  value={text}
+                                  onChange={(e) => {
+                    setText(e.target.value);
+                    setIsTextExpanded(true);
+                                  }}
+                                  onBlur={() => {
+                    if (!text.trim()) {
+                      setIsTextExpanded(false);
+                                    }
+                                  }}
+                  placeholder={tString('journal.writeAboutDay')}
+                  className="w-full p-4 rounded-lg resize-none font-pixel focus:outline-none journal-textarea-scrollbar"
+                                  style={{
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #e0e0e0',
+                                    color: '#333',
+                    fontSize: '16px',
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: 'transparent transparent',
+                    minHeight: text.trim() || isTextExpanded ? '198px' : '80px',
+                  }}
+                />
+              )}
+                              </div>
+                          </div>
+        </PixelCard>
+      </div>
+
+      {/* Modal de calendário de hábito */}
+      {selectedHabit && (() => {
+        // Buscar o hábito atualizado do array habits para garantir que o progresso seja recalculado
+        const currentHabit = habits.find(h => h.id === selectedHabit.id) || selectedHabit;
+        const monthlyProgress = calculateMonthlyProgress(currentHabit, calendarMonth);
+        const progressColor = getProgressColor(monthlyProgress);
+        const progressPercent = Math.round(monthlyProgress * 100);
+        
+        return (
+          <div 
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]"
+          onClick={() => setSelectedHabit(null)}
+        >
+          <div 
+            className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 shadow-lg relative"
+            style={{
+              border: '1px solid #d8d4c7',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <h3 
+                  className="text-lg font-pixel-bold line-clamp-2" 
+                  style={{ color: '#333', maxWidth: '300px' }}
+                  title={selectedHabit.name}
+                >
+                  {selectedHabit.name}
+                </h3>
+                <button
+                  onClick={() => {
+                    handleRenameHabit(selectedHabit.id, selectedHabit.name);
+                  }}
+                  className="px-2 py-1 rounded text-xs font-pixel border border-[#d8d4c7] hover:bg-[#ece8dd] transition-colors"
+                  style={{ color: '#111' }}
+                >
+                  ✎ Renomear
+                </button>
+                <button
+                  onClick={() => {
+                    handleDeleteHabit(selectedHabit.id, selectedHabit.name);
+                    setSelectedHabit(null);
+                  }}
+                  className="px-2 py-1 rounded text-xs font-pixel border border-[#d8d4c7] hover:bg-red-50 transition-colors"
+                  style={{ color: '#C62828' }}
+                >
+                  🗑 Excluir
+                </button>
+              </div>
+              <button
+                onClick={() => setSelectedHabit(null)}
+                className="text-gray-400 hover:text-gray-600 text-xl"
+              >
+                ×
+              </button>
+            </div>
+            
+            {/* Navegação do mês */}
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={goToPreviousMonth}
+                className="px-3 py-1 rounded border border-[#d8d4c7] hover:bg-[#ece8dd] transition-colors font-pixel-bold"
+                style={{ color: '#111' }}
+              >
+                ↑
+              </button>
+              <span className="text-sm font-pixel-bold" style={{ color: '#333' }}>
+                {formatMonthYear(calendarMonth)}
+              </span>
+              <button
+                onClick={goToNextMonth}
+                className="px-3 py-1 rounded border border-[#d8d4c7] hover:bg-[#ece8dd] transition-colors font-pixel-bold"
+                style={{ color: '#111' }}
+              >
+                ↓
+              </button>
+            </div>
+
+            {/* Calendário e barra de progresso lado a lado */}
+            <div className="flex gap-4">
+              {/* Grid do calendário */}
+              <div className="flex-1 grid grid-cols-7 gap-1">
+                {/* Cabeçalho dos dias da semana */}
+                {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day) => (
+                  <div 
+                    key={day} 
+                    className="text-center font-pixel-bold p-2 text-xs rounded"
+                    style={{ 
+                      backgroundColor: '#E3F2FD',
+                      border: '1px solid #d8d4c7',
+                      color: '#111'
+                    }}
+                  >
+                    {day}
+                  </div>
+                ))}
+
+                {/* Dias do calendário */}
+                {getMonthCalendarDays().map(({ date, isCurrentMonth, isToday }) => {
+                  const dateStr = date.toISOString().substring(0, 10);
+                  const checked = currentHabit.checks[dateStr];
+                  const dayNumber = date.getDate();
+                  const isCreatedDate = currentHabit.createdAt && dateStr === currentHabit.createdAt.substring(0, 10);
+
+                  return (
+                    <div
+                      key={dateStr}
+                      onClick={() => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const clickDate = new Date(date);
+                        clickDate.setHours(0, 0, 0, 0);
+                        
+                        if (clickDate <= today) {
+                          toggleCheck(currentHabit.id, dateStr);
+                        }
+                      }}
+                      className={`
+                        aspect-square flex flex-col items-center justify-center
+                        rounded border p-1 transition-colors
+                        ${!isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white'}
+                        ${isToday ? 'ring-2 ring-[#111]' : ''}
+                        ${checked ? 'bg-green-50' : ''}
+                      `}
+                      style={{
+                        borderColor: '#d8d4c7',
+                        cursor: (() => {
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          const clickDate = new Date(date);
+                          clickDate.setHours(0, 0, 0, 0);
+                          return clickDate <= today ? 'pointer' : 'not-allowed';
+                        })(),
+                      }}
+                    >
+                      <span className={`text-xs font-pixel ${!isCurrentMonth ? 'text-gray-400' : ''}`}>
+                        {dayNumber}
+                      </span>
+                      {isCreatedDate && (
+                        <div className="w-2 h-2 rounded-full bg-black mt-1" />
+                      )}
+                      {checked && !isCreatedDate && (
+                        <div className="w-2 h-2 rounded-full bg-green-500 mt-1" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Barra lateral de progresso mensal */}
+              <div className="w-16 flex flex-col items-center gap-2">
+                <div className="flex-1 w-8 bg-gray-200 border-2 border-black relative" style={{ minHeight: '300px' }}>
+                  <div
+                    className="absolute bottom-0 w-full border-2 border-black transition-all"
+                    style={{
+                      height: `${monthlyProgress * 100}%`,
+                      backgroundColor: progressColor,
+                    }}
+                  />
+                </div>
+                <div className="text-xs font-bold text-center" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+                  {progressPercent}%
+                </div>
+                <div className="text-xs font-semibold text-center" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+                  {formatMonthYear(calendarMonth).split(' ')[0]}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        );
+      })()}
+
+      {/* Modal de Calendário para Seleção de Data */}
+      {showDateCalendar && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]"
+          onClick={() => setShowDateCalendar(false)}
+        >
+          <div 
+            className="p-6 max-w-2xl w-full mx-4 rounded-lg"
+            style={{
+              background: '#f7f7f7',
+              border: '1px solid #ccc',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-pixel-bold" style={{ fontSize: '20px', color: '#333' }}>
+                {t('common.selectDate')}
+              </h2>
+              <button
+                onClick={() => setShowDateCalendar(false)}
+                className="px-3 py-1 rounded transition-colors"
+                style={{
+                  background: '#f7f7f7',
+                  border: '1px solid #ccc',
+                  color: '#333'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f0f0f0';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f7f7f7';
+                }}
+              >
+                ×
+              </button>
+            </div>
+            
+            {/* Navegação do mês */}
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={goToPreviousDateMonth}
+                className="px-3 py-1 rounded transition-colors font-pixel-bold"
+                style={{
+                  background: '#f7f7f7',
+                  border: '1px solid #ccc',
+                  color: '#333'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f0f0f0';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f7f7f7';
+                }}
+              >
+                ↑
+              </button>
+              <span className="font-pixel-bold" style={{ fontSize: '16px', color: '#333' }}>
+                {formatMonthYear(dateCalendarMonth)}
+              </span>
+              <button
+                onClick={goToNextDateMonth}
+                className="px-3 py-1 rounded transition-colors font-pixel-bold"
+                style={{
+                  background: '#f7f7f7',
+                  border: '1px solid #ccc',
+                  color: '#333'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f0f0f0';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f7f7f7';
+                }}
+              >
+                ↓
+              </button>
+            </div>
+
+            {/* Grid do calendário */}
+            <div className="grid grid-cols-7 gap-1">
+              {/* Cabeçalho dos dias da semana */}
+              {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day) => (
+                <div 
+                  key={day} 
+                  className="text-center font-pixel-bold p-2 rounded"
+                  style={{ 
+                    backgroundColor: '#e8e8e8',
+                    border: '1px solid #e0e0e0',
+                    color: '#333',
+                    fontSize: '14px'
+                  }}
+                >
+                  {day}
+                </div>
+              ))}
+
+              {/* Dias do calendário */}
+              {getDateCalendarDays().map(({ date, isCurrentMonth, isToday, hasEntry }, index) => {
+                const dateStr = formatDateKey(date);
+                const dayNumber = date.getDate();
+                const isSelected = dateStr === selectedDate;
+
+                return (
+                  <div
+                    key={`${dateStr}-${index}`}
+                    onClick={() => handleDateSelect(date)}
+                    className={`
+                      aspect-square flex flex-col items-center justify-center
+                      rounded border p-1 transition-colors cursor-pointer
+                      ${!isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white'}
+                      ${isSelected ? 'bg-blue-400' : ''}
+                      hover:bg-gray-100
+                    `}
+                    style={{
+                      borderColor: isSelected ? '#2563eb' : '#e0e0e0',
+                    }}
+                  >
+                    <span className={`text-sm font-pixel ${!isCurrentMonth ? 'text-gray-400' : ''} ${isSelected ? 'text-white' : ''}`}>
+                      {dayNumber}
+                    </span>
+                    {hasEntry && (
+                      <div className={`w-1.5 h-1.5 rounded-full mt-0.5 ${isSelected ? 'bg-white' : 'bg-gray-600'}`} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+
+    </div>
+  );
+}
