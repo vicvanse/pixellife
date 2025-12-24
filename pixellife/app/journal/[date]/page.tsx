@@ -102,7 +102,7 @@ export default function JournalDatePage({ params }: { params: Promise<{ date: st
     );
   }
 
-  const moodInfo = getMoodLabel(entry.mood, entry.moodNumber);
+  const moodInfo = getMoodLabel(entry.mood, entry.moodNumber ?? undefined);
 
   return (
     <div

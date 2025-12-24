@@ -120,7 +120,7 @@ export default function JournalHistoryPage() {
             {dates.map((date) => {
               const entry = getEntry(date);
               if (!entry) return null;
-              const moodInfo = getMoodLabel(entry.mood, entry.moodNumber);
+              const moodInfo = getMoodLabel(entry.mood, entry.moodNumber ?? undefined);
               return (
                 <Link
                   key={date}
