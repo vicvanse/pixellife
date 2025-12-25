@@ -1469,14 +1469,7 @@ function BoardPageInner() {
                       const daysRemaining = Math.max(0, daysInMonth - currentDay + 1);
                       
                       const monthlyLimit = (typeof desiredMonthlyExpense === 'number' ? desiredMonthlyExpense : (desiredMonthlyExpense === '' ? 0 : parseFloat(String(desiredMonthlyExpense)) || 0));
-                      const availableNow = monthlyLimit - totalSpentFiltered;
-                      const recommendedDaily = daysRemaining > 0 ? Math.max(0, availableNow / daysRemaining) : 0;
-                      
-                      // Status do mês
-                      const spendingPercentage = monthlyLimit > 0 ? (totalSpentFiltered / monthlyLimit) * 100 : 0;
-                      const statusText = spendingPercentage < 50 ? t('finances.statusBelowPace') : spendingPercentage < 80 ? t('finances.statusAttention') : t('finances.statusAboveLimit');
-                      
-                      // Função wrapper para filtrar entradas baseado no filtro de status mensal
+                      // Função wrapper para filtrar entradas baseado no filtro de status mensal (precisa estar antes do uso)
                       const getFilteredEntriesForDate = (dateKey: string) => {
                         const entries = getEntriesForDate(dateKey);
                         if (monthlyStatusFilter === 'received') {
@@ -1487,13 +1480,21 @@ function BoardPageInner() {
                         return entries; // 'all' - inclui todos
                       };
                       
-                      // Recalcular monthlyRows com filtro
-                      const monthKey = formatMonthKey(selectedMonth);
-                      const desired = getDesiredMonthlyExpense(monthKey) || 0;
-                      const reset = getResetDate(monthKey) || 1;
-                      const filteredMonthlyRows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getFilteredEntriesForDate);
+                      // Recalcular monthlyRows com filtro (precisa estar antes do uso)
+                      const monthKeyForFilter = formatMonthKey(selectedMonth);
+                      const desiredForFilter = getDesiredMonthlyExpense(monthKeyForFilter) || 0;
+                      const resetForFilter = getResetDate(monthKeyForFilter) || 1;
+                      const filteredMonthlyRows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desiredForFilter, resetForFilter, getFilteredEntriesForDate);
                       const totalSpentFiltered = filteredMonthlyRows.reduce((sum, row) => sum + (row.totalDaily < 0 ? Math.abs(row.totalDaily) : 0), 0);
                       const totalGainedFiltered = filteredMonthlyRows.reduce((sum, row) => sum + (row.totalDaily > 0 ? row.totalDaily : 0), 0);
+                      
+                      const availableNow = monthlyLimit - totalSpentFiltered;
+                      const recommendedDaily = daysRemaining > 0 ? Math.max(0, availableNow / daysRemaining) : 0;
+                      
+                      // Status do mês
+                      const spendingPercentage = monthlyLimit > 0 ? (totalSpentFiltered / monthlyLimit) * 100 : 0;
+                      const statusText = spendingPercentage < 50 ? t('finances.statusBelowPace') : spendingPercentage < 80 ? t('finances.statusAttention') : t('finances.statusAboveLimit');
+                      
                       
                       return (
                       <div>
