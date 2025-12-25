@@ -1203,6 +1203,7 @@ export function DailyOverview() {
                           fontSize: '16px',
                           backgroundColor: '#FFFFFF',
                           transition: 'background-color 0.15s ease',
+                          pointerEvents: 'auto',
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = '#ececec';
@@ -1294,7 +1295,9 @@ export function DailyOverview() {
                     ) : (
                       <span 
                         className="flex-1 cursor-text"
-                        onDoubleClick={() => {
+                        onDoubleClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           if (selectedDate) {
                             // Resetar flag de edição antes de iniciar nova edição
                             isEditingRef.current = false;
@@ -1302,6 +1305,7 @@ export function DailyOverview() {
                             setEditingQuickNoteText(note.text);
                           }
                         }}
+                        style={{ pointerEvents: 'auto' }}
                       >
                         {note.text}
                       </span>
@@ -1525,20 +1529,6 @@ export function DailyOverview() {
                         sessionStorage.setItem('quickThoughtsScroll', scrollPosition.toString());
                 }
                     }}
-                    onClick={(e) => {
-                      // Não bloquear cliques em botões dentro do scroll
-                      const target = e.target as HTMLElement;
-                      if (target.tagName === 'BUTTON' || target.closest('button')) {
-                        return; // Deixar o botão processar o clique
-                      }
-                    }}
-                    onMouseDown={(e) => {
-                      // Não bloquear mousedown em botões
-                      const target = e.target as HTMLElement;
-                      if (target.tagName === 'BUTTON' || target.closest('button')) {
-                        return; // Deixar o botão processar o mousedown
-                      }
-                    }}
                   >
                     <div className="inline-flex gap-3" style={{ minWidth: 'max-content' }}>
                       {(() => {
@@ -1601,6 +1591,8 @@ export function DailyOverview() {
                                 maxHeight: '328px', // Limitar altura máxima para garantir que o botão apareça
                                 backgroundColor: isToday ? '#9e9e9e' : '#FFFFFF',
                                 borderColor: isToday ? '#9e9e9e' : '#e0e0e0',
+                                position: 'relative',
+                                pointerEvents: 'auto',
                               }}
                             >
                               <div className="font-pixel-bold mb-2 flex-shrink-0" style={{ color: '#666', fontSize: '14px', textAlign: 'center' }}>
@@ -1889,16 +1881,8 @@ export function DailyOverview() {
                                       e.stopPropagation();
                                       // NÃO mudar a data selecionada, apenas abrir input inline
                                       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                                      console.log('Botão clicado, abrindo input para:', dateStr);
                                       setEditingQuickNoteDate(dateStr);
                                       setInlineQuickNoteText('');
-                                      // Forçar re-render se necessário
-                                      setTimeout(() => {
-                                        const input = document.querySelector(`input[placeholder="${tString('journal.addQuickThought')}"]`) as HTMLInputElement;
-                                        if (input && editingQuickNoteDate === dateStr) {
-                                          input.focus();
-                                        }
-                                      }, 100);
                                     }}
                                     onMouseDown={(e) => {
                                       e.preventDefault();
