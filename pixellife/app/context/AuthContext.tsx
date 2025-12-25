@@ -177,6 +177,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [showToast, logout]);
 
+  // Escutar evento customizado de erro de autenticação do Supabase
+  const handleAuthError = useCallback(async (event: CustomEvent) => {
+    console.warn("🔐 Erro de autenticação detectado, fazendo logout...", event.detail);
+    // Fazer logout diretamente quando detectar erro de autenticação
+    try {
+      await supabase.auth.signOut();
+      stopPeriodicSessionCheck();
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
+      }
+      setUser(null);
+      setSession(null);
+      showToast("Sua sessão expirou. Por favor, faça login novamente.", "error");
+      router.push("/auth/login");
+    } catch (err) {
+      console.error("❌ Erro ao fazer logout após erro de autenticação:", err);
+    }
+  }, [stopPeriodicSessionCheck, showToast, router]);
+
+  // Escutar eventos de erro de autenticação
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.addEventListener("supabase-auth-error", handleAuthError as EventListener);
+      return () => {
+        window.removeEventListener("supabase-auth-error", handleAuthError as EventListener);
+      };
+    }
+  }, [handleAuthError]);
+
   // Carregar sessão inicial
   useEffect(() => {
     let mounted = true;

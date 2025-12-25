@@ -5,14 +5,22 @@ import { useLanguage } from "../../context/LanguageContext";
 
 interface PossessionCardProps {
   possession: AssetGoal;
+  accountMoney: number; // Dinheiro em conta do dia atual
   onClick: () => void;
   onBuy?: (id: number) => void;
 }
 
-export function PossessionCard({ possession, onClick, onBuy }: PossessionCardProps) {
+export function PossessionCard({ possession, accountMoney, onClick, onBuy }: PossessionCardProps) {
   const { t, tString } = useLanguage();
+  
+  // Calcular progresso dinamicamente baseado no dinheiro em conta
+  // Se quitado ou problemas legais, sempre 100%
+  const currentProgress = possession.status === 'completed' || possession.status === 'legal-issues'
+    ? possession.targetValue
+    : Math.min(accountMoney, possession.targetValue); // Limitar ao target
+  
   const progressPercentage = possession.targetValue > 0 
-    ? Math.min((possession.currentProgress / possession.targetValue) * 100, 100)
+    ? Math.min((currentProgress / possession.targetValue) * 100, 100)
     : 0;
 
   const formatCurrency = (value: number): string => {
@@ -208,7 +216,7 @@ export function PossessionCard({ possession, onClick, onBuy }: PossessionCardPro
       {/* Valores Monetários (Rodapé) */}
       <div className="flex justify-between items-end font-pixel mt-1" style={{ color: '#666', fontSize: '14px' }}>
         <span>
-          {t('goals.current')}: <b style={{ color: '#111' }}>{formatCurrency(possession.currentProgress)}</b>
+          {t('goals.current')}: <b style={{ color: '#111' }}>{formatCurrency(currentProgress)}</b>
         </span>
         <span>
           {t('goals.target')}: {formatCurrency(possession.targetValue)}

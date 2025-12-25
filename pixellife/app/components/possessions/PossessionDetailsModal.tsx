@@ -87,8 +87,17 @@ export function PossessionDetailsModal({
   // Usar currentPossession ao invés de possession para ter sempre os dados atualizados
   const possessionToDisplay = currentPossession;
 
+  // Calcular progresso dinamicamente baseado no dinheiro em conta do dia atual
+  const today = new Date();
+  const todayKey = formatDateKey(today);
+  const accountMoney = getAccountMoney(todayKey);
+  
+  const currentProgress = possessionToDisplay.status === 'completed' || possessionToDisplay.status === 'legal-issues'
+    ? possessionToDisplay.targetValue
+    : Math.min(accountMoney, possessionToDisplay.targetValue);
+  
   const progressPercentage = possessionToDisplay.targetValue > 0
-    ? Math.min((possessionToDisplay.currentProgress / possessionToDisplay.targetValue) * 100, 100)
+    ? Math.min((currentProgress / possessionToDisplay.targetValue) * 100, 100)
     : 0;
 
   const formatCurrency = (value: number): string => {
@@ -220,7 +229,7 @@ export function PossessionDetailsModal({
             </div>
             <div>
               <span className="font-pixel block mb-1" style={{ color: '#666', fontSize: '14px' }}>Valor Acumulado:</span>
-              <p className="font-pixel-bold" style={{ color: '#333', fontSize: '18px' }}>{formatCurrency(possessionToDisplay.currentProgress)}</p>
+              <p className="font-pixel-bold" style={{ color: '#333', fontSize: '18px' }}>{formatCurrency(currentProgress)}</p>
             </div>
           </div>
         </div>
@@ -259,7 +268,7 @@ export function PossessionDetailsModal({
             </div>
             <div className="mt-2 text-center">
               <span className="font-pixel" style={{ color: '#666', fontSize: '14px' }}>
-                {formatCurrency(possessionToDisplay.currentProgress)} / {formatCurrency(possessionToDisplay.targetValue)}
+                {formatCurrency(currentProgress)} / {formatCurrency(possessionToDisplay.targetValue)}
               </span>
             </div>
           </div>
@@ -282,7 +291,7 @@ export function PossessionDetailsModal({
 
         {/* Botões de Ação */}
         <div className="flex gap-2 pt-4 border-t" style={{ borderColor: '#e0e0e0' }}>
-          {possessionToDisplay.status === 'in-progress' && possessionToDisplay.currentProgress >= possessionToDisplay.targetValue && possessionToDisplay.targetValue > 0 && (
+          {possessionToDisplay.status === 'in-progress' && currentProgress >= possessionToDisplay.targetValue && possessionToDisplay.targetValue > 0 && (
             <button
               onClick={() => {
                 showConfirmation({

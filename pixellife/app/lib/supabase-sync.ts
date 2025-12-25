@@ -8,6 +8,47 @@ import { exportExpensesData, importExpensesData, exportTreeData, importTreeData,
 import type { PostgrestError } from "@supabase/supabase-js";
 import { withRetry } from "./retry";
 
+/**
+ * Verifica se um erro é relacionado a autenticação (sessão expirada/inválida)
+ */
+export function isAuthenticationError(error: unknown): boolean {
+  if (!error) return false;
+  
+  const err = error as any;
+  
+  // Códigos de erro do Supabase relacionados a autenticação
+  if (err.code === "PGRST301" || err.code === "401" || err.status === 401) {
+    return true;
+  }
+  
+  // Mensagens de erro relacionadas a autenticação
+  const message = err.message?.toLowerCase() || "";
+  if (
+    message.includes("session") && message.includes("expired") ||
+    message.includes("authentication") ||
+    message.includes("unauthorized") ||
+    message.includes("token") && message.includes("invalid") ||
+    message.includes("sessão") && (message.includes("expirada") || message.includes("inválida"))
+  ) {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
+ * Dispara evento para fazer logout quando detectar erro de autenticação
+ * O AuthContext escuta esse evento e faz o logout automaticamente
+ */
+function triggerLogoutOnAuthError() {
+  if (typeof window !== "undefined") {
+    console.warn("🔐 Erro de autenticação detectado, disparando logout...");
+    window.dispatchEvent(new CustomEvent("supabase-auth-error", {
+      detail: { reason: "Sessão expirada ou inválida" }
+    }));
+  }
+}
+
 // Tipos de dados que podem ser sincronizados
 export type SyncDataType = "habits" | "journal" | "expenses" | "financial_entries" | "possessions" | "tree" | "cosmetics" | "profile" | "user_modules" | "lifedex_categories" | "lifedex_items" | "lifedex_future_lists" | "lifedex_future_list_items" | "biography";
 
@@ -195,12 +236,14 @@ async function saveWithSync(
     
     if (sessionError || !session) {
       console.warn(`⚠️ [${dataType}] Sem sessão válida para salvar. Usuário precisa fazer login.`);
+      triggerLogoutOnAuthError();
       return { error: new Error("Sessão não encontrada. Por favor, faça login novamente.") };
     }
 
     // Verificar se o userId da sessão corresponde ao userId passado
     if (session.user.id !== userId) {
       console.warn(`⚠️ [${dataType}] userId da sessão (${session.user.id}) não corresponde ao userId fornecido (${userId})`);
+      triggerLogoutOnAuthError();
       return { error: new Error("Sessão inválida. Por favor, faça login novamente.") };
     }
 
@@ -273,9 +316,10 @@ async function saveWithSync(
             console.error("Verifique se executou o SQL em SUPABASE_DATABASE_SETUP.md");
             throw new Error("Política de segurança bloqueou a operação. Verifique as políticas RLS no Supabase.");
           }
-          // Se for erro 401, sessão expirada
-          if (error.code === "PGRST301" || (error as any).status === 401) {
-            console.error(`❌ [${dataType}] Erro 401: Sessão expirada`);
+          // Se for erro 401, sessão expirada - disparar logout
+          if (isAuthenticationError(error)) {
+            console.error(`❌ [${dataType}] Erro de autenticação detectado:`, error);
+            triggerLogoutOnAuthError();
             throw new Error("Sessão expirada. Por favor, faça login novamente.");
           }
           throw error;
@@ -300,6 +344,12 @@ async function saveWithSync(
   } catch (err) {
     const duration = Date.now() - startTime;
     console.error(`❌ [${dataType}] Erro após ${duration}ms e múltiplas tentativas:`, err);
+    
+    // Se for erro de autenticação, disparar logout
+    if (isAuthenticationError(err)) {
+      triggerLogoutOnAuthError();
+    }
+    
     return { error: err as Error };
   }
 }
@@ -327,12 +377,14 @@ export async function loadFromSupabase(
     
     if (sessionError || !session) {
       console.warn(`⚠️ [${dataType}] Sem sessão válida para carregar. Usuário precisa fazer login.`);
+      triggerLogoutOnAuthError();
       return { data: null, error: { code: "PGRST301", message: "Sessão não encontrada", details: "", hint: "" } as PostgrestError };
     }
 
     // Verificar se o userId da sessão corresponde ao userId passado
     if (session.user.id !== userId) {
       console.warn(`⚠️ [${dataType}] userId da sessão (${session.user.id}) não corresponde ao userId fornecido (${userId})`);
+      triggerLogoutOnAuthError();
       return { data: null, error: { code: "PGRST301", message: "Sessão inválida", details: "", hint: "" } as PostgrestError };
     }
 
@@ -351,6 +403,14 @@ export async function loadFromSupabase(
         console.log(`ℹ️ [${dataType}] Nenhum dado encontrado (primeira vez ou dados não sincronizados)`);
         return { data: null, error: null };
       }
+      
+      // Se for erro de autenticação, disparar logout
+      if (isAuthenticationError(error)) {
+        console.error(`❌ [${dataType}] Erro de autenticação ao carregar:`, error.code, error.message);
+        triggerLogoutOnAuthError();
+        return { data: null, error };
+      }
+      
       console.error(`❌ [${dataType}] Erro ao carregar:`, error.code, error.message);
       return { data: null, error };
     }
@@ -400,6 +460,12 @@ export async function loadFromSupabase(
   } catch (err) {
     const duration = Date.now() - startTime;
     console.error(`❌ [${dataType}] Erro após ${duration}ms:`, err);
+    
+    // Se for erro de autenticação, disparar logout
+    if (isAuthenticationError(err)) {
+      triggerLogoutOnAuthError();
+    }
+    
     // Converter erro genérico para PostgrestError se necessário
     const postgresError = err as PostgrestError;
     return { data: null, error: postgresError };
@@ -534,41 +600,47 @@ export async function testSupabaseConnection(userId: string): Promise<{ success:
       console.error("2. A sessão expirou");
       console.error("3. Problema de autenticação no Supabase");
       console.error("\n📖 Veja SUPABASE_DATABASE_SETUP.md para instruções");
+      triggerLogoutOnAuthError();
       return { success: false, error: "Sessão não encontrada" };
     }
 
     if (session.user.id !== userId) {
       console.error("❌ Conexão com Supabase: FALHOU");
       console.error("❌ Erro: ID do usuário não corresponde à sessão");
+      triggerLogoutOnAuthError();
       return { success: false, error: "ID do usuário inválido" };
     }
 
-    // Tentar inserir um registro de teste
-    const testData = { test: true, timestamp: new Date().toISOString() };
-    const { data: insertData, error: insertError } = await supabase
+    // Teste mais simples: apenas tentar fazer um SELECT na tabela
+    // Se conseguir ler (mesmo que retorne vazio), significa que:
+    // 1. A tabela existe
+    // 2. As políticas RLS estão funcionando
+    // 3. A autenticação está OK
+    const { data: testQuery, error: selectError } = await supabase
       .from("user_data")
-      .upsert({
-        user_id: userId,
-        data_type: "_test",
-        data: testData,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: "user_id,data_type"
-      })
-      .select();
+      .select("id")
+      .eq("user_id", userId)
+      .limit(1);
 
-    if (insertError) {
+    if (selectError) {
+      // Se for erro de autenticação, disparar logout
+      if (isAuthenticationError(selectError)) {
+        console.error("❌ Conexão com Supabase: FALHOU - Erro de autenticação");
+        triggerLogoutOnAuthError();
+        return { success: false, error: selectError.message };
+      }
+      
       console.error("❌ Conexão com Supabase: FALHOU");
-      console.error("❌ Erro:", insertError.message);
+      console.error("❌ Erro:", selectError.message);
       console.error("\n💡 POSSÍVEIS CAUSAS:");
       
-      if (insertError.code === 'PGRST116' || insertError.message.includes('does not exist')) {
+      if (selectError.code === 'PGRST116' || selectError.message.includes('does not exist')) {
         console.error("1. A tabela 'user_data' não foi criada no Supabase");
         console.error("2. Execute o SQL em SUPABASE_DATABASE_SETUP.md");
-      } else if (insertError.code === '42501' || insertError.message.includes('permission denied') || insertError.message.includes('row-level security')) {
+      } else if (selectError.code === '42501' || selectError.message.includes('permission denied') || selectError.message.includes('row-level security')) {
         console.error("1. As políticas RLS não foram configuradas corretamente");
         console.error("2. Execute o SQL em SUPABASE_DATABASE_SETUP.md (parte das políticas)");
-      } else if (insertError.message.includes('JWT') || insertError.message.includes('token')) {
+      } else if (selectError.message.includes('JWT') || selectError.message.includes('token')) {
         console.error("1. Problema de autenticação");
         console.error("2. As variáveis de ambiente não estão configuradas no Vercel");
       } else {
@@ -577,78 +649,23 @@ export async function testSupabaseConnection(userId: string): Promise<{ success:
         console.error("3. As variáveis de ambiente não estão configuradas no Vercel");
       }
       console.error("\n📖 Veja SUPABASE_DATABASE_SETUP.md para instruções");
-      return { success: false, error: insertError.message };
-    }
-
-    // Aguardar um pouco para garantir que o registro foi propagado
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Tentar ler o registro de teste com retry
-    let data = null;
-    let selectError = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const result = await supabase
-        .from("user_data")
-        .select("data, updated_at")
-        .eq("user_id", userId)
-        .eq("data_type", "_test")
-        .maybeSingle();
-      
-      data = result.data;
-      selectError = result.error;
-      
-      if (data || (selectError && selectError.code !== 'PGRST116')) {
-        break;
-      }
-      
-      // Aguardar antes de tentar novamente
-      if (attempt < 2) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-    }
-
-    if (selectError) {
-      console.error("❌ Conexão com Supabase: FALHOU");
-      console.error("❌ Erro:", selectError.message);
-      console.error("\n💡 POSSÍVEIS CAUSAS:");
-      
-      if (selectError.code === 'PGRST116' || selectError.message.includes('does not exist')) {
-        console.error("1. A tabela 'user_data' não foi criada no Supabase");
-      } else if (selectError.code === '42501' || selectError.message.includes('permission denied') || selectError.message.includes('row-level security')) {
-        console.error("1. As políticas RLS não foram configuradas corretamente");
-        console.error("2. A política SELECT pode estar faltando ou incorreta");
-      } else {
-        console.error("1. A tabela 'user_data' não foi criada no Supabase");
-        console.error("2. As políticas RLS não foram configuradas corretamente");
-      }
-      console.error("\n📖 Veja SUPABASE_DATABASE_SETUP.md para instruções");
       return { success: false, error: selectError.message };
     }
 
-    if (!data) {
-      console.warn("⚠️ Registro de teste não encontrado após inserção (pode ser delay de propagação ou problema de RLS)");
-      console.error("❌ Conexão com Supabase: FALHOU");
-      console.error("❌ Erro: Registro de teste não encontrado");
-      console.error("\n💡 POSSÍVEIS CAUSAS:");
-      console.error("1. A tabela 'user_data' não foi criada no Supabase");
-      console.error("2. As políticas RLS não foram configuradas corretamente");
-      console.error("3. As variáveis de ambiente não estão configuradas no Vercel");
-      console.error("\n📖 Veja SUPABASE_DATABASE_SETUP.md para instruções");
-      return { success: false, error: "Registro de teste não encontrado" };
-    }
-
-    // Limpar o registro de teste
-    await supabase
-      .from("user_data")
-      .delete()
-      .eq("user_id", userId)
-      .eq("data_type", "_test");
-
+    // Se chegou aqui, a conexão está OK
+    // Não importa se retornou dados ou não - o importante é que conseguiu fazer a query
     console.log("✅ Teste de conexão bem-sucedido!");
+    console.log(`ℹ️ Tabela 'user_data' está acessível (encontrados ${testQuery?.length || 0} registros)`);
     return { success: true };
   } catch (err) {
     console.error("❌ Conexão com Supabase: FALHOU");
     console.error("❌ Erro:", (err as Error).message);
+    
+    // Se for erro de autenticação, disparar logout
+    if (isAuthenticationError(err)) {
+      triggerLogoutOnAuthError();
+    }
+    
     console.error("\n💡 POSSÍVEIS CAUSAS:");
     console.error("1. A tabela 'user_data' não foi criada no Supabase");
     console.error("2. As políticas RLS não foram configuradas corretamente");

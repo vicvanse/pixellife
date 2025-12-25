@@ -213,18 +213,26 @@ export function PossessionsOverlay({ isOpen, onClose }: PossessionsOverlayProps)
         {possessions.length > 0 ? (
           <>
             <div className="grid grid-cols-3 gap-4">
-              {possessions.map((possession) => (
-                <PossessionCard
-                  key={possession.id}
-                  possession={possession}
-                  onClick={() => handleCardClick(possession)}
-                  onBuy={(id) => {
-                    updatePossession(id, { status: 'completed' });
-                    const updated = getAllPossessions();
-                    setPossessions(updated);
-                  }}
-                />
-              ))}
+              {(() => {
+                // Obter dinheiro em conta do dia atual
+                const today = new Date();
+                const todayKey = formatDateKey(today);
+                const accountMoney = getAccountMoney(todayKey);
+                
+                return possessions.map((possession) => (
+                  <PossessionCard
+                    key={possession.id}
+                    possession={possession}
+                    accountMoney={accountMoney}
+                    onClick={() => handleCardClick(possession)}
+                    onBuy={(id) => {
+                      updatePossession(id, { status: 'completed' });
+                      const updated = getAllPossessions();
+                      setPossessions(updated);
+                    }}
+                  />
+                ));
+              })()}
             </div>
             <div className="mt-6">
               <div className="flex flex-col items-end gap-2">

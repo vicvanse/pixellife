@@ -256,9 +256,8 @@ export function usePossessions() {
     [calculateProgress, updatePossession]
   );
 
-  // Atualizar progresso de todos os objetivos baseado apenas no dinheiro em conta do dia
-  // Cada objetivo "in-progress" recebe o valor do dinheiro em conta, limitado ao seu valor alvo
-  // Isso garante que o progresso esteja sempre vinculado ao dinheiro em conta
+  // Atualizar status dos objetivos baseado no dinheiro em conta
+  // O progresso é calculado dinamicamente nos cards, então apenas atualizamos o status (locked/in-progress)
   const updateAllProgressFromAccountMoney = useCallback(
     (accountMoney: number, reserve: number) => {
       const allPossessions = getAllPossessions();
@@ -268,30 +267,23 @@ export function usePossessions() {
       // Usar APENAS o dinheiro em conta (não incluir reserva)
       const totalAvailable = accountMoney;
       
-      // Atualizar cada objetivo independentemente
-      // IMPORTANTE: Apenas objetivos "in-progress" devem ser atualizados
+      // Atualizar status de cada objetivo baseado no dinheiro disponível
       allPossessions.forEach((possession) => {
-        // Se já está quitada ou problemas legais, não atualizar o progresso (manter em 100%)
+        // Se já está quitada ou problemas legais, não fazer nada
         if (possession.status === "completed" || possession.status === "legal-issues") {
-          // Garantir que o progresso está em 100% (targetValue)
-          if (possession.currentProgress !== possession.targetValue) {
-            updatePossession(possession.id, { currentProgress: possession.targetValue });
-          }
           return;
         }
         
-        // Apenas objetivos "in-progress" devem ter o progresso vinculado ao dinheiro em conta
-        if (possession.status === "in-progress") {
-          // Cada objetivo recebe o valor do dinheiro em conta, limitado ao seu valor alvo
-          // Isso significa que se há R$ 1000 em conta e um objetivo custa R$ 500,
-          // ele terá R$ 500 de progresso (100%). Se custa R$ 2000, terá R$ 1000 (50%).
-          const newProgress = Math.min(totalAvailable, possession.targetValue);
-          
-          // Atualizar sempre, mesmo se o valor for o mesmo, para garantir sincronização
-          // Isso permite que o progresso diminua se houver outros gastos
-          updatePossession(possession.id, { currentProgress: newProgress });
+        // Calcular progresso baseado no dinheiro em conta
+        const calculatedProgress = Math.min(totalAvailable, possession.targetValue);
+        
+        // Atualizar status: se tem progresso > 0, deve ser "in-progress", senão "locked"
+        if (calculatedProgress > 0 && possession.status === "locked") {
+          updatePossession(possession.id, { status: "in-progress" });
+        } else if (calculatedProgress <= 0 && possession.status === "in-progress") {
+          updatePossession(possession.id, { status: "locked" });
         }
-        // Objetivos "locked" não são atualizados (mantêm progresso 0)
+        // Se já está no status correto, não precisa atualizar
       });
     },
     [getAllPossessions, updatePossession]

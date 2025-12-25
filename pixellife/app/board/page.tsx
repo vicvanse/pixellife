@@ -2380,53 +2380,60 @@ function BoardPageInner() {
                       <p className="font-pixel text-center py-8" style={{ color: '#999', fontSize: '16px' }}>
                         {t('goals.noGoalsYet')}
                       </p>
-                    ) : (
-                      <div className="grid grid-cols-3 gap-4">
-                        {[...possessions].sort((a, b) => {
-                          if (sortCriteria.length === 0) return 0;
-                          for (const { by, order } of sortCriteria) {
-                            let comparison = 0;
-                            if (by === 'value') {
-                              comparison = a.targetValue - b.targetValue;
-                            } else if (by === 'status') {
-                              const statusOrder: Record<'completed' | 'in-progress' | 'locked' | 'legal-issues', number> = { 
-                                'completed': 1, 
-                                'legal-issues': 1, 
-                                'in-progress': 2, 
-                                'locked': 3 
-                              };
-                              comparison = statusOrder[a.status] - statusOrder[b.status];
-                            } else if (by === 'date') {
-                              comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+                    ) : (() => {
+                      // Obter dinheiro em conta do dia atual
+                      const today = new Date();
+                      const todayKey = formatDateKey(today);
+                      const accountMoney = getAccountMoney(todayKey);
+                      
+                      return (
+                        <div className="grid grid-cols-3 gap-4">
+                          {[...possessions].sort((a, b) => {
+                            if (sortCriteria.length === 0) return 0;
+                            for (const { by, order } of sortCriteria) {
+                              let comparison = 0;
+                              if (by === 'value') {
+                                comparison = a.targetValue - b.targetValue;
+                              } else if (by === 'status') {
+                                const statusOrder: Record<'completed' | 'in-progress' | 'locked' | 'legal-issues', number> = { 
+                                  'completed': 1, 
+                                  'legal-issues': 1, 
+                                  'in-progress': 2, 
+                                  'locked': 3 
+                                };
+                                comparison = statusOrder[a.status] - statusOrder[b.status];
+                              } else if (by === 'date') {
+                                comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+                              }
+                              if (comparison !== 0) {
+                                return order === 'asc' ? comparison : -comparison;
+                              }
                             }
-                            if (comparison !== 0) {
-                              return order === 'asc' ? comparison : -comparison;
-                            }
-                          }
-                          return 0;
-                        }).map((possession, index) => {
-                          const isEndOfRow = (index + 1) % 3 === 0;
-                          const isLastItem = index === possessions.length - 1;
-                          return (
-                            <>
-                              <div
-                                key={possession.id}
-                                style={{
-                                  backgroundColor: index % 2 === 0 ? '#ffffff' : '#f6f6f6',
-                                }}
-                              >
-                                <PossessionCard
-                                  possession={possession}
-                                  onClick={() => {
-                                    setSelectedPossession(possession);
-                                    setIsDetailsPossessionModalOpen(true);
+                            return 0;
+                          }).map((possession, index) => {
+                            const isEndOfRow = (index + 1) % 3 === 0;
+                            const isLastItem = index === possessions.length - 1;
+                            return (
+                              <>
+                                <div
+                                  key={possession.id}
+                                  style={{
+                                    backgroundColor: index % 2 === 0 ? '#ffffff' : '#f6f6f6',
                                   }}
-                                  onBuy={(id) => {
-                                    updatePossession(id, { status: 'completed' });
-                                    const updated = getAllPossessions();
-                                    setPossessions(updated);
-                                  }}
-                                />
+                                >
+                                  <PossessionCard
+                                    possession={possession}
+                                    accountMoney={accountMoney}
+                                    onClick={() => {
+                                      setSelectedPossession(possession);
+                                      setIsDetailsPossessionModalOpen(true);
+                                    }}
+                                    onBuy={(id) => {
+                                      updatePossession(id, { status: 'completed' });
+                                      const updated = getAllPossessions();
+                                      setPossessions(updated);
+                                    }}
+                                  />
                               </div>
                               {isEndOfRow && !isLastItem && (
                                 <div key={`divider-${possession.id}`} className="col-span-3 flex justify-center my-2">
@@ -2442,8 +2449,9 @@ function BoardPageInner() {
                             </>
                           );
                         })}
-                      </div>
-                    )}
+                        </div>
+                      );
+                    })()}
                     <div className="mt-6">
                       <div className="flex justify-end">
                         <button
