@@ -2234,7 +2234,8 @@ function BoardPageInner() {
                                         <button
                                           onClick={() => {
                                             if (confirm(`Encerrar recorrência "${entry.description}" a partir de hoje? Isso não afetará registros passados.`)) {
-                                              endRecurrence(entry.id, today);
+                                              const todayStr = formatDateKey(today);
+                                              endRecurrence(entry.id, todayStr);
                                               // Forçar atualização da lista de recorrentes
                                               setRecurringEntriesUpdateKey(prev => prev + 1);
                                               // Recarregar dados mensais
@@ -4247,7 +4248,8 @@ function BoardPageInner() {
                                   <button
                                     onClick={() => {
                                       if (confirm(`Encerrar recorrência "${entry.description}" a partir de hoje? Isso não afetará registros passados.`)) {
-                                        endRecurrence(entry.id, today);
+                                        const todayStr = formatDateKey(today);
+                                        endRecurrence(entry.id, todayStr);
                                         // Forçar atualização da lista de recorrentes
                                         setRecurringEntriesUpdateKey(prev => prev + 1);
                                         // Recarregar dados mensais
