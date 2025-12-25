@@ -355,11 +355,14 @@ export function useFinancialEntries() {
   );
 
   // Verificar se uma entrada deve ser incluída nos cálculos baseado no status
+  // expected é o estado base e deve sempre contar nos totais
+  // pending é derivado de expected quando a data passa, mas só conta se includePending for true
   const shouldIncludeInTotals = useCallback(
     (entry: FinancialEntry, includePending: boolean = true): boolean => {
       if (entry.status === "received") return true;
+      if (entry.status === "expected") return true; // expected sempre conta (estado base)
       if (entry.status === "pending" && includePending) return true;
-      return false; // expected e canceled nunca entram
+      return false; // canceled nunca entra
     },
     []
   );
