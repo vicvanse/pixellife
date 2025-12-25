@@ -31,7 +31,7 @@ export function AddFinancialEntryModal({
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(initialDate || new Date().toISOString().substring(0, 10));
-  const [startDate, setStartDate] = useState(new Date().toISOString().substring(0, 10));
+  const [startDate, setStartDate] = useState(initialDate || new Date().toISOString().substring(0, 10));
   const [endDate, setEndDate] = useState<string | null>(null);
   const [recurrence, setRecurrence] = useState<RecurrenceType>("mensal");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("dinheiro");
@@ -55,7 +55,7 @@ export function AddFinancialEntryModal({
             setPaymentMethod(editingEntry.paymentMethod);
           }
         } else {
-          setStartDate(editingEntry.startDate || new Date().toISOString().substring(0, 10));
+          setStartDate(editingEntry.startDate || initialDate || new Date().toISOString().substring(0, 10));
           setEndDate(editingEntry.endDate || null);
           setRecurrence(editingEntry.recurrence || "mensal");
           if (editingEntry.paymentMethod) {
@@ -72,7 +72,7 @@ export function AddFinancialEntryModal({
         setDescription("");
         setAmount("");
         setDate(initialDate || new Date().toISOString().substring(0, 10));
-        setStartDate(new Date().toISOString().substring(0, 10));
+        setStartDate(initialDate || new Date().toISOString().substring(0, 10));
         setEndDate(null);
         setRecurrence("mensal");
         setPaymentMethod("dinheiro");

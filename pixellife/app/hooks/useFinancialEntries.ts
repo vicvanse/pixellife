@@ -16,6 +16,7 @@ export interface FinancialEntry {
   date?: string; // YYYY-MM-DD para pontual
   startDate?: string; // YYYY-MM-DD para recorrente
   endDate?: string | null;
+  excludedDates?: string[]; // YYYY-MM-DD[] - datas excluídas da recorrência (para quando algo atrasa ou não cobra)
   recurrence?: RecurrenceType; // mensal | quinzenal | anual
   paymentMethod?: PaymentMethod; // dinheiro | debito | credito
   category?: string;
@@ -138,7 +139,12 @@ export function useFinancialEntries() {
       // 1. isSameOrAfter(day, start_date)
       if (date < startDate) return false;
 
-      // 2. end_date is null OR day <= end_date
+      // 2. Verificar se a data está na lista de excluídas
+      if (entry.excludedDates && entry.excludedDates.includes(dateKey)) {
+        return false;
+      }
+
+      // 3. end_date is null OR day <= end_date
       if (entry.endDate) {
         const endDate = new Date(entry.endDate + "T00:00:00");
         if (date > endDate) return false;
@@ -269,6 +275,21 @@ export function useFinancialEntries() {
     });
   }, [entries]);
 
+  // Excluir uma data específica da recorrência (mantém a recorrência ativa)
+  const excludeRecurrenceDate = useCallback(
+    (id: string, dateToExclude: string) => {
+      const entry = entries.find((e) => e.id === id);
+      if (!entry || entry.frequency !== "recorrente") return;
+
+      const currentExcluded = entry.excludedDates || [];
+      // Adicionar a data se ainda não estiver na lista
+      if (!currentExcluded.includes(dateToExclude)) {
+        updateEntry(id, { excludedDates: [...currentExcluded, dateToExclude] });
+      }
+    },
+    [entries, updateEntry]
+  );
+
   // Encerrar recorrência (definir end_date = data anterior para que não apareça mais)
   const endRecurrence = useCallback(
     (id: string, endDate?: string) => {
@@ -360,6 +381,7 @@ export function useFinancialEntries() {
     getRecurringEntriesForMonth,
     getAllEntries,
     getActiveRecurringEntries,
+    excludeRecurrenceDate,
     endRecurrence,
     getCategoryAnalysis,
   };

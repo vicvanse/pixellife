@@ -222,11 +222,20 @@ export function useSyncExpenses() {
 
     // Função para carregar dados do Supabase (só se realmente mudou)
     const reloadExpenses = async () => {
+      // Não recarregar se há um salvamento pendente (evitar conflitos)
+      if (saveTimeoutRef.current) {
+        return; // Silenciosamente retornar, não fazer log
+      }
+      
+      // Não recarregar se está importando (evitar loops)
+      if (typeof window !== "undefined" && (window as any).__isImportingExpenses) {
+        return; // Silenciosamente retornar, não fazer log
+      }
+      
       try {
         const { data, error } = await loadFromSupabase(user.id, "expenses");
         if (!error && data) {
-          // Verificar se realmente mudou comparando timestamp
-          // (assumindo que data tem updated_at ou podemos usar hash)
+          // Verificar se realmente mudou comparando hash
           const dataHash = JSON.stringify(data);
           const currentHash = JSON.stringify(exportExpensesData());
           
@@ -245,9 +254,8 @@ export function useSyncExpenses() {
                 (window as any).__isImportingExpenses = false;
               }, 1000);
             }
-          } else {
-            console.log("ℹ️ Dados já estão sincronizados, pulando recarregamento");
           }
+          // Removido log de "dados já sincronizados" para reduzir ruído
         }
       } catch (err) {
         console.error("❌ Erro ao recarregar expenses:", err);
@@ -314,6 +322,13 @@ export function useSyncExpenses() {
       if (typeof window !== "undefined" && (window as any).__isImportingExpenses) {
         return;
       }
+      
+      // Verificar se realmente há mudança antes de processar
+      const currentData = JSON.stringify(exportExpensesData());
+      if (currentData === lastDataRef.current) {
+        return; // Não mudou, não fazer nada (silenciosamente)
+      }
+      
       // Evento customizado disparado quando há mudança na mesma aba
       console.log("🔄 Mudança em expenses detectada via custom event, agendando salvamento...");
       handleSave();
@@ -325,9 +340,13 @@ export function useSyncExpenses() {
     window.addEventListener("expenses-updated", handleCustomStorageChange);
 
     // Carregar dados do Supabase a cada 30 segundos (polling apenas para carregar mudanças remotas)
+    // Aumentado para 60 segundos para reduzir chamadas desnecessárias
     const loadInterval = setInterval(() => {
-      reloadExpenses();
-    }, 30000);
+      // Só recarregar se não houver salvamento pendente
+      if (!saveTimeoutRef.current) {
+        reloadExpenses();
+      }
+    }, 60000); // Aumentado de 30s para 60s
 
     // Polling como fallback (verificar mudanças a cada 5 segundos - menos frequente já que eventos são primários)
     const saveInterval = setInterval(() => {

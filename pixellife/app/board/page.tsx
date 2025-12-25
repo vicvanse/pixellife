@@ -160,6 +160,7 @@ function BoardPageInner() {
     getRecurringEntriesForMonth, 
     removeEntry: removeFinancialEntry,
     getActiveRecurringEntries,
+    excludeRecurrenceDate,
     endRecurrence,
     getCategoryAnalysis,
     updateEntry: updateFinancialEntry,
@@ -1280,7 +1281,7 @@ function BoardPageInner() {
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         const confirmMessage = item.frequency === 'recorrente' 
-                                          ? `Encerrar recorrência "${item.description}"? (A entrada será removida apenas desta data)` 
+                                          ? `Remover "${item.description}" apenas desta data?\n\nA recorrência continuará ativa e aparecerá nos próximos dias. Isso é útil quando algo atrasa ou não cobra naquela data.` 
                                           : `Remover "${item.description}"?`;
                                         if (confirm(confirmMessage)) {
                                           // Se for do sistema antigo, usar removeDailyExpense
@@ -1314,8 +1315,8 @@ function BoardPageInner() {
                                             const entryToRemove = financialEntries.find(e => e.id === item.id);
                                             
                                             if (entryToRemove && entryToRemove.frequency === 'recorrente') {
-                                              // Se for recorrente, encerrar recorrência (definir endDate)
-                                              endRecurrence(entryToRemove.id, dateKey);
+                                              // Se for recorrente, excluir apenas desta data (mantém recorrência ativa)
+                                              excludeRecurrenceDate(entryToRemove.id, dateKey);
                                               // Forçar atualização da lista de recorrentes
                                               setRecurringEntriesUpdateKey(prev => prev + 1);
                                             } else {
@@ -3290,7 +3291,7 @@ function BoardPageInner() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 const confirmMessage = item.frequency === 'recorrente' 
-                                  ? `Encerrar recorrência "${item.description}"? (A entrada será removida apenas desta data)` 
+                                  ? `Remover "${item.description}" apenas desta data?\n\nA recorrência continuará ativa e aparecerá nos próximos dias. Isso é útil quando algo atrasa ou não cobra naquela data.` 
                                   : `Remover "${item.description}"?`;
                                 if (confirm(confirmMessage)) {
                                   // Se for do sistema antigo, usar removeDailyExpense
@@ -3302,8 +3303,8 @@ function BoardPageInner() {
                                     const entryToRemove = financialEntries.find(e => e.id === item.id);
                                     
                                     if (entryToRemove && entryToRemove.frequency === 'recorrente') {
-                                      // Se for recorrente, encerrar recorrência (definir endDate)
-                                      endRecurrence(entryToRemove.id, dateKey);
+                                      // Se for recorrente, excluir apenas desta data (mantém recorrência ativa)
+                                      excludeRecurrenceDate(entryToRemove.id, dateKey);
                                       // Forçar atualização da lista de recorrentes
                                       setRecurringEntriesUpdateKey(prev => prev + 1);
                                     } else {
@@ -4706,6 +4707,7 @@ function BoardPageInner() {
       {isAddFinancialEntryModalOpen && (
         <AddFinancialEntryModal
           isOpen={isAddFinancialEntryModalOpen}
+          initialDate={formatDateKey(selectedDate)}
           onClose={() => {
             setIsAddFinancialEntryModalOpen(false);
             setEditingFinancialEntry(undefined);

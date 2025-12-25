@@ -94,21 +94,28 @@ export function MoodSelector({ value, onChange, onNumberChange, currentNumber }:
           ))}
         </>
       ) : (
-        <div className="flex gap-2 flex-wrap justify-center">
+        <div className="flex gap-1.5 flex-wrap justify-center">
           {Array.from({ length: 11 }, (_, i) => i).map((num) => {
             const mappedMood = numberToMood(num);
             const isSelected = value === mappedMood && currentNumber === num;
+            // Alternar entre cinza claro e escuro baseado no número
+            const isEven = num % 2 === 0;
+            const bgColor = isSelected 
+              ? (isEven ? "bg-gray-600" : "bg-gray-700")
+              : (isEven ? "bg-gray-200" : "bg-gray-300");
+            const textColor = isSelected ? "text-white" : "text-black";
+            
             return (
               <button
                 key={num}
                 onClick={() => handleNumberClick(num)}
                 className={`
-                  w-12 h-12 rounded-full border-2 border-black font-mono font-bold text-sm
+                  w-8 h-8 rounded-full border-2 border-black font-mono font-bold text-xs
                   flex items-center justify-center touch-manipulation
-                  ${isSelected ? "bg-blue-400" : "bg-gray-200"}
-                  hover:opacity-90
+                  ${bgColor} ${textColor}
+                  hover:opacity-80 transition-opacity
                 `}
-                style={{ minWidth: '48px', minHeight: '48px' }}
+                style={{ minWidth: '32px', minHeight: '32px' }}
                 aria-label={`Humor: ${num}`}
                 aria-pressed={isSelected}
               >
