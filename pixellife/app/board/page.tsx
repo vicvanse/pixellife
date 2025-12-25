@@ -4749,7 +4749,6 @@ function BoardPageInner() {
               }
             }, 100);
           }}
-          initialDate={formatDateKey(selectedDate)}
           editingEntry={editingFinancialEntry}
         />
       )}
