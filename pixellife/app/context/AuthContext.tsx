@@ -50,26 +50,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Verificar sessão a cada 60 segundos (menos agressivo)
     checkIntervalRef.current = setInterval(async () => {
-      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error("❌ Erro ao verificar sessão:", error);
-        // Não fazer logout imediatamente em caso de erro de rede
-        return;
-      }
-
-      if (!currentSession) {
-        // Sessão expirou, fazer logout apenas se realmente não houver sessão
-        // Verificar novamente antes de fazer logout para evitar falsos positivos
-        const { data: { session: doubleCheckSession } } = await supabase.auth.getSession();
-        if (!doubleCheckSession) {
-          console.log("⚠️ Sessão não encontrada após verificação dupla, fazendo logout...");
-          stopPeriodicSessionCheck();
-          setUser(null);
-          setSession(null);
-          showToast("Sua sessão expirou. Por favor, faça login novamente.", "error");
-          router.push("/auth/login");
+      try {
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        // Se houver erro de conexão ou autenticação, redirecionar para login
+        if (error) {
+          console.error("❌ Erro ao verificar sessão:", error);
+          // Erros que indicam perda de conexão ou problema de autenticação
+          const isAuthError = error.message?.includes('JWT') || 
+                             error.message?.includes('session') ||
+                             error.message?.includes('token') ||
+                             error.message?.includes('expired') ||
+                             error.message?.includes('unauthorized');
+          
+          if (isAuthError) {
+            console.log("⚠️ Erro de autenticação detectado, redirecionando para login...");
+            stopPeriodicSessionCheck();
+            setUser(null);
+            setSession(null);
+            showToast("Sua sessão expirou. Por favor, faça login novamente.", "error");
+            router.push("/auth/login");
+          }
+          return;
         }
+
+        if (!currentSession) {
+          // Sessão expirou, fazer logout apenas se realmente não houver sessão
+          // Verificar novamente antes de fazer logout para evitar falsos positivos
+          try {
+            const { data: { session: doubleCheckSession } } = await supabase.auth.getSession();
+            if (!doubleCheckSession) {
+              console.log("⚠️ Sessão não encontrada após verificação dupla, redirecionando para login...");
+              stopPeriodicSessionCheck();
+              setUser(null);
+              setSession(null);
+              showToast("Sua sessão expirou. Por favor, faça login novamente.", "error");
+              router.push("/auth/login");
+            }
+          } catch (err) {
+            // Erro na segunda verificação também indica problema de conexão
+            console.error("❌ Erro na verificação dupla da sessão:", err);
+            stopPeriodicSessionCheck();
+            setUser(null);
+            setSession(null);
+            showToast("Erro de conexão. Por favor, faça login novamente.", "error");
+            router.push("/auth/login");
+          }
+          return;
+        }
+      } catch (err) {
+        // Erro geral na verificação - possível perda de conexão
+        console.error("❌ Erro inesperado ao verificar sessão:", err);
+        stopPeriodicSessionCheck();
+        setUser(null);
+        setSession(null);
+        showToast("Erro de conexão. Por favor, faça login novamente.", "error");
+        router.push("/auth/login");
         return;
       }
 
@@ -152,23 +188,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (refreshIn > 0 && refreshIn < expiresIn) {
       const timeout = setTimeout(async () => {
-        console.log("🔄 Renovando sessão automaticamente...");
-        const { data, error } = await supabase.auth.refreshSession();
-        if (error) {
-          console.error("❌ Erro ao renovar sessão:", error);
-          // Tentar verificar se ainda há sessão válida
-          const { data: { session: currentSession } } = await supabase.auth.getSession();
-          if (!currentSession) {
-            showToast("Sua sessão expirou. Por favor, faça login novamente.", "error");
-            await logout();
+        try {
+          console.log("🔄 Renovando sessão automaticamente...");
+          const { data, error } = await supabase.auth.refreshSession();
+          if (error) {
+            console.error("❌ Erro ao renovar sessão:", error);
+            // Verificar se é erro de autenticação (JWT expirado, inválido, etc)
+            const isAuthError = error.message?.includes('JWT') || 
+                               error.message?.includes('session') ||
+                               error.message?.includes('token') ||
+                               error.message?.includes('expired') ||
+                               error.message?.includes('unauthorized');
+            
+            if (isAuthError) {
+              // Erro de autenticação - redirecionar para login
+              showToast("Sua sessão expirou. Por favor, faça login novamente.", "error");
+              stopPeriodicSessionCheck();
+              setUser(null);
+              setSession(null);
+              router.push("/auth/login");
+            } else {
+              // Outro tipo de erro (ex: rede) - tentar verificar sessão atual
+              try {
+                const { data: { session: currentSession } } = await supabase.auth.getSession();
+                if (!currentSession) {
+                  showToast("Sua sessão expirou. Por favor, faça login novamente.", "error");
+                  stopPeriodicSessionCheck();
+                  setUser(null);
+                  setSession(null);
+                  router.push("/auth/login");
+                }
+              } catch (sessionError) {
+                // Erro ao verificar sessão - redirecionar para login
+                console.error("❌ Erro ao verificar sessão após falha no refresh:", sessionError);
+                stopPeriodicSessionCheck();
+                setUser(null);
+                setSession(null);
+                router.push("/auth/login");
+              }
+            }
+          } else {
+            console.log("✅ Sessão renovada com sucesso");
+            if (data.session) {
+              setSession(data.session);
+              setUser(data.session.user);
+              setupAutoRefresh(data.session);
+            } else {
+              // Sem sessão após refresh - redirecionar para login
+              stopPeriodicSessionCheck();
+              setUser(null);
+              setSession(null);
+              router.push("/auth/login");
+            }
           }
-        } else {
-          console.log("✅ Sessão renovada com sucesso");
-          if (data.session) {
-            setSession(data.session);
-            setUser(data.session.user);
-            setupAutoRefresh(data.session);
-          }
+        } catch (err) {
+          // Erro inesperado - redirecionar para login
+          console.error("❌ Erro inesperado ao renovar sessão:", err);
+          stopPeriodicSessionCheck();
+          setUser(null);
+          setSession(null);
+          router.push("/auth/login");
         }
       }, refreshIn);
 
@@ -224,6 +303,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null);
             setSession(null);
             setLoading(false);
+            // Redirecionar para login se houver erro de autenticação
+            const isAuthError = error.message?.includes('JWT') || 
+                               error.message?.includes('session') ||
+                               error.message?.includes('token') ||
+                               error.message?.includes('expired') ||
+                               error.message?.includes('unauthorized');
+            if (isAuthError) {
+              router.push("/auth/login");
+            }
           }
           return;
         }
@@ -232,6 +320,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(session);
           setUser(session?.user ?? null);
           setLoading(false);
+        }
+
+        // Se não houver sessão e não estiver em rota pública, redirecionar para login
+        if (!session && mounted) {
+          const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+          const publicRoutes = ["/auth/login", "/auth/register", "/auth/reset", "/auth/verify-email", "/auth/callback", "/privacy", "/terms"];
+          const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+          
+          if (!isPublicRoute) {
+            router.push("/auth/login");
+          }
+          return;
         }
 
         // Configurar refresh automático se houver sessão
@@ -245,6 +345,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setSession(null);
           setLoading(false);
+          // Redirecionar para login em caso de erro
+          router.push("/auth/login");
         }
       }
     }
@@ -266,13 +368,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setupAutoRefresh(session);
           startPeriodicSessionCheck();
           // Toast removido - não mostrar mensagem de login automático
-        } else if (event === "SIGNED_OUT") {
+        } else if (event === "SIGNED_OUT" || (!session && mounted)) {
           stopPeriodicSessionCheck();
           if (refreshTimeoutRef.current) {
             clearTimeout(refreshTimeoutRef.current);
             refreshTimeoutRef.current = null;
           }
-          showToast("Você foi desconectado", "info");
+          
+          // Se não estiver em rota pública, redirecionar para login
+          const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+          const publicRoutes = ["/auth/login", "/auth/register", "/auth/reset", "/auth/verify-email", "/auth/callback", "/privacy", "/terms"];
+          const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+          
+          if (!isPublicRoute) {
+            router.push("/auth/login");
+          }
+          
+          if (event === "SIGNED_OUT") {
+            showToast("Você foi desconectado", "info");
+          }
         } else if (event === "TOKEN_REFRESHED" && session) {
           console.log("✅ Token renovado automaticamente");
           setupAutoRefresh(session);

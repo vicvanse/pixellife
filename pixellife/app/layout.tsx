@@ -13,6 +13,7 @@ import { UIModeRouter } from "./components/UIModeRouter";
 import { ConfirmationProvider } from "./context/ConfirmationContext";
 import { RegisterServiceWorker } from "./components/RegisterServiceWorker";
 import { LanguageProvider } from "./context/LanguageContext";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { viewport } from "./viewport";
 import "./lib/fontawesome";
 
@@ -100,17 +101,19 @@ export default function RootLayout({
             <LanguageProvider>
               <ConfirmationProvider>
                 <AuthProvider>
-                  <UIProvider>
-                    <UIModeRouter />
-                    <AppProvider>
-                      <CosmeticsProvider>
-                        <GlobalLayout>
-                          {children}
-                        </GlobalLayout>
-                        <RegisterServiceWorker />
-                      </CosmeticsProvider>
-                    </AppProvider>
-                  </UIProvider>
+                  <ProtectedRoute>
+                    <UIProvider>
+                      <UIModeRouter />
+                      <AppProvider>
+                        <CosmeticsProvider>
+                          <GlobalLayout>
+                            {children}
+                          </GlobalLayout>
+                          <RegisterServiceWorker />
+                        </CosmeticsProvider>
+                      </AppProvider>
+                    </UIProvider>
+                  </ProtectedRoute>
                 </AuthProvider>
               </ConfirmationProvider>
             </LanguageProvider>

@@ -2179,10 +2179,13 @@ function BoardPageInner() {
                               <div className="grid grid-cols-2 gap-3">
                                 {activeRecurring.map((entry) => {
                                   const startDate = new Date(entry.startDate + 'T00:00:00');
+                                  const today = new Date();
+                                  today.setHours(0, 0, 0, 0);
+                                  const isFuture = startDate > today;
                                   const frequencyLabel = entry.recurrence === 'mensal' ? 'Mensal' : entry.recurrence === 'quinzenal' ? 'Quinzenal' : 'Anual';
                                   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
                                   const startDateLabel = `${monthNames[startDate.getMonth()]}/${startDate.getFullYear()}`;
-                                  const metadata = `${frequencyLabel} · desde ${startDateLabel}`;
+                                  const metadata = `${frequencyLabel} · ${isFuture ? 'inicia em' : 'desde'} ${startDateLabel}`;
                                   
                                   return (
                                     <div
@@ -4189,10 +4192,13 @@ function BoardPageInner() {
                         <div className="grid grid-cols-2 gap-3">
                           {activeRecurring.map((entry) => {
                             const startDate = new Date(entry.startDate + 'T00:00:00');
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const isFuture = startDate > today;
                             const frequencyLabel = entry.recurrence === 'mensal' ? 'Mensal' : entry.recurrence === 'quinzenal' ? 'Quinzenal' : 'Anual';
                             const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
                             const startDateLabel = `${monthNames[startDate.getMonth()]}/${startDate.getFullYear()}`;
-                            const metadata = `${frequencyLabel} · desde ${startDateLabel}`;
+                            const metadata = `${frequencyLabel} · ${isFuture ? 'inicia em' : 'desde'} ${startDateLabel}`;
                             
                             return (
                               <div

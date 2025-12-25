@@ -250,7 +250,7 @@ export function useFinancialEntries() {
   // Obter todas as entradas
   const getAllEntries = useCallback(() => entries, [entries]);
 
-  // Obter apenas recorrentes ativos (start_date <= hoje e (end_date é null ou end_date >= hoje))
+  // Obter apenas recorrentes ativos (inclui futuros, mas verifica se não foram encerrados)
   const getActiveRecurringEntries = useCallback(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -261,10 +261,9 @@ export function useFinancialEntries() {
       const startDate = new Date(entry.startDate + "T00:00:00");
       startDate.setHours(0, 0, 0, 0);
       
-      // start_date <= hoje
-      if (startDate > today) return false;
+      // Incluir recorrentes futuros também (removido: if (startDate > today) return false;)
       
-      // end_date é null ou end_date >= hoje
+      // end_date é null ou end_date >= hoje (se tiver end_date no passado, não mostrar)
       if (entry.endDate) {
         const endDate = new Date(entry.endDate + "T00:00:00");
         endDate.setHours(0, 0, 0, 0);
