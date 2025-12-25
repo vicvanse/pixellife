@@ -1270,8 +1270,8 @@ export function DailyOverview() {
                               lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
                             }
                             
-                            setEditingQuickNote(null);
-                            setEditingQuickNoteText('');
+                          setEditingQuickNote(null);
+                          setEditingQuickNoteText('');
                             
                             // Resetar flag após delay
                             setTimeout(() => {
@@ -1296,7 +1296,6 @@ export function DailyOverview() {
                       <span 
                         className="flex-1 cursor-text"
                         onDoubleClick={(e) => {
-                          e.preventDefault();
                           e.stopPropagation();
                           if (selectedDate) {
                             // Resetar flag de edição antes de iniciar nova edição
@@ -1305,7 +1304,10 @@ export function DailyOverview() {
                             setEditingQuickNoteText(note.text);
                           }
                         }}
-                        style={{ pointerEvents: 'auto' }}
+                        style={{ 
+                          pointerEvents: 'auto',
+                          userSelect: 'none',
+                        }}
                       >
                         {note.text}
                       </span>
@@ -1313,16 +1315,17 @@ export function DailyOverview() {
                         <button
                           type="button"
                           onClick={(e) => {
-                            e.preventDefault();
                             e.stopPropagation();
                             handleRemoveQuickNote(note.id);
                           }}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
                           className="text-red-500 ml-2 transition-opacity"
-                          style={{ fontSize: '20px', opacity: 1, cursor: 'pointer', zIndex: 10 }}
+                          style={{ 
+                            fontSize: '20px', 
+                            opacity: 1, 
+                            cursor: 'pointer', 
+                            zIndex: 50,
+                            pointerEvents: 'auto',
+                          }}
                           title="Excluir pensamento rápido"
                         >
                           ×
@@ -1601,10 +1604,6 @@ export function DailyOverview() {
                               <div 
                                 className="space-y-1 quick-notes-vertical-scrollbar flex-1 overflow-y-auto" 
                                 style={{ minHeight: 0, scrollbarWidth: 'thin', scrollbarColor: '#d0d0d0 transparent' }}
-                                onDoubleClick={(e) => {
-                                  // Prevenir que o duplo clique no container interfira com o duplo clique nos itens
-                                  e.stopPropagation();
-                                }}
                               >
                                 {quickNotesForDay.map((note) => {
                                   const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -1621,10 +1620,6 @@ export function DailyOverview() {
                                         wordBreak: 'break-word',
                                         textAlign: 'center',
                                         pointerEvents: 'auto',
-                                      }}
-                                      onDoubleClick={(e) => {
-                                        // Prevenir propagação para não interferir com outros eventos
-                                        e.stopPropagation();
                                       }}
                                     >
                                       {isEditing ? (
@@ -1654,8 +1649,8 @@ export function DailyOverview() {
                                                   lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
                                                 }
                                                 
-                                                setEditingQuickNote(null);
-                                                setEditingQuickNoteText('');
+                setEditingQuickNote(null);
+                setEditingQuickNoteText('');
                                                 
                                                 // Resetar flag após delay
                                                 setTimeout(() => {
@@ -1663,10 +1658,10 @@ export function DailyOverview() {
                                                 }, 300);
                                               }
                                             } else if (e.key === 'Escape') {
-                                                setEditingQuickNote(null);
-                                                setEditingQuickNoteText('');
+                setEditingQuickNote(null);
+                setEditingQuickNoteText('');
                                                 isEditingRef.current = false;
-                                            }
+              }
                                           }}
                                           onBlur={() => {
                                             if (editingQuickNoteText.trim()) {
@@ -1689,8 +1684,8 @@ export function DailyOverview() {
                                                 lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
                                               }
                                               
-                                              setEditingQuickNote(null);
-                                              setEditingQuickNoteText('');
+              setEditingQuickNote(null);
+              setEditingQuickNoteText('');
                                               
                                               // Resetar flag após delay
                                               setTimeout(() => {
@@ -1716,7 +1711,6 @@ export function DailyOverview() {
                                         <span 
                                           className="cursor-text select-none"
                                           onDoubleClick={(e) => {
-                                            e.preventDefault();
                                             e.stopPropagation();
                                             // Resetar flag de edição antes de iniciar nova edição
                                             isEditingRef.current = false;
@@ -1735,7 +1729,6 @@ export function DailyOverview() {
                     <button
                                         type="button"
                                         onClick={(e) => {
-                                          e.preventDefault();
                                           e.stopPropagation();
                                           // Marcar que estamos deletando para evitar sincronização prematura
                                           isDeletingRef.current = true;
@@ -1756,18 +1749,14 @@ export function DailyOverview() {
                                           setTimeout(() => {
                                             isDeletingRef.current = false;
                                           }, 300);
-                                          
-                                          // Prevenir qualquer scroll automático
-                                          if (e.currentTarget) {
-                                            e.currentTarget.blur();
-                                          }
                                         }}
-                                        onMouseDown={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
+                                        className="absolute top-0 right-0 w-5 h-5 flex items-center justify-center rounded-full bg-red-400 hover:bg-red-500 text-white text-xs font-bold transition-opacity z-50"
+                                        style={{ 
+                                          fontSize: '12px',
+                                          opacity: 1, // Sempre visível, não apenas no hover
+                                          pointerEvents: 'auto',
+                                          cursor: 'pointer',
                                         }}
-                                        className="absolute top-0 right-0 w-5 h-5 flex items-center justify-center rounded-full bg-red-400 hover:bg-red-500 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                                        style={{ fontSize: '12px' }}
                                         title="Excluir"
                                       >
                                         ×
@@ -1835,7 +1824,7 @@ export function DailyOverview() {
                                           const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                                           // Adicionar o pensamento rápido
                                           handleAddInlineQuickNote(dateStr);
-                                        }}
+                      }}
                                         onMouseDown={(e) => {
                                           e.preventDefault(); // Prevenir blur do input
                                           e.stopPropagation();
