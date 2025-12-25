@@ -6,7 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { saveToSupabase, loadFromSupabase } from "../lib/supabase-sync";
 import type { PostgrestError } from "@supabase/supabase-js";
 import type { Habit } from "../hooks/useHabits";
-import type { JournalData } from "../hooks/useJournal";
+import type { JournalData, JournalEntry, QuickNote } from "../hooks/useJournal";
 import { withRetry } from "../lib/retry";
 import { useToastContext } from "./ToastContext";
 
@@ -18,6 +18,58 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
+
+// Gerar ID único
+function generateId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback para ambientes sem crypto.randomUUID
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// Normalizar journal completo ao carregar do Supabase
+// Garante que todos os quickNotes tenham IDs únicos
+function normalizeJournalData(journalData: JournalData): JournalData {
+  const normalized: JournalData = {};
+  
+  for (const [date, entry] of Object.entries(journalData)) {
+    if (entry && typeof entry === 'object') {
+      // Normalizar quickNotes - garantir que todos tenham IDs únicos
+      const quickNotes = entry.quickNotes || [];
+      const normalizedQuickNotes: QuickNote[] = quickNotes.map((note: any) => {
+        if (note.id && typeof note.id === 'string' && note.id.trim() !== '') {
+          return {
+            id: note.id,
+            time: note.time || "",
+            text: note.text || "",
+          } as QuickNote;
+        }
+        // Se não tem id válido, criar um novo
+        return {
+          id: generateId(),
+          time: note.time || "",
+          text: note.text || "",
+        } as QuickNote;
+      });
+      
+      // Remover duplicatas por ID (manter o primeiro)
+      const uniqueQuickNotes = normalizedQuickNotes.filter((note, index, self) =>
+        index === self.findIndex((n) => n.id === note.id)
+      );
+      
+      normalized[date] = {
+        mood: entry.mood ?? null,
+        ...(entry.moodNumber !== undefined && { moodNumber: entry.moodNumber }),
+        text: entry.text ?? "",
+        quickNotes: uniqueQuickNotes,
+        touched: entry.touched ?? true,
+      } as JournalEntry;
+    }
+  }
+  
+  return normalized;
+}
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -83,7 +135,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const journalObj = journalData as JournalData;
           if (Object.keys(journalObj).length > 0) {
             console.log("✅ AppContext: Journal carregado do Supabase");
-            setJournalLocal(journalObj);
+            // Normalizar dados ao carregar para garantir IDs únicos nos quickNotes
+            const normalizedJournal = normalizeJournalData(journalObj);
+            setJournalLocal(normalizedJournal);
+            
+            // Se houve normalização (dados mudaram), salvar de volta para persistir IDs
+            const originalStr = JSON.stringify(journalObj);
+            const normalizedStr = JSON.stringify(normalizedJournal);
+            if (originalStr !== normalizedStr) {
+              console.log("🔄 AppContext: Normalizando quickNotes e salvando de volta no Supabase...");
+              // Aguardar um pouco antes de salvar para não interferir com outros processos
+              setTimeout(async () => {
+                try {
+                  await saveToSupabase(user.id, "journal", normalizedJournal);
+                  console.log("✅ AppContext: Journal normalizado salvo com sucesso");
+                } catch (err) {
+                  console.error("⚠️ AppContext: Erro ao salvar journal normalizado:", err);
+                }
+              }, 1000);
+            }
           } else {
             console.log("ℹ️ AppContext: Journal vazio no Supabase");
           }

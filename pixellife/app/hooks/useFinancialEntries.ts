@@ -269,11 +269,23 @@ export function useFinancialEntries() {
     });
   }, [entries]);
 
-  // Encerrar recorrência (definir end_date = data atual)
+  // Encerrar recorrência (definir end_date = data anterior para que não apareça mais)
   const endRecurrence = useCallback(
     (id: string, endDate?: string) => {
-      const today = endDate || new Date().toISOString().substring(0, 10);
-      updateEntry(id, { endDate: today });
+      // Se não fornecer uma data, usar ontem para que não apareça mais na lista de ativos
+      let targetDate: string;
+      if (endDate) {
+        // Se fornecer uma data, usar o dia anterior a ela
+        const date = new Date(endDate + "T00:00:00");
+        date.setDate(date.getDate() - 1);
+        targetDate = date.toISOString().substring(0, 10);
+      } else {
+        // Usar ontem
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        targetDate = yesterday.toISOString().substring(0, 10);
+      }
+      updateEntry(id, { endDate: targetDate });
     },
     [updateEntry]
   );

@@ -233,11 +233,17 @@ export function useSyncExpenses() {
           // Só atualizar se os dados forem diferentes
           if (dataHash !== currentHash) {
             console.log("📥 Expenses recarregados do Supabase (dados atualizados)");
-            // Os dados já são importados para localStorage automaticamente pelo loadFromSupabase
-            // Forçar atualização da UI emitindo evento de storage
+            // Marcar que estamos importando para evitar loop de salvamento
             if (typeof window !== "undefined") {
+              (window as any).__isImportingExpenses = true;
+              // Os dados já são importados para localStorage automaticamente pelo loadFromSupabase
+              // Forçar atualização da UI emitindo evento de storage
               window.dispatchEvent(new Event("storage"));
               window.dispatchEvent(new CustomEvent("expenses-updated"));
+              // Remover flag após um pequeno delay
+              setTimeout(() => {
+                (window as any).__isImportingExpenses = false;
+              }, 1000);
             }
           } else {
             console.log("ℹ️ Dados já estão sincronizados, pulando recarregamento");
@@ -245,6 +251,9 @@ export function useSyncExpenses() {
         }
       } catch (err) {
         console.error("❌ Erro ao recarregar expenses:", err);
+        if (typeof window !== "undefined") {
+          (window as any).__isImportingExpenses = false;
+        }
       }
     };
 
@@ -288,17 +297,23 @@ export function useSyncExpenses() {
 
     // Escutar eventos de mudança (abordagem híbrida)
     const handleStorageChange = (e: StorageEvent) => {
-      // Evento de storage disparado por outras abas ou quando localStorage muda
+      // Ignorar eventos durante importação para evitar loop
+      if (typeof window !== "undefined" && (window as any).__isImportingExpenses) {
+        return;
+      }
+      // Só processar se a key for especificamente de expenses
+      // REMOVIDO: else if (!e.key) - isso capturava eventos de outros módulos como journal
       if (e.key && e.key.startsWith("pixel-life-expenses-v1:")) {
         console.log("🔄 Mudança em expenses detectada via storage event (outra aba), agendando salvamento...");
-        handleSave();
-      } else if (!e.key) {
-        // Evento disparado sem key específica (mudança geral)
         handleSave();
       }
     };
 
     const handleCustomStorageChange = () => {
+      // Ignorar eventos durante importação para evitar loop
+      if (typeof window !== "undefined" && (window as any).__isImportingExpenses) {
+        return;
+      }
       // Evento customizado disparado quando há mudança na mesma aba
       console.log("🔄 Mudança em expenses detectada via custom event, agendando salvamento...");
       handleSave();
@@ -741,12 +756,18 @@ export function useSyncFinancialEntries() {
             // Só sobrescrever se os dados remotos forem mais recentes
             if (remoteLatest > localLatest) {
               console.log("📥 Financial entries recarregados do Supabase (dados atualizados)");
-              // Os dados já são importados para localStorage automaticamente pelo loadFromSupabase
-              // Forçar atualização da UI emitindo evento de storage
+              // Marcar que estamos importando para evitar loop de salvamento
               if (typeof window !== "undefined") {
+                (window as any).__isImportingFinancialEntries = true;
+                // Os dados já são importados para localStorage automaticamente pelo loadFromSupabase
+                // Forçar atualização da UI emitindo evento de storage
                 window.dispatchEvent(new Event("storage"));
                 window.dispatchEvent(new CustomEvent("financial-entries-updated"));
                 window.dispatchEvent(new Event("pixel-life-storage-change"));
+                // Remover flag após um pequeno delay
+                setTimeout(() => {
+                  (window as any).__isImportingFinancialEntries = false;
+                }, 1000);
               }
             } else {
               console.log("ℹ️ Dados locais são mais recentes, mantendo dados locais");
@@ -757,6 +778,9 @@ export function useSyncFinancialEntries() {
         }
       } catch (err) {
         console.error("❌ Erro ao recarregar financial entries:", err);
+        if (typeof window !== "undefined") {
+          (window as any).__isImportingFinancialEntries = false;
+        }
       }
     };
 
@@ -800,14 +824,23 @@ export function useSyncFinancialEntries() {
 
     // Escutar eventos de mudança (abordagem híbrida)
     const handleStorageChange = (e: StorageEvent) => {
-      // Evento de storage disparado por outras abas ou quando localStorage muda
-      if (e.key === "pixel-life-financial-entries-v1" || !e.key) {
+      // Ignorar eventos durante importação para evitar loop
+      if (typeof window !== "undefined" && (window as any).__isImportingFinancialEntries) {
+        return;
+      }
+      // Só processar se a key for especificamente de financial entries
+      // REMOVIDO: || !e.key - isso capturava eventos de outros módulos como journal
+      if (e.key === "pixel-life-financial-entries-v1") {
         console.log("🔄 Mudança em financial entries detectada via storage event (outra aba), agendando salvamento...");
         handleSave();
       }
     };
 
     const handleCustomStorageChange = () => {
+      // Ignorar eventos durante importação para evitar loop
+      if (typeof window !== "undefined" && (window as any).__isImportingFinancialEntries) {
+        return;
+      }
       // Evento customizado disparado quando há mudança na mesma aba
       console.log("🔄 Mudança em financial entries detectada via custom event, agendando salvamento...");
       handleSave();
