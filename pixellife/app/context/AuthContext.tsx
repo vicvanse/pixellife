@@ -98,6 +98,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           return;
         }
+
+        // Atualizar sessão se necessário
+        if (currentSession.expires_at) {
+          const expiresIn = currentSession.expires_at * 1000 - Date.now();
+          
+          // Se expirar em menos de 15 minutos, renovar imediatamente
+          if (expiresIn < 15 * 60 * 1000 && expiresIn > 0) {
+            console.log("🔄 Sessão próxima de expirar, renovando...");
+            const { error: refreshError } = await supabase.auth.refreshSession();
+            if (refreshError) {
+              console.error("❌ Erro ao renovar sessão na verificação periódica:", refreshError);
+            } else {
+              // Atualizar estado após refresh bem-sucedido
+              const { data: { session: refreshedSession } } = await supabase.auth.getSession();
+              if (refreshedSession) {
+                setSession(refreshedSession);
+                setUser(refreshedSession.user);
+              }
+            }
+          }
+        }
+
+        // Atualizar estado se a sessão mudou
+        if (currentSession.access_token !== session?.access_token) {
+          setSession(currentSession);
+          setUser(currentSession.user);
+        }
       } catch (err) {
         // Erro geral na verificação - possível perda de conexão
         console.error("❌ Erro inesperado ao verificar sessão:", err);
@@ -107,33 +134,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         showToast("Erro de conexão. Por favor, faça login novamente.", "error");
         router.push("/auth/login");
         return;
-      }
-
-      // Atualizar sessão se necessário
-      if (currentSession.expires_at) {
-        const expiresIn = currentSession.expires_at * 1000 - Date.now();
-        
-        // Se expirar em menos de 15 minutos, renovar imediatamente
-        if (expiresIn < 15 * 60 * 1000 && expiresIn > 0) {
-          console.log("🔄 Sessão próxima de expirar, renovando...");
-          const { error: refreshError } = await supabase.auth.refreshSession();
-          if (refreshError) {
-            console.error("❌ Erro ao renovar sessão na verificação periódica:", refreshError);
-          } else {
-            // Atualizar estado após refresh bem-sucedido
-            const { data: { session: refreshedSession } } = await supabase.auth.getSession();
-            if (refreshedSession) {
-              setSession(refreshedSession);
-              setUser(refreshedSession.user);
-            }
-          }
-        }
-      }
-
-      // Atualizar estado se a sessão mudou
-      if (currentSession.access_token !== session?.access_token) {
-        setSession(currentSession);
-        setUser(currentSession.user);
       }
     }, 60 * 1000); // 60 segundos (menos agressivo)
   }, [session, stopPeriodicSessionCheck, showToast, router]);
