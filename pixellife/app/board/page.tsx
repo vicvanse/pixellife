@@ -464,9 +464,12 @@ function BoardPageInner() {
       const accountMoney = getAccountMoney(todayKey);
       const reserve = getCurrentReserve();
       updateAllProgressFromAccountMoney(accountMoney, reserve);
-      setTimeout(() => {
-        setPossessions(getAllPossessions());
-      }, 100);
+      // O estado será atualizado pelo listener de pixel-life-possessions-changed
+    };
+
+    const handlePossessionsChange = () => {
+      // Atualizar estado quando objetivos mudarem (seja por mudança no dinheiro em conta ou diretamente)
+      setPossessions(getAllPossessions());
     };
 
     const handleFinancialEntriesUpdate = () => {
@@ -485,10 +488,12 @@ function BoardPageInner() {
     };
 
     window.addEventListener('pixel-life-storage-change', handleStorageChange);
+    window.addEventListener('pixel-life-possessions-changed', handlePossessionsChange);
     window.addEventListener('financial-entries-updated', handleFinancialEntriesUpdate);
     
     return () => {
       window.removeEventListener('pixel-life-storage-change', handleStorageChange);
+      window.removeEventListener('pixel-life-possessions-changed', handlePossessionsChange);
       window.removeEventListener('financial-entries-updated', handleFinancialEntriesUpdate);
     };
   }, [selectedMonth, selectedDate, formatMonthKey, formatDateKey, getDesiredMonthlyExpense, getResetDate, calculateMonthlyData, getEntriesForDate, getDailyExpenses, getAccountMoney, getCurrentReserve, updateAllProgressFromAccountMoney, getAllPossessions]);

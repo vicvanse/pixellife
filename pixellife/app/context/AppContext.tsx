@@ -58,9 +58,15 @@ function normalizeJournalData(journalData: JournalData): JournalData {
         index === self.findIndex((n) => n.id === note.id)
       );
       
+      // Só incluir moodNumber se for um número válido (não null, não undefined)
+      const moodNumberValue = entry.moodNumber;
+      const hasValidMoodNumber = moodNumberValue !== null && 
+                                  moodNumberValue !== undefined && 
+                                  typeof moodNumberValue === 'number';
+      
       normalized[date] = {
         mood: entry.mood ?? null,
-        ...(entry.moodNumber !== undefined && { moodNumber: entry.moodNumber }),
+        ...(hasValidMoodNumber && { moodNumber: moodNumberValue }),
         text: entry.text ?? "",
         quickNotes: uniqueQuickNotes,
         touched: entry.touched ?? true,

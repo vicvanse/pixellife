@@ -56,19 +56,22 @@ function normalizeEntry(
   // Garantir que todos os quickNotes tenham id
   const migratedQuickNotes = migrateQuickNotes(quickNotes);
   
-  // Se moodNumber foi explicitamente passado como undefined, remover a propriedade
-  // Se foi passado um número, usar ele
+  // Se moodNumber foi explicitamente passado como undefined ou null, remover a propriedade
+  // Se foi passado um número válido, usar ele
   // Se não foi especificado, manter o anterior
   let moodNumber: number | undefined;
   if ('moodNumber' in patch) {
-    moodNumber = patch.moodNumber; // Pode ser undefined para remover
+    // Se foi passado explicitamente, usar o valor (pode ser undefined ou null para remover)
+    const patchValue = patch.moodNumber;
+    moodNumber = (patchValue !== null && patchValue !== undefined) ? patchValue : undefined;
   } else {
     moodNumber = prev?.moodNumber;
   }
   
   return {
     mood: patch.mood ?? prev?.mood ?? null,
-    ...(moodNumber !== undefined && { moodNumber }), // Só incluir se não for undefined
+    // Só incluir moodNumber se for um número válido (não undefined e não null)
+    ...(moodNumber !== undefined && moodNumber !== null && typeof moodNumber === 'number' && { moodNumber }),
     text: patch.text ?? prev?.text ?? "",
     quickNotes: migratedQuickNotes,
     touched: patch.touched ?? prev?.touched ?? true,
