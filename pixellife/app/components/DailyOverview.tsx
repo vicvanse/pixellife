@@ -1525,6 +1525,20 @@ export function DailyOverview() {
                         sessionStorage.setItem('quickThoughtsScroll', scrollPosition.toString());
                 }
                     }}
+                    onClick={(e) => {
+                      // Não bloquear cliques em botões dentro do scroll
+                      const target = e.target as HTMLElement;
+                      if (target.tagName === 'BUTTON' || target.closest('button')) {
+                        return; // Deixar o botão processar o clique
+                      }
+                    }}
+                    onMouseDown={(e) => {
+                      // Não bloquear mousedown em botões
+                      const target = e.target as HTMLElement;
+                      if (target.tagName === 'BUTTON' || target.closest('button')) {
+                        return; // Deixar o botão processar o mousedown
+                      }
+                    }}
                   >
                     <div className="inline-flex gap-3" style={{ minWidth: 'max-content' }}>
                       {(() => {
@@ -1875,11 +1889,25 @@ export function DailyOverview() {
                                       e.stopPropagation();
                                       // NÃO mudar a data selecionada, apenas abrir input inline
                                       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                      console.log('Botão clicado, abrindo input para:', dateStr);
                                       setEditingQuickNoteDate(dateStr);
                                       setInlineQuickNoteText('');
+                                      // Forçar re-render se necessário
+                                      setTimeout(() => {
+                                        const input = document.querySelector(`input[placeholder="${tString('journal.addQuickThought')}"]`) as HTMLInputElement;
+                                        if (input && editingQuickNoteDate === dateStr) {
+                                          input.focus();
+                                        }
+                                      }, 100);
                                     }}
                                     onMouseDown={(e) => {
                                       e.preventDefault();
+                                      e.stopPropagation();
+                                    }}
+                                    onTouchStart={(e) => {
+                                      e.stopPropagation();
+                                    }}
+                                    onPointerDown={(e) => {
                                       e.stopPropagation();
                                     }}
                                     className="w-full mt-1 p-1 rounded font-pixel border border-dashed flex-shrink-0 cursor-pointer"
@@ -1889,7 +1917,10 @@ export function DailyOverview() {
                                       color: isToday ? '#333' : '#999',
                                       fontSize: '13px',
                                       textAlign: 'center',
-                                      zIndex: 5,
+                                      zIndex: 50,
+                                      position: 'relative',
+                                      pointerEvents: 'auto',
+                                      touchAction: 'manipulation',
                                     }}
                                     title="Clique para adicionar pensamento rápido"
                       >
