@@ -200,9 +200,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Escutar eventos de erro de autenticação
   useEffect(() => {
     if (typeof window !== "undefined") {
-      window.addEventListener("supabase-auth-error", handleAuthError as EventListener);
+      const eventHandler = (event: Event) => {
+        handleAuthError(event as CustomEvent);
+      };
+      window.addEventListener("supabase-auth-error", eventHandler);
       return () => {
-        window.removeEventListener("supabase-auth-error", handleAuthError as EventListener);
+        window.removeEventListener("supabase-auth-error", eventHandler);
       };
     }
   }, [handleAuthError]);
