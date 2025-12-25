@@ -174,7 +174,7 @@ function BoardPageInner() {
   const [editingAccountMoneyDate, setEditingAccountMoneyDate] = useState<Date | null>(null);
   const [editingAccountMoneyValue, setEditingAccountMoneyValue] = useState<number>(0);
   const [activeFinanceTab, setActiveFinanceTab] = useState<'daily' | 'monthly' | 'reserve' | 'analysis'>('daily');
-  const [monthlyStatusFilter, setMonthlyStatusFilter] = useState<'received' | 'received+pending' | 'all'>('received+pending');
+  const [monthlyStatusFilter, setMonthlyStatusFilter] = useState<'received' | 'all'>('all');
   const [isEditingMonthlyLimit, setIsEditingMonthlyLimit] = useState(false);
   const [recurringEntriesUpdateKey, setRecurringEntriesUpdateKey] = useState(0);
   // Modais de Finanças
@@ -1474,10 +1474,9 @@ function BoardPageInner() {
                         const entries = getEntriesForDate(dateKey);
                         if (monthlyStatusFilter === 'received') {
                           return entries.filter(e => e.status === 'received');
-                        } else if (monthlyStatusFilter === 'received+pending') {
-                          return entries.filter(e => e.status === 'received' || e.status === 'pending');
                         }
-                        return entries; // 'all' - inclui todos
+                        // 'all' = recebidos + esperados (para planejamento)
+                        return entries.filter(e => e.status === 'received' || e.status === 'expected');
                       };
                       
                       // Recalcular monthlyRows com filtro (precisa estar antes do uso)
@@ -1510,7 +1509,7 @@ function BoardPageInner() {
                                 <label className="font-pixel text-xs" style={{ color: '#666' }}>Filtro:</label>
                                 <select
                                   value={monthlyStatusFilter}
-                                  onChange={(e) => setMonthlyStatusFilter(e.target.value as 'received' | 'received+pending' | 'all')}
+                                  onChange={(e) => setMonthlyStatusFilter(e.target.value as 'received' | 'all')}
                                   className="font-pixel text-xs px-2 py-1 rounded"
                                   style={{
                                     fontSize: '12px',
@@ -1520,7 +1519,6 @@ function BoardPageInner() {
                                   }}
                                 >
                                   <option value="received">Apenas recebidos</option>
-                                  <option value="received+pending">Recebidos + pendentes</option>
                                   <option value="all">Todos</option>
                                 </select>
                               </div>

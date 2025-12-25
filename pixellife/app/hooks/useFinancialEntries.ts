@@ -99,15 +99,14 @@ export function useFinancialEntries() {
       const now = new Date().toISOString();
       const newEntry: FinancialEntry = {
         ...entry,
-        status: entry.status || "received", // Default para pontuais
+        status: entry.status || (entry.frequency === "pontual" ? "received" : "expected"), // Default: received para pontuais, expected para recorrentes
         id: `entry-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         createdAt: now,
         updatedAt: now,
       };
       
-      // Se for recorrente, status inicial deve ser "expected" para cada ocorrência futura
-      if (newEntry.frequency === "recorrente" && newEntry.startDate) {
-        newEntry.status = "expected"; // Status base da recorrência
+      // Se for recorrente, inicializar occurrenceStatuses se ainda não existir
+      if (newEntry.frequency === "recorrente" && !newEntry.occurrenceStatuses) {
         newEntry.occurrenceStatuses = {};
       }
       

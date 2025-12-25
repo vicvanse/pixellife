@@ -105,7 +105,7 @@ export function AddFinancialEntryModal({
       frequency: frequency,
       amount: nature === "gasto" ? -Math.abs(parsedAmount) : Math.abs(parsedAmount),
       category: category.trim() || undefined,
-      status: frequency === "pontual" ? status : "expected", // Recorrentes sempre começam como expected
+      status: status, // Usar o status selecionado pelo usuário
     };
 
     if (frequency === "pontual") {
@@ -113,15 +113,17 @@ export function AddFinancialEntryModal({
       if (nature === "gasto") {
         entry.paymentMethod = paymentMethod;
       }
+      // Status já está sendo definido acima para ambos (gasto e ganho)
     } else {
       entry.startDate = startDate;
       entry.endDate = endDate || null;
       entry.recurrence = recurrence;
       if (nature === "gasto") {
         entry.paymentMethod = paymentMethod;
-        if (installments && installments.total > 1) {
-          entry.installments = installments;
-        }
+      }
+      // Parcelas podem ser usadas tanto para gasto quanto para ganho
+      if (installments && installments.total > 1) {
+        entry.installments = installments;
       }
     }
 
@@ -289,7 +291,7 @@ export function AddFinancialEntryModal({
         {/* Campos condicionais baseados em frequência */}
         {frequency === "pontual" ? (
           <>
-            {/* Data e Método de pagamento lado a lado (para pontual) */}
+            {/* Data e campo condicional (Método para gasto, Status para ganho) lado a lado */}
             <div className="grid grid-cols-2 gap-4 mb-3">
               <div>
                 <label className="block font-pixel-bold mb-1.5" style={{ color: '#333', fontSize: '14px' }}>
@@ -307,7 +309,7 @@ export function AddFinancialEntryModal({
                   }}
                 />
               </div>
-              {nature === "gasto" && (
+              {nature === "gasto" ? (
                 <div>
                   <label className="block font-pixel-bold mb-1.5" style={{ color: '#333', fontSize: '14px' }}>
                     Método:
@@ -328,6 +330,27 @@ export function AddFinancialEntryModal({
                     <option value="debito">Débito</option>
                     <option value="transferencia">Transferência</option>
                     <option value="outro">Outro</option>
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <label className="block font-pixel-bold mb-1.5" style={{ color: '#333', fontSize: '14px' }}>
+                    Status do dinheiro:
+                  </label>
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as EntryStatus)}
+                    className="w-full px-2.5 py-1.5 rounded font-pixel focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    style={{ 
+                      fontSize: '14px',
+                      backgroundColor: '#fff',
+                      border: '1px solid #d6d6d6',
+                    }}
+                  >
+                    <option value="received">Recebido</option>
+                    <option value="pending">Pendente</option>
+                    <option value="expected">Esperado</option>
+                    <option value="canceled">Cancelado</option>
                   </select>
                 </div>
               )}
@@ -370,8 +393,8 @@ export function AddFinancialEntryModal({
                 />
               </div>
             </div>
-            {/* Método de pagamento e Parcelas lado a lado (apenas para gasto recorrente) */}
-            {nature === "gasto" && (
+            {/* Campos condicionais: Método+Parcelas para gasto, Status+Parcelas para ganho */}
+            {nature === "gasto" ? (
               <div className="grid grid-cols-2 gap-4 mb-3">
                 <div>
                   <label className="block font-pixel-bold mb-1.5" style={{ color: '#333', fontSize: '14px' }}>
@@ -420,39 +443,55 @@ export function AddFinancialEntryModal({
                   />
                 </div>
               </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4 mb-3">
+                <div>
+                  <label className="block font-pixel-bold mb-1.5" style={{ color: '#333', fontSize: '14px' }}>
+                    Status do dinheiro:
+                  </label>
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as EntryStatus)}
+                    className="w-full px-2.5 py-1.5 rounded font-pixel focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    style={{ 
+                      fontSize: '14px',
+                      backgroundColor: '#fff',
+                      border: '1px solid #d6d6d6',
+                    }}
+                  >
+                    <option value="received">Recebido</option>
+                    <option value="pending">Pendente</option>
+                    <option value="expected">Esperado</option>
+                    <option value="canceled">Cancelado</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-pixel-bold mb-1.5" style={{ color: '#333', fontSize: '14px' }}>
+                    Parcelas <span style={{ color: '#999', fontSize: '11px' }}>(opc.)</span>:
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="Total"
+                    value={installments?.total || ""}
+                    onChange={(e) => {
+                      const total = parseInt(e.target.value);
+                      if (total > 0) {
+                        setInstallments({ total, current: 1 });
+                      } else {
+                        setInstallments(null);
+                      }
+                    }}
+                    className="w-full px-2.5 py-1.5 rounded font-pixel focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    style={{ 
+                      fontSize: '14px',
+                      backgroundColor: '#fff',
+                      border: '1px solid #d6d6d6',
+                    }}
+                  />
+                </div>
+              </div>
             )}
           </>
-        )}
-
-        {/* Status (apenas para pontuais) */}
-        {frequency === "pontual" && (
-          <div className="mb-3">
-            <label className="block font-pixel-bold mb-1.5" style={{ color: '#333', fontSize: '14px' }}>
-              Status do dinheiro:
-            </label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as EntryStatus)}
-              className="w-full px-2.5 py-1.5 rounded font-pixel focus:outline-none focus:ring-2 focus:ring-blue-400"
-              style={{ 
-                fontSize: '14px',
-                backgroundColor: '#fff',
-                border: '1px solid #d6d6d6',
-              }}
-            >
-              <option value="received">Recebido</option>
-              <option value="pending">Pendente</option>
-              <option value="expected">Esperado</option>
-              <option value="canceled">Cancelado</option>
-            </select>
-          </div>
-        )}
-        {frequency === "recorrente" && (
-          <div className="mb-3 p-2 rounded" style={{ backgroundColor: '#f0f8ff', border: '1px solid #6daffe' }}>
-            <p className="font-pixel text-xs" style={{ color: '#666' }}>
-              ℹ️ Entradas recorrentes geram ocorrências mensais. Cada ocorrência começa como "Esperado" e muda para "Pendente" quando a data chega.
-            </p>
-          </div>
         )}
 
         {/* Categoria (sempre visível) */}
