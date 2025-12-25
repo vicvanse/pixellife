@@ -135,13 +135,14 @@ export function DailyOverview() {
   // IMPORTANTE: Usar refs para rastrear operações em andamento e evitar sincronização prematura
   const isDeletingRef = useRef(false);
   const isAddingRef = useRef(false);
+  const isEditingRef = useRef(false);
   const lastSyncedJournalRef = useRef<string>('');
   
   useEffect(() => {
     if (!selectedDate) return;
     
-    // Se estamos deletando ou adicionando, não sincronizar ainda (aguardar a operação completar)
-    if (isDeletingRef.current || isAddingRef.current) {
+    // Se estamos deletando, adicionando ou editando, não sincronizar ainda (aguardar a operação completar)
+    if (isDeletingRef.current || isAddingRef.current || isEditingRef.current) {
       return;
     }
     
@@ -182,8 +183,8 @@ export function DailyOverview() {
     // Não salvar durante a carga inicial
     if (isInitialLoadRef.current) return;
     
-    // Não salvar se estamos adicionando ou deletando (evitar conflitos)
-    if (isAddingRef.current || isDeletingRef.current) return;
+    // Não salvar se estamos adicionando, deletando ou editando (evitar conflitos)
+    if (isAddingRef.current || isDeletingRef.current || isEditingRef.current) return;
     
     // Não salvar se não houver conteúdo (texto, quickNotes ou mood selecionado)
     const hasText = text.trim().length > 0;
@@ -1218,21 +1219,68 @@ export function DailyOverview() {
                         onKeyPress={(e) => {
                           if (e.key === 'Enter') {
                             if (selectedDate && editingQuickNoteText.trim()) {
+                              // Marcar que estamos editando
+                              isEditingRef.current = true;
+                              
+                              // Atualizar no journal
                               updateQuickNote(selectedDate, note.id, editingQuickNoteText.trim());
+                              
+                              // Atualizar estado local imediatamente
+                              setQuickNotes(prev => prev.map(n => 
+                                n.id === note.id ? { ...n, text: editingQuickNoteText.trim() } : n
+                              ));
+                              
+                              // Atualizar referência de sincronização
+                              const entry = getEntry(selectedDate);
+                              if (entry && entry.quickNotes) {
+                                lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
+                              }
+                              
                               setEditingQuickNote(null);
                               setEditingQuickNoteText('');
+                              
+                              // Resetar flag após delay
+                              setTimeout(() => {
+                                isEditingRef.current = false;
+                              }, 300);
                             }
                           } else if (e.key === 'Escape') {
                             setEditingQuickNote(null);
                             setEditingQuickNoteText('');
+                            isEditingRef.current = false;
                           }
                         }}
                         onBlur={() => {
                           if (selectedDate && editingQuickNoteText.trim()) {
+                            // Marcar que estamos editando
+                            isEditingRef.current = true;
+                            
+                            // Atualizar no journal
                             updateQuickNote(selectedDate, note.id, editingQuickNoteText.trim());
+                            
+                            // Atualizar estado local imediatamente
+                            setQuickNotes(prev => prev.map(n => 
+                              n.id === note.id ? { ...n, text: editingQuickNoteText.trim() } : n
+                            ));
+                            
+                            // Atualizar referência de sincronização
+                            const entry = getEntry(selectedDate);
+                            if (entry && entry.quickNotes) {
+                              lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
+                            }
+                            
+                            setEditingQuickNote(null);
+                            setEditingQuickNoteText('');
+                            
+                            // Resetar flag após delay
+                            setTimeout(() => {
+                              isEditingRef.current = false;
+                            }, 300);
+                          } else {
+                            setEditingQuickNote(null);
+                            setEditingQuickNoteText('');
+                            isEditingRef.current = false;
                           }
-                          setEditingQuickNote(null);
-                          setEditingQuickNoteText('');
                         }}
                         className="flex-1 px-2 py-1 rounded font-pixel border"
                         style={{
@@ -1248,6 +1296,8 @@ export function DailyOverview() {
                         className="flex-1 cursor-text"
                         onDoubleClick={() => {
                           if (selectedDate) {
+                            // Resetar flag de edição antes de iniciar nova edição
+                            isEditingRef.current = false;
                             setEditingQuickNote({ date: selectedDate, noteId: note.id });
                             setEditingQuickNoteText(note.text);
                           }
@@ -1257,9 +1307,19 @@ export function DailyOverview() {
                       </span>
                     )}
                         <button
-                          onClick={() => handleRemoveQuickNote(note.id)}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleRemoveQuickNote(note.id);
+                          }}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
                           className="text-red-500 ml-2 transition-opacity"
-                          style={{ fontSize: '20px', opacity: 1 }}
+                          style={{ fontSize: '20px', opacity: 1, cursor: 'pointer', zIndex: 10 }}
+                          title="Excluir pensamento rápido"
                         >
                           ×
                         </button>
@@ -1557,21 +1617,72 @@ export function DailyOverview() {
                                           onKeyPress={(e) => {
                                             if (e.key === 'Enter') {
                                               if (editingQuickNoteText.trim()) {
+                                                // Marcar que estamos editando
+                                                isEditingRef.current = true;
+                                                
+                                                // Atualizar no journal
                                                 updateQuickNote(dateStr, note.id, editingQuickNoteText.trim());
-                setEditingQuickNote(null);
-                setEditingQuickNoteText('');
+                                                
+                                                // Se for a data selecionada, atualizar estado local
+                                                if (dateStr === selectedDate) {
+                                                  setQuickNotes(prev => prev.map(n => 
+                                                    n.id === note.id ? { ...n, text: editingQuickNoteText.trim() } : n
+                                                  ));
+                                                }
+                                                
+                                                // Atualizar referência de sincronização
+                                                const entry = getEntry(dateStr);
+                                                if (entry && entry.quickNotes) {
+                                                  lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
+                                                }
+                                                
+                                                setEditingQuickNote(null);
+                                                setEditingQuickNoteText('');
+                                                
+                                                // Resetar flag após delay
+                                                setTimeout(() => {
+                                                  isEditingRef.current = false;
+                                                }, 300);
                                               }
                                             } else if (e.key === 'Escape') {
-                setEditingQuickNote(null);
-                setEditingQuickNoteText('');
-              }
+                                                setEditingQuickNote(null);
+                                                setEditingQuickNoteText('');
+                                                isEditingRef.current = false;
+                                            }
                                           }}
                                           onBlur={() => {
                                             if (editingQuickNoteText.trim()) {
+                                              // Marcar que estamos editando
+                                              isEditingRef.current = true;
+                                              
+                                              // Atualizar no journal
                                               updateQuickNote(dateStr, note.id, editingQuickNoteText.trim());
+                                              
+                                              // Se for a data selecionada, atualizar estado local
+                                              if (dateStr === selectedDate) {
+                                                setQuickNotes(prev => prev.map(n => 
+                                                  n.id === note.id ? { ...n, text: editingQuickNoteText.trim() } : n
+                                                ));
+                                              }
+                                              
+                                              // Atualizar referência de sincronização
+                                              const entry = getEntry(dateStr);
+                                              if (entry && entry.quickNotes) {
+                                                lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
+                                              }
+                                              
+                                              setEditingQuickNote(null);
+                                              setEditingQuickNoteText('');
+                                              
+                                              // Resetar flag após delay
+                                              setTimeout(() => {
+                                                isEditingRef.current = false;
+                                              }, 300);
+                                            } else {
+                                              setEditingQuickNote(null);
+                                              setEditingQuickNoteText('');
+                                              isEditingRef.current = false;
                                             }
-              setEditingQuickNote(null);
-              setEditingQuickNoteText('');
                                           }}
                                           className="w-full px-2 py-1 rounded font-pixel border"
                 style={{
@@ -1589,6 +1700,8 @@ export function DailyOverview() {
                                           onDoubleClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
+                                            // Resetar flag de edição antes de iniciar nova edição
+                                            isEditingRef.current = false;
                                             setEditingQuickNote({ date: dateStr, noteId: note.id });
                                             setEditingQuickNoteText(note.text);
                                           }}
