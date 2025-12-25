@@ -5,7 +5,8 @@ import { useState, useCallback, useEffect } from "react";
 export type EntryFrequency = "pontual" | "recorrente";
 export type EntryNature = "gasto" | "ganho";
 export type RecurrenceType = "mensal" | "quinzenal" | "anual";
-export type PaymentMethod = "dinheiro" | "debito" | "credito";
+export type PaymentMethod = "dinheiro" | "pix" | "credito" | "debito" | "transferencia" | "outro";
+export type EntryStatus = "received" | "pending" | "expected" | "canceled";
 
 export interface FinancialEntry {
   id: string;
@@ -13,17 +14,20 @@ export interface FinancialEntry {
   nature: EntryNature; // gasto | ganho
   frequency: EntryFrequency; // pontual | recorrente
   amount: number;
+  status: EntryStatus; // received | pending | expected | canceled
   date?: string; // YYYY-MM-DD para pontual
   startDate?: string; // YYYY-MM-DD para recorrente
   endDate?: string | null;
   excludedDates?: string[]; // YYYY-MM-DD[] - datas excluídas da recorrência (para quando algo atrasa ou não cobra)
   recurrence?: RecurrenceType; // mensal | quinzenal | anual
-  paymentMethod?: PaymentMethod; // dinheiro | debito | credito
+  paymentMethod?: PaymentMethod; // dinheiro | pix | credito | debito | transferencia | outro
   category?: string;
   installments?: {
     total: number;
     current: number;
   };
+  // Para entradas recorrentes, armazena o status de cada ocorrência específica
+  occurrenceStatuses?: Record<string, EntryStatus>; // { "YYYY-MM-DD": "received" | "pending" | "expected" | "canceled" }
   createdAt: string;
   updatedAt: string;
 }
@@ -95,10 +99,18 @@ export function useFinancialEntries() {
       const now = new Date().toISOString();
       const newEntry: FinancialEntry = {
         ...entry,
+        status: entry.status || "received", // Default para pontuais
         id: `entry-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         createdAt: now,
         updatedAt: now,
       };
+      
+      // Se for recorrente, status inicial deve ser "expected" para cada ocorrência futura
+      if (newEntry.frequency === "recorrente" && newEntry.startDate) {
+        newEntry.status = "expected"; // Status base da recorrência
+        newEntry.occurrenceStatuses = {};
+      }
+      
       const newEntries = [...entries, newEntry];
       saveEntries(newEntries);
       return newEntry;
@@ -214,9 +226,11 @@ export function useFinancialEntries() {
   );
 
   // Obter entradas para uma data específica (DIÁRIO)
+  // Retorna entradas com status específico para aquela ocorrência
   const getEntriesForDate = useCallback(
     (dateKey: string) => {
       const result: FinancialEntry[] = [];
+      const today = new Date().toISOString().substring(0, 10);
 
       entries.forEach((entry) => {
         if (entry.frequency === "pontual") {
@@ -227,7 +241,24 @@ export function useFinancialEntries() {
         } else if (entry.frequency === "recorrente") {
           // Entrada recorrente: verificar se é válida para esta data
           if (isRecurringValidForDate(entry, dateKey)) {
-            result.push(entry);
+            // Para recorrentes, criar uma cópia com status específico da ocorrência
+            const occurrenceEntry: FinancialEntry = { ...entry };
+            
+            // Verificar se há status específico para esta ocorrência
+            if (entry.occurrenceStatuses && entry.occurrenceStatuses[dateKey]) {
+              occurrenceEntry.status = entry.occurrenceStatuses[dateKey];
+            } else {
+              // Se não há status específico, determinar automaticamente:
+              // - Se a data já passou: pending
+              // - Se a data é futura: expected
+              if (dateKey <= today) {
+                occurrenceEntry.status = "pending";
+              } else {
+                occurrenceEntry.status = "expected";
+              }
+            }
+            
+            result.push(occurrenceEntry);
           }
         }
       });
@@ -289,6 +320,20 @@ export function useFinancialEntries() {
     [entries, updateEntry]
   );
 
+  // Atualizar status de uma ocorrência específica de uma entrada recorrente
+  const updateOccurrenceStatus = useCallback(
+    (id: string, dateKey: string, status: EntryStatus) => {
+      const entry = entries.find((e) => e.id === id);
+      if (!entry || entry.frequency !== "recorrente") return;
+
+      const currentStatuses = entry.occurrenceStatuses || {};
+      updateEntry(id, { 
+        occurrenceStatuses: { ...currentStatuses, [dateKey]: status }
+      });
+    },
+    [entries, updateEntry]
+  );
+
   // Encerrar recorrência (definir end_date = data anterior para que não apareça mais)
   const endRecurrence = useCallback(
     (id: string, endDate?: string) => {
@@ -308,6 +353,99 @@ export function useFinancialEntries() {
       updateEntry(id, { endDate: targetDate });
     },
     [updateEntry]
+  );
+
+  // Verificar se uma entrada deve ser incluída nos cálculos baseado no status
+  const shouldIncludeInTotals = useCallback(
+    (entry: FinancialEntry, includePending: boolean = true): boolean => {
+      if (entry.status === "received") return true;
+      if (entry.status === "pending" && includePending) return true;
+      return false; // expected e canceled nunca entram
+    },
+    []
+  );
+
+  // Análise por status (breakdown de ganhos e gastos por status)
+  const getStatusAnalysis = useCallback(
+    (startDate?: string, endDate?: string) => {
+      const today = new Date().toISOString().substring(0, 10);
+      const analysis = {
+        ganhos: {
+          received: 0,
+          pending: 0,
+          expected: 0,
+          canceled: 0,
+        },
+        gastos: {
+          received: 0,
+          pending: 0,
+          expected: 0,
+          canceled: 0,
+        },
+      };
+
+      entries.forEach((entry) => {
+        // Determinar o status da entrada para cada ocorrência no período
+        if (entry.frequency === "pontual" && entry.date) {
+          if (startDate && entry.date < startDate) return;
+          if (endDate && entry.date > endDate) return;
+          
+          const status = entry.status || "received";
+          if (entry.nature === "ganho") {
+            analysis.ganhos[status] += entry.amount;
+          } else {
+            analysis.gastos[status] += Math.abs(entry.amount);
+          }
+        } else if (entry.frequency === "recorrente" && entry.startDate) {
+          const entryStart = new Date(entry.startDate + "T00:00:00");
+          const entryEnd = entry.endDate ? new Date(entry.endDate + "T00:00:00") : null;
+          const periodStart = startDate ? new Date(startDate + "T00:00:00") : null;
+          const periodEnd = endDate ? new Date(endDate + "T00:00:00") : null;
+          
+          // Verificar se há sobreposição
+          if (periodStart && entryEnd && entryEnd < periodStart) return;
+          if (periodEnd && entryStart > periodEnd) return;
+          
+          // Calcular ocorrências mensais no período
+          if (entry.recurrence === "mensal") {
+            let currentDate = new Date(Math.max(entryStart.getTime(), periodStart?.getTime() || entryStart.getTime()));
+            const maxDate = periodEnd || new Date();
+            
+            while (currentDate <= maxDate) {
+              if (currentDate >= entryStart && (!entryEnd || currentDate <= entryEnd)) {
+                if (currentDate.getDate() === entryStart.getDate()) {
+                  const dateKey = currentDate.toISOString().substring(0, 10);
+                  // Verificar se a data está excluída
+                  if (entry.excludedDates && entry.excludedDates.includes(dateKey)) {
+                    currentDate.setMonth(currentDate.getMonth() + 1);
+                    continue;
+                  }
+                  
+                  // Determinar status da ocorrência
+                  let status: EntryStatus;
+                  if (entry.occurrenceStatuses && entry.occurrenceStatuses[dateKey]) {
+                    status = entry.occurrenceStatuses[dateKey];
+                  } else {
+                    // Auto-determinar: se já passou -> pending, senão -> expected
+                    status = dateKey <= today ? "pending" : "expected";
+                  }
+                  
+                  if (entry.nature === "ganho") {
+                    analysis.ganhos[status] += entry.amount;
+                  } else {
+                    analysis.gastos[status] += Math.abs(entry.amount);
+                  }
+                }
+              }
+              currentDate.setMonth(currentDate.getMonth() + 1);
+            }
+          }
+        }
+      });
+
+      return analysis;
+    },
+    [entries]
   );
 
   // Análise por categoria (agregação de ganhos e gastos)
@@ -383,6 +521,9 @@ export function useFinancialEntries() {
     excludeRecurrenceDate,
     endRecurrence,
     getCategoryAnalysis,
+    updateOccurrenceStatus,
+    shouldIncludeInTotals,
+    getStatusAnalysis,
   };
 }
 

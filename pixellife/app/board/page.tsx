@@ -18,7 +18,7 @@ import { IncomeConfigModal } from '../components/expenses/IncomeConfigModal';
 import { ExpensePlanningModal } from '../components/expenses/ExpensePlanningModal';
 import { CSVImporter } from '../components/expenses/CSVImporter';
 import { AddFinancialEntryModal } from '../components/finances/AddFinancialEntryModal';
-import { useFinancialEntries, type FinancialEntry } from '../hooks/useFinancialEntries';
+import { useFinancialEntries, type FinancialEntry, type EntryStatus } from '../hooks/useFinancialEntries';
 import { PossessionCard } from '../components/possessions/PossessionCard';
 import { PossessionDetailsModal } from '../components/possessions/PossessionDetailsModal';
 import { CreatePossessionModal } from '../components/possessions/CreatePossessionModal';
@@ -164,6 +164,8 @@ function BoardPageInner() {
     endRecurrence,
     getCategoryAnalysis,
     updateEntry: updateFinancialEntry,
+    updateOccurrenceStatus,
+    getStatusAnalysis,
   } = useFinancialEntries();
   
   // Sincronizar financial entries com Supabase
@@ -172,6 +174,7 @@ function BoardPageInner() {
   const [editingAccountMoneyDate, setEditingAccountMoneyDate] = useState<Date | null>(null);
   const [editingAccountMoneyValue, setEditingAccountMoneyValue] = useState<number>(0);
   const [activeFinanceTab, setActiveFinanceTab] = useState<'daily' | 'monthly' | 'reserve' | 'analysis'>('daily');
+  const [monthlyStatusFilter, setMonthlyStatusFilter] = useState<'received' | 'received+pending' | 'all'>('received+pending');
   const [isEditingMonthlyLimit, setIsEditingMonthlyLimit] = useState(false);
   const [recurringEntriesUpdateKey, setRecurringEntriesUpdateKey] = useState(0);
   // Modais de Finanças
@@ -1174,6 +1177,9 @@ function BoardPageInner() {
                             relatedGoalId?: number;
                             frequency?: 'pontual' | 'recorrente';
                             installments?: { total: number; current: number };
+                            status?: EntryStatus;
+                            isFinancialEntry?: boolean;
+                            entry?: FinancialEntry;
                           }> = [];
                           
                           // Adicionar gastos pontuais antigos (legado)
@@ -1197,6 +1203,9 @@ function BoardPageInner() {
                               category: entry.category,
                               frequency: entry.frequency,
                               installments: entry.installments,
+                              status: entry.status,
+                              isFinancialEntry: true,
+                              entry: entry, // Guardar a entrada completa para uso posterior
                             });
                           });
                           
@@ -1246,6 +1255,48 @@ function BoardPageInner() {
                                       </span>
                                   </div>
                                     <div className="flex items-center gap-2">
+                                  {/* Seletor de Status (apenas para entradas financeiras) */}
+                                  {item.isFinancialEntry && item.status !== undefined && (
+                                    <select
+                                      value={item.status}
+                                      onChange={(e) => {
+                                        const newStatus = e.target.value as EntryStatus;
+                                        const entry = financialEntries.find(e => e.id === item.id);
+                                        if (entry) {
+                                          if (entry.frequency === 'recorrente') {
+                                            // Para recorrentes, atualizar status da ocorrência específica
+                                            updateOccurrenceStatus(entry.id, dateKey, newStatus);
+                                          } else {
+                                            // Para pontuais, atualizar o status diretamente
+                                            updateFinancialEntry(entry.id, { status: newStatus });
+                                          }
+                                          // Recarregar dados após um pequeno delay
+                                          setTimeout(() => {
+                                            const items = getDailyExpenses(dateKey);
+                                            setDailyItems(items);
+                                            const monthKey = formatMonthKey(selectedMonth);
+                                            const desired = getDesiredMonthlyExpense(monthKey) || 0;
+                                            const reset = getResetDate(monthKey) || 1;
+                                            const rows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getEntriesForDate);
+                                            setMonthlyRows(rows);
+                                          }, 100);
+                                        }
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="font-pixel text-xs px-1.5 py-1 rounded"
+                                      style={{
+                                        fontSize: '11px',
+                                        backgroundColor: '#fff',
+                                        border: '1px solid #d6d6d6',
+                                        color: '#333',
+                                      }}
+                                    >
+                                      <option value="received">Recebido</option>
+                                      <option value="pending">Pendente</option>
+                                      <option value="expected">Esperado</option>
+                                      <option value="canceled">Cancelado</option>
+                                    </select>
+                                  )}
                                   <span 
                                         className="font-pixel" 
                                     style={{ 
@@ -1365,9 +1416,14 @@ function BoardPageInner() {
                         {(() => {
                           const dateKey = formatDateKey(selectedDate);
                           const financialEntries = getEntriesForDate(dateKey);
+                          // Filtrar apenas entradas que devem entrar nos cálculos (received sempre, pending opcional)
+                          // Para o diário, incluímos received e pending por padrão
+                          const entriesForCalculation = financialEntries.filter(e => 
+                            e.status === 'received' || e.status === 'pending'
+                          );
                           const allItemsForSummary = [
-                            ...dailyItems,
-                            ...financialEntries.map(e => ({ value: e.amount }))
+                            ...dailyItems, // Sistema legado sempre entra
+                            ...entriesForCalculation.map(e => ({ value: e.amount }))
                           ];
                           if (allItemsForSummary.length === 0) return null;
                           const totalGasto = allItemsForSummary.filter(item => item.value < 0).reduce((sum, item) => sum + Math.abs(item.value), 0);
@@ -1412,15 +1468,32 @@ function BoardPageInner() {
                       const daysInMonth = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0).getDate();
                       const daysRemaining = Math.max(0, daysInMonth - currentDay + 1);
                       
-                      const totalSpent = monthlyRows.reduce((sum, row) => sum + (row.totalDaily < 0 ? Math.abs(row.totalDaily) : 0), 0);
-                      const totalGained = monthlyRows.reduce((sum, row) => sum + (row.totalDaily > 0 ? row.totalDaily : 0), 0);
                       const monthlyLimit = (typeof desiredMonthlyExpense === 'number' ? desiredMonthlyExpense : (desiredMonthlyExpense === '' ? 0 : parseFloat(String(desiredMonthlyExpense)) || 0));
-                      const availableNow = monthlyLimit - totalSpent;
+                      const availableNow = monthlyLimit - totalSpentFiltered;
                       const recommendedDaily = daysRemaining > 0 ? Math.max(0, availableNow / daysRemaining) : 0;
                       
                       // Status do mês
-                      const spendingPercentage = monthlyLimit > 0 ? (totalSpent / monthlyLimit) * 100 : 0;
+                      const spendingPercentage = monthlyLimit > 0 ? (totalSpentFiltered / monthlyLimit) * 100 : 0;
                       const statusText = spendingPercentage < 50 ? t('finances.statusBelowPace') : spendingPercentage < 80 ? t('finances.statusAttention') : t('finances.statusAboveLimit');
+                      
+                      // Função wrapper para filtrar entradas baseado no filtro de status mensal
+                      const getFilteredEntriesForDate = (dateKey: string) => {
+                        const entries = getEntriesForDate(dateKey);
+                        if (monthlyStatusFilter === 'received') {
+                          return entries.filter(e => e.status === 'received');
+                        } else if (monthlyStatusFilter === 'received+pending') {
+                          return entries.filter(e => e.status === 'received' || e.status === 'pending');
+                        }
+                        return entries; // 'all' - inclui todos
+                      };
+                      
+                      // Recalcular monthlyRows com filtro
+                      const monthKey = formatMonthKey(selectedMonth);
+                      const desired = getDesiredMonthlyExpense(monthKey) || 0;
+                      const reset = getResetDate(monthKey) || 1;
+                      const filteredMonthlyRows = calculateMonthlyData(selectedMonth.getFullYear(), selectedMonth.getMonth(), desired, reset, getFilteredEntriesForDate);
+                      const totalSpentFiltered = filteredMonthlyRows.reduce((sum, row) => sum + (row.totalDaily < 0 ? Math.abs(row.totalDaily) : 0), 0);
+                      const totalGainedFiltered = filteredMonthlyRows.reduce((sum, row) => sum + (row.totalDaily > 0 ? row.totalDaily : 0), 0);
                       
                       return (
                       <div>
@@ -1431,6 +1504,25 @@ function BoardPageInner() {
                               {formatMonthYear(selectedMonth)}
                             </h2>
                             <div className="flex gap-2">
+                              {/* Filtro de Status */}
+                              <div className="flex items-center gap-2">
+                                <label className="font-pixel text-xs" style={{ color: '#666' }}>Filtro:</label>
+                                <select
+                                  value={monthlyStatusFilter}
+                                  onChange={(e) => setMonthlyStatusFilter(e.target.value as 'received' | 'received+pending' | 'all')}
+                                  className="font-pixel text-xs px-2 py-1 rounded"
+                                  style={{
+                                    fontSize: '12px',
+                                    backgroundColor: '#fff',
+                                    border: '1px solid #d6d6d6',
+                                    color: '#333',
+                                  }}
+                                >
+                                  <option value="received">Apenas recebidos</option>
+                                  <option value="received+pending">Recebidos + pendentes</option>
+                                  <option value="all">Todos</option>
+                                </select>
+                              </div>
                               <button
                                 onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1))}
                                 className="px-3 py-1 rounded font-pixel transition-all hover:opacity-90"
@@ -1623,7 +1715,7 @@ function BoardPageInner() {
                             <div className="p-3 rounded" style={{ backgroundColor: '#fafafa', border: '1px solid #e5e5e5' }}>
                               <div className="font-pixel text-xs mb-1" style={{ color: '#666' }}>{t('finances.accumulatedSpending')}</div>
                               <div className="font-pixel-bold" style={{ color: '#f44336', fontSize: '16px' }}>
-                                R$ {totalSpent.toFixed(2).replace('.', ',')}
+                                R$ {totalSpentFiltered.toFixed(2).replace('.', ',')}
                               </div>
                             </div>
                             <div className="p-3 rounded" style={{ backgroundColor: '#fafafa', border: '1px solid #e5e5e5' }}>
@@ -1748,7 +1840,7 @@ function BoardPageInner() {
                                 Nenhum dado disponível.
                               </div>
                             ) : (
-                              monthlyRows.map((row, idx) => {
+                              filteredMonthlyRows.map((row, idx) => {
                                 const today = new Date();
                                 const isToday = 
                                   today.getFullYear() === selectedMonth.getFullYear() &&
@@ -2163,9 +2255,75 @@ function BoardPageInner() {
                       const currentMonthStart = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1).toISOString().substring(0, 10);
                       const currentMonthEnd = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0).toISOString().substring(0, 10);
                       const categoryAnalysis = getCategoryAnalysis(currentMonthStart, currentMonthEnd);
+                      const statusAnalysis = getStatusAnalysis(currentMonthStart, currentMonthEnd);
+                      
+                      // Calcular risco de caixa baseado em pendentes vs recebidos
+                      const totalGanhosRecebidos = statusAnalysis.ganhos.received;
+                      const totalGanhosPendentes = statusAnalysis.ganhos.pending;
+                      const totalGastosRecebidos = statusAnalysis.gastos.received;
+                      const totalGastosPendentes = statusAnalysis.gastos.pending;
+                      
+                      const saldoRecebido = totalGanhosRecebidos - totalGastosRecebidos;
+                      const saldoPendente = totalGanhosPendentes - totalGastosPendentes;
+                      const riscoCaixa = saldoPendente > saldoRecebido * 0.3 ? 'Alto' : saldoPendente > saldoRecebido * 0.1 ? 'Médio' : 'Baixo';
                       
                       return (
                         <div className="space-y-6">
+                          {/* Análise por Status */}
+                          <div className="p-4 rounded" style={{ backgroundColor: '#FFFFFF', border: '1px solid #e5e5e5', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                            <h3 className="font-pixel-bold mb-4" style={{ color: '#333', fontSize: '18px' }}>
+                              Análise por Status ({new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })})
+                            </h3>
+                            
+                            {/* Ganhos */}
+                            <div className="mb-6">
+                              <h4 className="font-pixel-bold mb-3" style={{ color: '#4caf50', fontSize: '16px' }}>Ganhos</h4>
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between p-2 rounded" style={{ backgroundColor: '#f0f9f4' }}>
+                                  <span className="font-pixel text-sm" style={{ color: '#333' }}>✔ Recebidos:</span>
+                                  <span className="font-pixel-bold" style={{ color: '#4caf50' }}>R$ {statusAnalysis.ganhos.received.toFixed(2).replace('.', ',')}</span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 rounded" style={{ backgroundColor: '#fff3e0' }}>
+                                  <span className="font-pixel text-sm" style={{ color: '#333' }}>⏳ Pendentes:</span>
+                                  <span className="font-pixel-bold" style={{ color: '#ff9800' }}>R$ {statusAnalysis.ganhos.pending.toFixed(2).replace('.', ',')}</span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 rounded" style={{ backgroundColor: '#e3f2fd' }}>
+                                  <span className="font-pixel text-sm" style={{ color: '#333' }}>📈 Esperados:</span>
+                                  <span className="font-pixel-bold" style={{ color: '#2196f3' }}>R$ {statusAnalysis.ganhos.expected.toFixed(2).replace('.', ',')}</span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Gastos */}
+                            <div className="mb-4">
+                              <h4 className="font-pixel-bold mb-3" style={{ color: '#f44336', fontSize: '16px' }}>Gastos</h4>
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between p-2 rounded" style={{ backgroundColor: '#ffebee' }}>
+                                  <span className="font-pixel text-sm" style={{ color: '#333' }}>✔ Recebidos:</span>
+                                  <span className="font-pixel-bold" style={{ color: '#f44336' }}>R$ {statusAnalysis.gastos.received.toFixed(2).replace('.', ',')}</span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 rounded" style={{ backgroundColor: '#fff3e0' }}>
+                                  <span className="font-pixel text-sm" style={{ color: '#333' }}>⏳ Pendentes:</span>
+                                  <span className="font-pixel-bold" style={{ color: '#ff9800' }}>R$ {statusAnalysis.gastos.pending.toFixed(2).replace('.', ',')}</span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 rounded" style={{ backgroundColor: '#e3f2fd' }}>
+                                  <span className="font-pixel text-sm" style={{ color: '#333' }}>📈 Esperados:</span>
+                                  <span className="font-pixel-bold" style={{ color: '#2196f3' }}>R$ {statusAnalysis.gastos.expected.toFixed(2).replace('.', ',')}</span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Risco de Caixa */}
+                            <div className="mt-4 p-3 rounded" style={{ backgroundColor: '#fafafa', border: '1px solid #e5e5e5' }}>
+                              <div className="font-pixel-bold text-sm mb-1" style={{ color: '#333' }}>Risco de caixa:</div>
+                              <div className="font-pixel-bold" style={{ 
+                                color: riscoCaixa === 'Alto' ? '#f44336' : riscoCaixa === 'Médio' ? '#ff9800' : '#4caf50',
+                                fontSize: '16px'
+                              }}>
+                                {riscoCaixa}
+                              </div>
+                            </div>
+                          </div>
                           {/* Recorrentes Ativos */}
                           <div className="p-4 rounded" style={{ backgroundColor: '#FFFFFF', border: '1px solid #e5e5e5' }}>
                             <h3 className="font-pixel-bold mb-4" style={{ color: '#333', fontSize: '18px' }}>

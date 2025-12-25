@@ -7,6 +7,7 @@ import {
   EntryNature,
   RecurrenceType,
   PaymentMethod,
+  EntryStatus,
 } from "@/app/hooks/useFinancialEntries";
 
 interface AddFinancialEntryModalProps {
@@ -37,6 +38,7 @@ export function AddFinancialEntryModal({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("dinheiro");
   const [category, setCategory] = useState("");
   const [installments, setInstallments] = useState<{ total: number; current: number } | null>(null);
+  const [status, setStatus] = useState<EntryStatus>("received");
 
   // Reset ao abrir/fechar ou quando editingEntry mudar
   useEffect(() => {
@@ -48,6 +50,7 @@ export function AddFinancialEntryModal({
         setDescription(editingEntry.description);
         setAmount(Math.abs(editingEntry.amount).toFixed(2).replace('.', ','));
         setCategory(editingEntry.category || "");
+        setStatus(editingEntry.status || "received");
         
         if (editingEntry.frequency === "pontual") {
           setDate(editingEntry.date || initialDate || new Date().toISOString().substring(0, 10));
@@ -78,6 +81,7 @@ export function AddFinancialEntryModal({
         setPaymentMethod("dinheiro");
         setCategory("");
         setInstallments(null);
+        setStatus("received");
       }
     }
   }, [isOpen, initialDate, editingEntry]);
@@ -101,6 +105,7 @@ export function AddFinancialEntryModal({
       frequency: frequency,
       amount: nature === "gasto" ? -Math.abs(parsedAmount) : Math.abs(parsedAmount),
       category: category.trim() || undefined,
+      status: frequency === "pontual" ? status : "expected", // Recorrentes sempre começam como expected
     };
 
     if (frequency === "pontual") {
@@ -318,8 +323,11 @@ export function AddFinancialEntryModal({
                     }}
                   >
                     <option value="dinheiro">Dinheiro</option>
-                    <option value="debito">Débito</option>
+                    <option value="pix">Pix</option>
                     <option value="credito">Crédito</option>
+                    <option value="debito">Débito</option>
+                    <option value="transferencia">Transferência</option>
+                    <option value="outro">Outro</option>
                   </select>
                 </div>
               )}
@@ -380,8 +388,11 @@ export function AddFinancialEntryModal({
                     }}
                   >
                     <option value="dinheiro">Dinheiro</option>
-                    <option value="debito">Débito</option>
+                    <option value="pix">Pix</option>
                     <option value="credito">Crédito</option>
+                    <option value="debito">Débito</option>
+                    <option value="transferencia">Transferência</option>
+                    <option value="outro">Outro</option>
                   </select>
                 </div>
                 <div>
@@ -411,6 +422,37 @@ export function AddFinancialEntryModal({
               </div>
             )}
           </>
+        )}
+
+        {/* Status (apenas para pontuais) */}
+        {frequency === "pontual" && (
+          <div className="mb-3">
+            <label className="block font-pixel-bold mb-1.5" style={{ color: '#333', fontSize: '14px' }}>
+              Status do dinheiro:
+            </label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as EntryStatus)}
+              className="w-full px-2.5 py-1.5 rounded font-pixel focus:outline-none focus:ring-2 focus:ring-blue-400"
+              style={{ 
+                fontSize: '14px',
+                backgroundColor: '#fff',
+                border: '1px solid #d6d6d6',
+              }}
+            >
+              <option value="received">Recebido</option>
+              <option value="pending">Pendente</option>
+              <option value="expected">Esperado</option>
+              <option value="canceled">Cancelado</option>
+            </select>
+          </div>
+        )}
+        {frequency === "recorrente" && (
+          <div className="mb-3 p-2 rounded" style={{ backgroundColor: '#f0f8ff', border: '1px solid #6daffe' }}>
+            <p className="font-pixel text-xs" style={{ color: '#666' }}>
+              ℹ️ Entradas recorrentes geram ocorrências mensais. Cada ocorrência começa como "Esperado" e muda para "Pendente" quando a data chega.
+            </p>
+          </div>
         )}
 
         {/* Categoria (sempre visível) */}
