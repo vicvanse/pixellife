@@ -524,52 +524,116 @@ export async function testSupabaseConnection(userId: string): Promise<{ success:
   try {
     console.log("🧪 Testando conexão com Supabase...");
     
+    // Verificar se há sessão válida
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      console.error("❌ Conexão com Supabase: FALHOU");
+      console.error("❌ Erro: Sessão não encontrada. Por favor, faça login novamente.");
+      console.error("\n💡 POSSÍVEIS CAUSAS:");
+      console.error("1. Você não está logado");
+      console.error("2. A sessão expirou");
+      console.error("3. Problema de autenticação no Supabase");
+      console.error("\n📖 Veja SUPABASE_DATABASE_SETUP.md para instruções");
+      return { success: false, error: "Sessão não encontrada" };
+    }
+
+    if (session.user.id !== userId) {
+      console.error("❌ Conexão com Supabase: FALHOU");
+      console.error("❌ Erro: ID do usuário não corresponde à sessão");
+      return { success: false, error: "ID do usuário inválido" };
+    }
+
     // Tentar inserir um registro de teste
-    const { error: insertError } = await supabase
+    const testData = { test: true, timestamp: new Date().toISOString() };
+    const { data: insertData, error: insertError } = await supabase
       .from("user_data")
       .upsert({
         user_id: userId,
         data_type: "_test",
-        data: { test: true, timestamp: new Date().toISOString() },
+        data: testData,
+        updated_at: new Date().toISOString(),
       }, {
         onConflict: "user_id,data_type"
-      });
+      })
+      .select();
 
     if (insertError) {
-      // Não logar erro se for problema de RLS ou tabela não existe (configuração esperada)
-      if (insertError.code === 'PGRST116' || insertError.message.includes('does not exist') || insertError.message.includes('permission denied')) {
-        console.warn("⚠️ Supabase não configurado ou sem permissão. Verifique SUPABASE_DATABASE_SETUP.md");
+      console.error("❌ Conexão com Supabase: FALHOU");
+      console.error("❌ Erro:", insertError.message);
+      console.error("\n💡 POSSÍVEIS CAUSAS:");
+      
+      if (insertError.code === 'PGRST116' || insertError.message.includes('does not exist')) {
+        console.error("1. A tabela 'user_data' não foi criada no Supabase");
+        console.error("2. Execute o SQL em SUPABASE_DATABASE_SETUP.md");
+      } else if (insertError.code === '42501' || insertError.message.includes('permission denied') || insertError.message.includes('row-level security')) {
+        console.error("1. As políticas RLS não foram configuradas corretamente");
+        console.error("2. Execute o SQL em SUPABASE_DATABASE_SETUP.md (parte das políticas)");
+      } else if (insertError.message.includes('JWT') || insertError.message.includes('token')) {
+        console.error("1. Problema de autenticação");
+        console.error("2. As variáveis de ambiente não estão configuradas no Vercel");
       } else {
-        console.error("❌ Erro ao inserir teste:", insertError);
+        console.error("1. A tabela 'user_data' não foi criada no Supabase");
+        console.error("2. As políticas RLS não foram configuradas corretamente");
+        console.error("3. As variáveis de ambiente não estão configuradas no Vercel");
       }
+      console.error("\n📖 Veja SUPABASE_DATABASE_SETUP.md para instruções");
       return { success: false, error: insertError.message };
     }
 
     // Aguardar um pouco para garantir que o registro foi propagado
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Tentar ler o registro de teste
-    const { data, error: selectError } = await supabase
-      .from("user_data")
-      .select("data")
-      .eq("user_id", userId)
-      .eq("data_type", "_test")
-      .maybeSingle();
+    // Tentar ler o registro de teste com retry
+    let data = null;
+    let selectError = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const result = await supabase
+        .from("user_data")
+        .select("data, updated_at")
+        .eq("user_id", userId)
+        .eq("data_type", "_test")
+        .maybeSingle();
+      
+      data = result.data;
+      selectError = result.error;
+      
+      if (data || (selectError && selectError.code !== 'PGRST116')) {
+        break;
+      }
+      
+      // Aguardar antes de tentar novamente
+      if (attempt < 2) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
 
     if (selectError) {
-      // Não logar erro se for problema de RLS ou tabela não existe
-      if (selectError.code === 'PGRST116' || selectError.message.includes('does not exist') || selectError.message.includes('permission denied')) {
-        console.warn("⚠️ Supabase não configurado ou sem permissão. Verifique SUPABASE_DATABASE_SETUP.md");
+      console.error("❌ Conexão com Supabase: FALHOU");
+      console.error("❌ Erro:", selectError.message);
+      console.error("\n💡 POSSÍVEIS CAUSAS:");
+      
+      if (selectError.code === 'PGRST116' || selectError.message.includes('does not exist')) {
+        console.error("1. A tabela 'user_data' não foi criada no Supabase");
+      } else if (selectError.code === '42501' || selectError.message.includes('permission denied') || selectError.message.includes('row-level security')) {
+        console.error("1. As políticas RLS não foram configuradas corretamente");
+        console.error("2. A política SELECT pode estar faltando ou incorreta");
       } else {
-        console.error("❌ Erro ao ler teste:", selectError);
+        console.error("1. A tabela 'user_data' não foi criada no Supabase");
+        console.error("2. As políticas RLS não foram configuradas corretamente");
       }
+      console.error("\n📖 Veja SUPABASE_DATABASE_SETUP.md para instruções");
       return { success: false, error: selectError.message };
     }
 
     if (!data) {
-      // Não logar warning se for problema de configuração esperada
-      // (já foi tratado acima no insertError)
       console.warn("⚠️ Registro de teste não encontrado após inserção (pode ser delay de propagação ou problema de RLS)");
+      console.error("❌ Conexão com Supabase: FALHOU");
+      console.error("❌ Erro: Registro de teste não encontrado");
+      console.error("\n💡 POSSÍVEIS CAUSAS:");
+      console.error("1. A tabela 'user_data' não foi criada no Supabase");
+      console.error("2. As políticas RLS não foram configuradas corretamente");
+      console.error("3. As variáveis de ambiente não estão configuradas no Vercel");
+      console.error("\n📖 Veja SUPABASE_DATABASE_SETUP.md para instruções");
       return { success: false, error: "Registro de teste não encontrado" };
     }
 
@@ -583,7 +647,13 @@ export async function testSupabaseConnection(userId: string): Promise<{ success:
     console.log("✅ Teste de conexão bem-sucedido!");
     return { success: true };
   } catch (err) {
-    console.error("❌ Erro no teste de conexão:", err);
+    console.error("❌ Conexão com Supabase: FALHOU");
+    console.error("❌ Erro:", (err as Error).message);
+    console.error("\n💡 POSSÍVEIS CAUSAS:");
+    console.error("1. A tabela 'user_data' não foi criada no Supabase");
+    console.error("2. As políticas RLS não foram configuradas corretamente");
+    console.error("3. As variáveis de ambiente não estão configuradas no Vercel");
+    console.error("\n📖 Veja SUPABASE_DATABASE_SETUP.md para instruções");
     return { success: false, error: (err as Error).message };
   }
 }

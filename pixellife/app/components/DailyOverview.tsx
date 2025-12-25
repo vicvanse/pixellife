@@ -7,6 +7,7 @@ import { PixelCard } from './PixelCard';
 import { useConfirmation } from '../context/ConfirmationContext';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
+import { MoodSelector } from './journal/MoodSelector';
 
 export function DailyOverview() {
   const { t, tString, language } = useLanguage();
@@ -28,7 +29,6 @@ export function DailyOverview() {
   const [journalDates, setJournalDates] = useState<string[]>([]);
   const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
   const { showConfirmation } = useConfirmation();
-  const [showNumericMood, setShowNumericMood] = useState(false);
   const [currentMoodNumber, setCurrentMoodNumber] = useState<number | null>(null);
   const [showDateCalendar, setShowDateCalendar] = useState(false);
   const [dateCalendarMonth, setDateCalendarMonth] = useState(new Date());
@@ -109,33 +109,20 @@ export function DailyOverview() {
     return () => clearTimeout(timeoutId);
   }, []);
 
-  const loadJournalEntry = (date: string, preserveMoodNumber: boolean = false) => {
+  const loadJournalEntry = (date: string) => {
     const entry = getEntry(date);
     if (entry) {
       setMood(entry.mood);
-      // Preservar o número atual se preserveMoodNumber for true, caso contrário usar o salvo
-      if (preserveMoodNumber && currentMoodNumber !== null) {
-        // Manter o número atual
-      } else {
-        // IMPORTANTE: Se moodNumber é null ou undefined, significa que foi explicitamente deselecionado
-        // NÃO inferir número padrão - manter null para preservar a deseleção
-        if (entry.moodNumber !== null && entry.moodNumber !== undefined) {
-          // Há um número salvo, usar ele
-          setCurrentMoodNumber(entry.moodNumber);
-        } else {
-          // Se moodNumber é undefined ou null, sempre definir como null
-          // Isso garante que quando o usuário deseleciona, permanece deselecionado
-          setCurrentMoodNumber(null);
-        }
-      }
+      // Carregar moodNumber se existir, caso contrário null
+      setCurrentMoodNumber(entry.moodNumber ?? null);
       setText(entry.text);
-      setIsTextExpanded(!!entry.text); // Expandir se houver texto
+      setIsTextExpanded(!!entry.text);
       setQuickNotes(entry.quickNotes.map((note) => ({ id: note.id, text: note.text })));
     } else {
       setMood(null);
-      setCurrentMoodNumber(null); // Sempre limpar quando não há entrada
+      setCurrentMoodNumber(null);
       setText('');
-      setIsTextExpanded(false); // Colapsar se não houver texto
+      setIsTextExpanded(false);
       setQuickNotes([]);
     }
   };
@@ -173,31 +160,6 @@ export function DailyOverview() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [journal, selectedDate]);
   
-  // IMPORTANTE: Recarregar entrada completa quando o journal mudar externamente (ex: quando volta à seção)
-  // Isso garante que mood e moodNumber estejam sincronizados com o que está salvo
-  useEffect(() => {
-    if (!selectedDate) return;
-    // Não recarregar durante carga inicial ou durante operações de deleção
-    if (isInitialLoadRef.current || isDeletingRef.current) return;
-    
-    const entry = getEntry(selectedDate);
-    if (entry) {
-      // Verificar se há diferença entre o estado atual e o salvo
-      const moodChanged = mood !== entry.mood;
-      const moodNumberChanged = currentMoodNumber !== (entry.moodNumber ?? null);
-      
-      // Só recarregar se houver diferença real (para evitar loops infinitos)
-      if (moodChanged || moodNumberChanged) {
-        // Marcar como carga para evitar que outros useEffects interfiram
-        isInitialLoadRef.current = true;
-        loadJournalEntry(selectedDate);
-        setTimeout(() => {
-          isInitialLoadRef.current = false;
-        }, 200);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journal, selectedDate]);
 
   // Auto-save journal text (salva apenas se houver interação explícita)
   // Aumentado debounce para melhorar performance no mobile
@@ -233,12 +195,10 @@ export function DailyOverview() {
           };
         });
       
-      // Se não há mood mas há texto ou quickNotes, criar entrada sem mood (não forçar neutro)
-      // Se há mood, usar o mood selecionado
-      // IMPORTANTE: Passar null explicitamente quando não há moodNumber para limpar
+      // Salvar mood e moodNumber apenas se foram selecionados
       updateJournalEntry(selectedDate, { 
-        mood: mood || undefined, // Não criar mood neutro automaticamente
-        moodNumber: mood !== null ? (currentMoodNumber !== null && currentMoodNumber !== undefined ? currentMoodNumber : null) : null,
+        mood: mood || undefined,
+        moodNumber: currentMoodNumber ?? undefined, // Só salvar se houver número selecionado
         text, 
         quickNotes: filteredQuickNotes
       });
@@ -278,8 +238,8 @@ export function DailyOverview() {
             };
           });
         updateJournalEntry(selectedDate, { 
-          mood: mood || undefined, // Não criar mood neutro automaticamente
-          moodNumber: mood !== null ? (currentMoodNumber !== null ? currentMoodNumber : null) : null,
+          mood: mood || undefined,
+          moodNumber: currentMoodNumber ?? undefined,
           text, 
           quickNotes: filteredQuickNotes
         });
@@ -307,18 +267,12 @@ export function DailyOverview() {
   // Função auxiliar para salvar antes de mudar de data
   const saveCurrentEntry = () => {
     if (selectedDate && (text.trim() || mood !== null || quickNotes.length > 0)) {
-      // Se não há mood mas há texto, cria uma entrada com mood neutro
-      const entryMood = mood || 'neutral';
-      
-      // Obter a entrada atual do journal para preservar os IDs dos quickNotes
       const currentEntry = getEntry(selectedDate);
       const existingQuickNotes = currentEntry?.quickNotes || [];
       
-      // Filtrar pensamentos vazios antes de salvar, preservando IDs quando possível
       const filteredQuickNotes = quickNotes
         .filter(n => n.text && n.text.trim().length > 0)
         .map(n => {
-          // Tentar encontrar o quickNote correspondente no journal para preservar ID e time
           const existing = existingQuickNotes.find(e => e.id === n.id) || 
                           existingQuickNotes.find(e => e.text.trim() === n.text.trim());
           return {
@@ -328,8 +282,8 @@ export function DailyOverview() {
           };
         });
       updateJournalEntry(selectedDate, { 
-        mood: entryMood as Mood,
-        moodNumber: currentMoodNumber !== null && currentMoodNumber !== undefined ? currentMoodNumber : null,
+        mood: mood || undefined,
+        moodNumber: currentMoodNumber ?? undefined,
         text, 
         quickNotes: filteredQuickNotes
       });
@@ -351,27 +305,18 @@ export function DailyOverview() {
     }, 200);
   };
 
-  const handleMoodClick = (newMood: Mood | null) => {
+  const handleMoodChange = (newMood: Mood | null) => {
     if (!selectedDate) return;
     setMood(newMood);
-    // Atualizar número correspondente ao mood apenas se não estiver usando seletor numérico
-    if (newMood !== null && !showNumericMood) {
-      if (newMood === 'bad') setCurrentMoodNumber(2);
-      else if (newMood === 'neutral') setCurrentMoodNumber(5);
-      else setCurrentMoodNumber(8);
-    } else if (newMood === null) {
-      setCurrentMoodNumber(null);
-    }
+    // Limpar número quando seleciona emoji
+    setCurrentMoodNumber(null);
     
-    // Obter a entrada atual do journal para preservar texto e quickNotes
     const currentEntry = getEntry(selectedDate);
     const existingQuickNotes = currentEntry?.quickNotes || [];
     const existingText = currentEntry?.text || text;
     
-    // Se não há mood, texto e quickNotes, então pode deletar a entrada
-    // Caso contrário, apenas remove o mood mas preserva o resto
+    // Se não há mood, texto e quickNotes, deletar a entrada
     if (newMood === null && !existingText.trim() && existingQuickNotes.length === 0) {
-      // Remove entrada apenas se não houver texto nem quickNotes
       setJournal((prev) => {
         const updated = { ...prev };
         delete updated[selectedDate];
@@ -379,11 +324,9 @@ export function DailyOverview() {
       });
       setJournalDates(getAllDates().filter(date => date !== selectedDate));
     } else {
-      // Preservar texto e quickNotes, apenas atualizar/remover o mood
-      // IMPORTANTE: Passar null explicitamente quando deselecionando para limpar o moodNumber
       updateJournalEntry(selectedDate, { 
         mood: newMood || undefined,
-        moodNumber: newMood === null ? null : (currentMoodNumber !== null && currentMoodNumber !== undefined ? currentMoodNumber : null),
+        moodNumber: undefined, // Limpar número quando seleciona emoji
         text: existingText, 
         quickNotes: existingQuickNotes
       });
@@ -391,20 +334,26 @@ export function DailyOverview() {
     }
   };
 
-  const handleNumberClick = (num: number | null, newMood: Mood | null) => {
+  const handleNumberChange = (num: number | null) => {
     if (!selectedDate) return;
     setCurrentMoodNumber(num);
+    
+    // Determinar mood baseado no número
+    let newMood: Mood | null = null;
+    if (num !== null) {
+      if (num <= 3) newMood = 'bad';
+      else if (num <= 6) newMood = 'neutral';
+      else newMood = 'good';
+    }
+    
     setMood(newMood);
     
-    // Obter a entrada atual do journal para preservar texto e quickNotes
     const currentEntry = getEntry(selectedDate);
     const existingQuickNotes = currentEntry?.quickNotes || [];
     const existingText = currentEntry?.text || text;
     
-    // Se não há mood, texto e quickNotes, então pode deletar a entrada
-    // Caso contrário, apenas remove o mood mas preserva o resto
+    // Se não há mood, texto e quickNotes, deletar a entrada
     if (newMood === null && !existingText.trim() && existingQuickNotes.length === 0) {
-      // Remove entrada apenas se não houver texto nem quickNotes
       setJournal((prev) => {
         const updated = { ...prev };
         delete updated[selectedDate];
@@ -412,11 +361,9 @@ export function DailyOverview() {
       });
       setJournalDates(getAllDates().filter(date => date !== selectedDate));
     } else {
-      // Preservar texto e quickNotes, apenas atualizar/remover o mood
-      // IMPORTANTE: Passar null explicitamente quando deselecionando para limpar o moodNumber
       updateJournalEntry(selectedDate, { 
         mood: newMood || undefined,
-        moodNumber: num !== null ? num : null, // Passar null explicitamente para deselecionar
+        moodNumber: num ?? undefined, // Salvar número ou undefined se null
         text: existingText, 
         quickNotes: existingQuickNotes
       });
@@ -424,44 +371,6 @@ export function DailyOverview() {
     }
   };
 
-  // Sincronizar número quando mood muda externamente (apenas se não estiver usando seletor numérico)
-  // IMPORTANTE: Não sobrescrever o número quando o usuário alterna entre emoji e números
-  // IMPORTANTE: Não sobrescrever o número quando o usuário seleciona um número específico
-  // IMPORTANTE: Este useEffect só deve rodar quando o mood muda POR INTERAÇÃO DO USUÁRIO, não durante carregamento
-  useEffect(() => {
-    // Não fazer nada durante a carga inicial para evitar sobreposição
-    if (isInitialLoadRef.current) return;
-    
-    // Não fazer nada se não há data selecionada
-    if (!selectedDate) return;
-    
-    if (!showNumericMood && mood !== null) {
-      // Verificar se há um número salvo no journal antes de usar padrão
-      const entry = getEntry(selectedDate);
-      const savedMoodNumber = entry?.moodNumber;
-      
-      // IMPORTANTE: Se savedMoodNumber é null ou undefined, significa que foi explicitamente deselecionado
-      // NÃO inferir número padrão - manter null para preservar a deseleção
-      if (savedMoodNumber === null || savedMoodNumber === undefined) {
-        // Não inferir número padrão se foi explicitamente deselecionado
-        // Só atualizar se o currentMoodNumber não estiver já como null (evitar re-renders desnecessários)
-        if (currentMoodNumber !== null) {
-          setCurrentMoodNumber(null);
-        }
-      } else if (savedMoodNumber !== null && savedMoodNumber !== undefined && currentMoodNumber !== savedMoodNumber) {
-        // Se há um número salvo diferente do atual, usar o salvo
-        setCurrentMoodNumber(savedMoodNumber);
-      }
-      // NÃO inferir número padrão baseado no mood - isso só deve acontecer quando o usuário seleciona um emoji pela primeira vez
-      // e não há número salvo. Mas isso já é tratado em handleMoodClick.
-    } else if (mood === null) {
-      // Se mood é null, garantir que moodNumber também seja null
-      if (currentMoodNumber !== null) {
-        setCurrentMoodNumber(null);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mood, showNumericMood, selectedDate]); // Adicionar selectedDate para reagir quando muda de data
 
   const handleAddQuickNote = () => {
     if (newQuickNote.trim() && selectedDate) {
@@ -583,7 +492,7 @@ export function DailyOverview() {
       // Salvar no journal, preservando IDs e times quando possível
       updateJournalEntry(selectedDate, {
         mood: mood as Mood,
-        moodNumber: currentMoodNumber !== null && currentMoodNumber !== undefined ? currentMoodNumber : null,
+        moodNumber: currentMoodNumber ?? undefined,
         text,
         quickNotes: updatedNotes.map(n => {
           // Tentar encontrar o quickNote correspondente no journal para preservar ID e time
@@ -616,7 +525,7 @@ export function DailyOverview() {
       // Atualizar no journal, preservando IDs e times quando possível
       updateJournalEntry(selectedDate, {
         mood: mood as Mood,
-        moodNumber: currentMoodNumber !== null && currentMoodNumber !== undefined ? currentMoodNumber : null,
+        moodNumber: currentMoodNumber ?? undefined,
         text,
         quickNotes: updatedNotes.map(n => {
           // Tentar encontrar o quickNote correspondente no journal para preservar ID e time
@@ -974,95 +883,13 @@ export function DailyOverview() {
           </div>
 
           {/* Mood Selector */}
-          <div 
-            className="flex justify-center gap-4 mb-4 items-center"
-            onClick={(e) => {
-              // Prevenir que cliques nos botões de mood propaguem para elementos pais
-              e.stopPropagation();
-            }}
-            onMouseDown={(e) => {
-              // Prevenir que cliques nos botões de mood propaguem para elementos pais
-              e.stopPropagation();
-            }}
-          >
-            {!showNumericMood ? (
-              <>
-                {(['bad', 'neutral', 'good'] as Mood[]).map((m) => {
-                  const isSelected = mood === m;
-                  const borderColor = m === 'good' ? '#81C784' : m === 'neutral' ? '#FFD54F' : '#EF5350';
-                  return (
-                    <button
-                      key={m}
-                      onClick={() => handleMoodClick(isSelected ? null : m)}
-                      className="w-12 h-12 rounded-full flex items-center justify-center transition-all"
-                      style={{
-                        backgroundColor: isSelected 
-                          ? (m === 'good' ? '#C8E6C9' : m === 'neutral' ? '#FFF9C4' : '#FFCDD2')
-                          : '#F5F5F5',
-                        border: `1px solid ${isSelected ? borderColor : '#d8d4c7'}`,
-                        boxShadow: isSelected ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
-                      }}
-                    >
-                      <span className="text-xl">
-                        {m === 'good' ? '🙂' : m === 'neutral' ? '😐' : '🙁'}
-                      </span>
-                    </button>
-                  );
-                })}
-              </>
-            ) : (
-              <div className="flex gap-2 flex-wrap justify-center">
-                  {Array.from({ length: 11 }, (_, i) => i).map((num) => {
-                    const mappedMood = num <= 3 ? 'bad' : num <= 6 ? 'neutral' : 'good';
-                    const isSelected = mood === mappedMood && currentMoodNumber === num;
-                    return (
-                      <button
-                        key={num}
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (isSelected) {
-                            handleNumberClick(null, null);
-                          } else {
-                            const newMood = mappedMood as Mood;
-                            handleNumberClick(num, newMood);
-                          }
-                        }}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }}
-                        onTouchStart={(e) => {
-                          e.stopPropagation();
-                        }}
-                        className="w-10 h-10 rounded-full border-2 border-black font-mono font-bold text-sm flex items-center justify-center transition-all touch-manipulation"
-                        style={{
-                          backgroundColor: isSelected ? '#6daffe' : '#F5F5F5',
-                          borderColor: isSelected ? '#000' : '#d8d4c7',
-                          minWidth: '40px',
-                          minHeight: '40px',
-                          pointerEvents: 'auto',
-                          userSelect: 'none',
-                          position: 'relative',
-                          zIndex: 10,
-                        }}
-                      >
-                        {num}
-                      </button>
-                    );
-                  })}
-              </div>
-            )}
-            <button
-              onClick={() => setShowNumericMood(!showNumericMood)}
-              className="w-10 h-10 rounded-full border-2 border-black bg-gray-300 font-mono font-bold text-sm flex items-center justify-center hover:bg-gray-400 transition-all"
-              style={{ borderColor: '#d8d4c7' }}
-              aria-label={showNumericMood ? "Mostrar emojis" : "Mostrar números"}
-              title={showNumericMood ? "Mostrar emojis" : "Mostrar números"}
-            >
-              {showNumericMood ? '😊' : '#'}
-            </button>
+          <div className="flex justify-center mb-4">
+            <MoodSelector
+              value={mood}
+              onChange={handleMoodChange}
+              onNumberChange={handleNumberChange}
+              currentNumber={currentMoodNumber}
+            />
           </div>
 
           {/* Container para Histórico e Text Area - aparece primeiro */}

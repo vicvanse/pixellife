@@ -13,7 +13,7 @@ export interface QuickNote {
 
 export interface JournalEntry {
   mood: Mood | null;
-  moodNumber?: number | null; // Permitir null para deseleção explícita
+  moodNumber?: number; // Número opcional (0-10), só existe quando selecionado em modo numérico
   text: string;
   quickNotes: QuickNote[];
   touched: boolean;
@@ -56,15 +56,19 @@ function normalizeEntry(
   // Garantir que todos os quickNotes tenham id
   const migratedQuickNotes = migrateQuickNotes(quickNotes);
   
+  // Se moodNumber foi explicitamente passado como undefined, remover a propriedade
+  // Se foi passado um número, usar ele
+  // Se não foi especificado, manter o anterior
+  let moodNumber: number | undefined;
+  if ('moodNumber' in patch) {
+    moodNumber = patch.moodNumber; // Pode ser undefined para remover
+  } else {
+    moodNumber = prev?.moodNumber;
+  }
+  
   return {
     mood: patch.mood ?? prev?.mood ?? null,
-    moodNumber:
-      // Se moodNumber foi explicitamente passado (incluindo null), usar ele
-      // 'in' verifica se a propriedade existe no objeto, mesmo que seja null ou undefined
-      'moodNumber' in patch
-        ? patch.moodNumber
-        : // Se não foi especificado, manter o anterior
-        prev?.moodNumber,
+    ...(moodNumber !== undefined && { moodNumber }), // Só incluir se não for undefined
     text: patch.text ?? prev?.text ?? "",
     quickNotes: migratedQuickNotes,
     touched: patch.touched ?? prev?.touched ?? true,

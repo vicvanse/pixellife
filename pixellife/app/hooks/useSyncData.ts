@@ -9,6 +9,7 @@ import { saveToSupabase, loadFromSupabase, testSupabaseConnection } from "../lib
 import { exportExpensesData, exportTreeData, exportFinancialEntriesData, importFinancialEntriesData } from "../lib/sync-helpers";
 import { withRetry } from "../lib/retry";
 import { useToastContext } from "../context/ToastContext";
+import { isSupabaseConfigured } from "../lib/supabaseClient";
 
 // Tipos de dados que precisam ser sincronizados
 type SyncableData = {
@@ -44,6 +45,14 @@ export function useSyncData() {
         return;
       }
 
+      // Verificar se Supabase está configurado
+      if (!isSupabaseConfigured()) {
+        console.warn("⚠️ Supabase não configurado - sincronização desabilitada");
+        console.warn("📖 Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY");
+        hasLoadedRef.current = false;
+        return;
+      }
+
       // Só carregar uma vez por sessão
       if (hasLoadedRef.current) return;
 
@@ -53,9 +62,8 @@ export function useSyncData() {
       // Testar conexão primeiro
       const testResult = await testSupabaseConnection(user.id);
       if (!testResult.success) {
-        console.error("❌ Erro ao conectar com Supabase:", testResult.error);
-        console.error("⚠️ Verifique se a tabela 'user_data' foi criada corretamente!");
-        console.error("📖 Veja SUPABASE_DATABASE_SETUP.md para instruções");
+        // Erros já foram logados pela função testSupabaseConnection
+        hasLoadedRef.current = false;
         return;
       }
 
@@ -298,7 +306,7 @@ export function useSyncExpenses() {
 
     // Adicionar listeners de eventos
     window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("pixel-life-storage-change", handleCustomStorageChange);
+    // Removido pixel-life-storage-change para evitar acionamento por mudanças em outros dados (ex: journal)
     window.addEventListener("expenses-updated", handleCustomStorageChange);
 
     // Carregar dados do Supabase a cada 30 segundos (polling apenas para carregar mudanças remotas)
@@ -318,7 +326,7 @@ export function useSyncExpenses() {
       clearInterval(loadInterval);
       clearInterval(saveInterval);
       window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("pixel-life-storage-change", handleCustomStorageChange);
+      // Removido pixel-life-storage-change
       window.removeEventListener("expenses-updated", handleCustomStorageChange);
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -807,7 +815,7 @@ export function useSyncFinancialEntries() {
 
     // Adicionar listeners de eventos
     window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("pixel-life-storage-change", handleCustomStorageChange);
+    // Removido pixel-life-storage-change para evitar acionamento por mudanças em outros dados (ex: journal)
     window.addEventListener("financial-entries-updated", handleCustomStorageChange);
 
     // Carregar dados do Supabase a cada 30 segundos (polling apenas para carregar mudanças remotas)
@@ -827,7 +835,7 @@ export function useSyncFinancialEntries() {
       clearInterval(loadInterval);
       clearInterval(saveInterval);
       window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("pixel-life-storage-change", handleCustomStorageChange);
+      // Removido pixel-life-storage-change
       window.removeEventListener("financial-entries-updated", handleCustomStorageChange);
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
