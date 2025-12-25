@@ -2260,9 +2260,37 @@ function BoardPageInner() {
 
                           {/* Análise por Categoria */}
                           <div className="p-4 rounded" style={{ backgroundColor: '#FFFFFF', border: '1px solid #e5e5e5', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                            <h3 className="font-pixel-bold mb-4" style={{ color: '#333', fontSize: '18px' }}>
-                              Análise por Categoria ({new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })})
-                            </h3>
+                            <div className="flex items-center justify-between mb-4">
+                              <h3 className="font-pixel-bold" style={{ color: '#333', fontSize: '18px' }}>
+                                Análise por Categoria ({new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })})
+                              </h3>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1))}
+                                  className="px-3 py-1 rounded font-pixel transition-all hover:opacity-90"
+                                  style={{
+                                    backgroundColor: '#fafafa',
+                                    border: '1px solid #e5e5e5',
+                                    color: '#111',
+                                    fontSize: '16px',
+                                  }}
+                                >
+                                  ←
+                                </button>
+                                <button
+                                  onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1))}
+                                  className="px-3 py-1 rounded font-pixel transition-all hover:opacity-90"
+                                  style={{
+                                    backgroundColor: '#fafafa',
+                                    border: '1px solid #e5e5e5',
+                                    color: '#111',
+                                    fontSize: '16px',
+                                  }}
+                                >
+                                  →
+                                </button>
+                              </div>
+                            </div>
                             {categoryAnalysis.length === 0 ? (
                               <p className="font-pixel text-center py-8" style={{ color: '#999', fontSize: '14px' }}>
                                 Nenhum lançamento registrado neste período
@@ -4242,9 +4270,37 @@ function BoardPageInner() {
 
                     {/* Análise por Categoria */}
                     <div className="p-4 rounded" style={{ backgroundColor: '#FFFFFF', border: '1px solid #e5e5e5', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                      <h3 className="font-pixel-bold mb-4" style={{ color: '#333', fontSize: '18px' }}>
-                        Análise por Categoria ({new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })})
-                      </h3>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-pixel-bold" style={{ color: '#333', fontSize: '18px' }}>
+                          Análise por Categoria ({new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })})
+                        </h3>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1))}
+                            className="px-3 py-1 rounded font-pixel transition-all hover:opacity-90"
+                            style={{
+                              backgroundColor: '#fafafa',
+                              border: '1px solid #e5e5e5',
+                              color: '#111',
+                              fontSize: '16px',
+                            }}
+                          >
+                            ←
+                          </button>
+                          <button
+                            onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1))}
+                            className="px-3 py-1 rounded font-pixel transition-all hover:opacity-90"
+                            style={{
+                              backgroundColor: '#fafafa',
+                              border: '1px solid #e5e5e5',
+                              color: '#111',
+                              fontSize: '16px',
+                            }}
+                          >
+                            →
+                          </button>
+                        </div>
+                      </div>
                       {categoryAnalysis.length === 0 ? (
                         <p className="font-pixel text-center py-8" style={{ color: '#999', fontSize: '14px' }}>
                           Nenhum lançamento registrado neste período
