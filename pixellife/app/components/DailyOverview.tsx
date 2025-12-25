@@ -1592,7 +1592,14 @@ export function DailyOverview() {
                               <div className="font-pixel-bold mb-2 flex-shrink-0" style={{ color: '#666', fontSize: '14px', textAlign: 'center' }}>
                                 {day} {(t('journal.daysShort') as string[])[new Date(year, month, day).getDay()]}
                               </div>
-                              <div className="space-y-1 quick-notes-vertical-scrollbar flex-1 overflow-y-auto" style={{ minHeight: 0, scrollbarWidth: 'thin', scrollbarColor: '#d0d0d0 transparent' }}>
+                              <div 
+                                className="space-y-1 quick-notes-vertical-scrollbar flex-1 overflow-y-auto" 
+                                style={{ minHeight: 0, scrollbarWidth: 'thin', scrollbarColor: '#d0d0d0 transparent' }}
+                                onDoubleClick={(e) => {
+                                  // Prevenir que o duplo clique no container interfira com o duplo clique nos itens
+                                  e.stopPropagation();
+                                }}
+                              >
                                 {quickNotesForDay.map((note) => {
                                   const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                                   const isEditing = editingQuickNote && editingQuickNote.date === dateStr && editingQuickNote.noteId === note.id;
@@ -1607,6 +1614,11 @@ export function DailyOverview() {
                                         color: '#333',
                                         wordBreak: 'break-word',
                                         textAlign: 'center',
+                                        pointerEvents: 'auto',
+                                      }}
+                                      onDoubleClick={(e) => {
+                                        // Prevenir propagação para não interferir com outros eventos
+                                        e.stopPropagation();
                                       }}
                                     >
                                       {isEditing ? (
@@ -1696,7 +1708,7 @@ export function DailyOverview() {
                                         />
                                       ) : (
                                         <span 
-                                          className="cursor-text"
+                                          className="cursor-text select-none"
                                           onDoubleClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
@@ -1704,6 +1716,11 @@ export function DailyOverview() {
                                             isEditingRef.current = false;
                                             setEditingQuickNote({ date: dateStr, noteId: note.id });
                                             setEditingQuickNoteText(note.text);
+                                          }}
+                                          style={{
+                                            userSelect: 'none',
+                                            WebkitUserSelect: 'none',
+                                            pointerEvents: 'auto',
                                           }}
                                         >
                                           {note.text}
@@ -1762,8 +1779,13 @@ export function DailyOverview() {
                                       onChange={(e) => setInlineQuickNoteText(e.target.value)}
                                       onKeyPress={(e) => {
                                         if (e.key === 'Enter') {
+                                          e.preventDefault();
                                           const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                                           handleAddInlineQuickNote(dateStr);
+                                        } else if (e.key === 'Escape') {
+                                          e.preventDefault();
+                                          setEditingQuickNoteDate(null);
+                                          setInlineQuickNoteText('');
                                         }
                                       }}
                                       onBlur={(e) => {
@@ -1773,14 +1795,20 @@ export function DailyOverview() {
                                         if (relatedTarget && (relatedTarget.tagName === 'BUTTON' || relatedTarget.closest('button'))) {
                                           return; // Não fechar se foi um clique em botão
                                         }
+                                        // Verificar se o input ainda está montado (pode ter sido removido pelo handleAddInlineQuickNote)
+                                        const currentDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                        if (editingQuickNoteDate !== currentDateStr) {
+                                          return; // Já foi fechado ou mudou de data
+                                        }
                                         // Não fechar automaticamente ao perder foco, apenas se estiver vazio
                                         // Usar setTimeout para evitar conflitos com cliques e scroll
                                         setTimeout(() => {
-                                          if (!inlineQuickNoteText.trim() && editingQuickNoteDate === `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`) {
+                                          const stillActive = editingQuickNoteDate === currentDateStr;
+                                          if (!inlineQuickNoteText.trim() && stillActive) {
                                             setEditingQuickNoteDate(null);
                                             setInlineQuickNoteText('');
                                           }
-                                        }, 200);
+                                        }, 300);
                                       }}
                                       placeholder={tString('journal.addQuickThought')}
                                       className="w-full px-2 py-1 rounded font-pixel border"
@@ -1799,19 +1827,19 @@ export function DailyOverview() {
                                           e.preventDefault();
                                           e.stopPropagation();
                                           const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                                          // Focar no botão antes de adicionar para evitar blur prematuro
-                                          e.currentTarget.focus();
+                                          // Adicionar o pensamento rápido
                                           handleAddInlineQuickNote(dateStr);
-                      }}
+                                        }}
                                         onMouseDown={(e) => {
                                           e.preventDefault(); // Prevenir blur do input
                                           e.stopPropagation();
                                         }}
-                                        className="flex-1 px-2 py-1 rounded font-pixel text-xs"
+                                        className="flex-1 px-2 py-1 rounded font-pixel text-xs cursor-pointer"
                                         style={{
                                           backgroundColor: '#9e9e9e',
                                           color: '#FFFFFF',
                                           fontSize: '12px',
+                                          zIndex: 10,
                       }}
                     >
                                         Adicionar
@@ -1854,14 +1882,16 @@ export function DailyOverview() {
                                       e.preventDefault();
                                       e.stopPropagation();
                                     }}
-                                    className="w-full mt-1 p-1 rounded font-pixel border border-dashed flex-shrink-0"
+                                    className="w-full mt-1 p-1 rounded font-pixel border border-dashed flex-shrink-0 cursor-pointer"
                                     style={{
                                       backgroundColor: isToday ? '#FFFFFF' : 'transparent',
                                       borderColor: isToday ? '#FFFFFF' : '#d0d0d0',
                                       color: isToday ? '#333' : '#999',
                                       fontSize: '13px',
                                       textAlign: 'center',
+                                      zIndex: 5,
                                     }}
+                                    title="Clique para adicionar pensamento rápido"
                       >
                                     + {t('journal.clickToAdd')}
                       </button>
