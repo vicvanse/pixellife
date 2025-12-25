@@ -1596,6 +1596,7 @@ export function DailyOverview() {
                                 borderColor: isToday ? '#9e9e9e' : '#e0e0e0',
                                 position: 'relative',
                                 pointerEvents: 'auto',
+                                zIndex: isToday ? 1 : 'auto',
                               }}
                             >
                               <div className="font-pixel-bold mb-2 flex-shrink-0" style={{ color: '#666', fontSize: '14px', textAlign: 'center' }}>
@@ -1603,7 +1604,14 @@ export function DailyOverview() {
                               </div>
                               <div 
                                 className="space-y-1 quick-notes-vertical-scrollbar flex-1 overflow-y-auto" 
-                                style={{ minHeight: 0, scrollbarWidth: 'thin', scrollbarColor: '#d0d0d0 transparent' }}
+                                style={{ 
+                                  minHeight: 0, 
+                                  scrollbarWidth: 'thin', 
+                                  scrollbarColor: '#d0d0d0 transparent',
+                                  pointerEvents: 'auto',
+                                  zIndex: isToday ? 5 : 'auto',
+                                  position: 'relative',
+                                }}
                               >
                                 {quickNotesForDay.map((note) => {
                                   const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -1620,6 +1628,8 @@ export function DailyOverview() {
                                         wordBreak: 'break-word',
                                         textAlign: 'center',
                                         pointerEvents: 'auto',
+                                        zIndex: isToday ? 10 : 'auto',
+                                        position: 'relative',
                                       }}
                                     >
                                       {isEditing ? (
@@ -1704,6 +1714,8 @@ export function DailyOverview() {
                                             color: '#333',
                                             fontSize: '16px',
                                             textAlign: 'center',
+                                            zIndex: isToday ? 20 : 'auto',
+                                            position: 'relative',
                                           }}
                                           autoFocus
                                         />
@@ -1721,6 +1733,8 @@ export function DailyOverview() {
                                             userSelect: 'none',
                                             WebkitUserSelect: 'none',
                                             pointerEvents: 'auto',
+                                            zIndex: isToday ? 10 : 'auto',
+                                            position: 'relative',
                                           }}
                                         >
                                           {note.text}
@@ -1756,6 +1770,7 @@ export function DailyOverview() {
                                           opacity: 1, // Sempre visível, não apenas no hover
                                           pointerEvents: 'auto',
                                           cursor: 'pointer',
+                                          zIndex: isToday ? 100 : 50,
                                         }}
                                         title="Excluir"
                                       >
@@ -1890,7 +1905,7 @@ export function DailyOverview() {
                                       color: isToday ? '#333' : '#999',
                                       fontSize: '13px',
                                       textAlign: 'center',
-                                      zIndex: 50,
+                                      zIndex: isToday ? 100 : 50,
                                       position: 'relative',
                                       pointerEvents: 'auto',
                                       touchAction: 'manipulation',

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import PixelMenu from '../components/PixelMenu';
 import { DailyOverview } from '../components/DailyOverview';
@@ -116,7 +116,7 @@ function BoardPageInner() {
   const [editingHabit, setEditingHabit] = useState<{ id: number; currentName: string } | null>(null);
   const [editingHabitName, setEditingHabitName] = useState('');
 
-  // Sincronizar selectedHabit com habits quando hÃ¡ mudanÃ§as
+  // Sincronizar selectedHabit com habits quando há mudanças
   useEffect(() => {
     if (selectedHabit) {
       const updatedHabit = habits.find((h) => h.id === selectedHabit.id);
@@ -177,7 +177,7 @@ function BoardPageInner() {
   const [monthlyStatusFilter, setMonthlyStatusFilter] = useState<'received' | 'all'>('all');
   const [isEditingMonthlyLimit, setIsEditingMonthlyLimit] = useState(false);
   const [recurringEntriesUpdateKey, setRecurringEntriesUpdateKey] = useState(0);
-  // Modais de FinanÃ§as
+  // Modais de Finanças
   const [isIncomeConfigModalOpen, setIsIncomeConfigModalOpen] = useState(false);
   const [isExpensePlanningModalOpen, setIsExpensePlanningModalOpen] = useState(false);
   
@@ -187,7 +187,7 @@ function BoardPageInner() {
   const [isCreatePossessionModalOpen, setIsCreatePossessionModalOpen] = useState(false);
   const [isDetailsPossessionModalOpen, setIsDetailsPossessionModalOpen] = useState(false);
   const [isEditPossessionModalOpen, setIsEditPossessionModalOpen] = useState(false);
-  // OrdenaÃ§Ã£o de objetivos (permite mÃºltiplas ordenaÃ§Ãµes)
+  // Ordenação de objetivos (permite múltiplas ordenações)
   const [sortCriteria, setSortCriteria] = useState<Array<{by: 'value' | 'status' | 'date', order: 'asc' | 'desc'}>>([]);
   
   // Tree states
@@ -224,12 +224,12 @@ function BoardPageInner() {
   const [isBiographyModalOpen, setIsBiographyModalOpen] = useState(false);
   const [editingBiographyEntry, setEditingBiographyEntry] = useState<BiographyEntry | undefined>(undefined);
   
-  // SeÃ§Ã£o ativa no board (controlada pela barra superior)
+  // Seção ativa no board (controlada pela barra superior)
   const [activeBoardSection, setActiveBoardSection] = useState<BoardSection>('display');
   const { viewMode } = useUI();
   const prevViewModeRef = useRef(viewMode);
   
-  // Scroll para o topo quando muda de modo contÃ­nuo para focado
+  // Scroll para o topo quando muda de modo contínuo para focado
   useEffect(() => {
     if (prevViewModeRef.current === 'continuous' && viewMode === 'focused') {
       // Aguardar um pouco para garantir que o DOM foi atualizado
@@ -244,12 +244,12 @@ function BoardPageInner() {
     prevViewModeRef.current = viewMode;
   }, [viewMode]);
   
-  // Prevenir scroll negativo que aumenta a distÃ¢ncia (apenas mobile)
+  // Prevenir scroll negativo que aumenta a distância (apenas mobile)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
     const handleScroll = () => {
-      // Se tentar scrollar para cima alÃ©m do topo, resetar para 0
+      // Se tentar scrollar para cima além do topo, resetar para 0
       if (window.scrollY < 0) {
         window.scrollTo(0, 0);
       }
@@ -264,7 +264,7 @@ function BoardPageInner() {
     }
   }, []);
   
-  // Detectar seÃ§Ã£o ativa baseado no hash
+  // Detectar seção ativa baseado no hash
   useEffect(() => {
     const updateSection = () => {
       if (typeof window !== 'undefined') {
@@ -280,10 +280,10 @@ function BoardPageInner() {
     
     updateSection();
     
-    // Escutar mudanÃ§as no hash
+    // Escutar mudanças no hash
     window.addEventListener('hashchange', updateSection);
     
-    // Escutar evento customizado de mudanÃ§a de seÃ§Ã£o
+    // Escutar evento customizado de mudança de seção
     const handleSectionChange = (e: CustomEvent) => {
       const section = e.detail.section as BoardSection;
       if (['display', 'habits', 'journal', 'finances', 'goals', 'mapas', 'biography', 'feedback', 'guides', 'achievements'].includes(section)) {
@@ -312,7 +312,7 @@ function BoardPageInner() {
   const { isModuleActive } = useUserModules();
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
 
-  // Listener para abrir modal de personalizaÃ§Ã£o
+  // Listener para abrir modal de personalização
   useEffect(() => {
     const handleOpenCustomizeModal = () => {
       setIsCustomizeModalOpen(true);
@@ -334,7 +334,7 @@ function BoardPageInner() {
     }
   }, [searchParams, router]);
 
-  // Handler para abrir modal de personalizaÃ§Ã£o
+  // Handler para abrir modal de personalização
   const handleOpenCustomize = () => {
     setIsCustomizeModalOpen(true);
   };
@@ -358,7 +358,7 @@ function BoardPageInner() {
     updateDays();
   }, []);
 
-  // Scroll automÃ¡tico removido - nÃ£o mover a tela ao abrir seÃ§Ã£o
+  // Scroll automático removido - não mover a tela ao abrir seção
 
   // Helper: Atualizar progresso de objetivos e atualizar estado
   const updatePossessionsProgress = useCallback(() => {
@@ -389,16 +389,16 @@ function BoardPageInner() {
     updatePossessionsProgress();
   }, [getAllPossessions, getLeisureSkills, getPersonalSkills, updatePossessionsProgress]);
 
-  // Calcular dados mensais e diÃ¡rios
+  // Calcular dados mensais e diários
   useEffect(() => {
     const monthKey = formatMonthKey(selectedMonth);
     const desired = getDesiredMonthlyExpense(monthKey);
     const reset = getResetDate(monthKey);
     
-    // Resetar estado de ediÃ§Ã£o quando mÃªs mudar
+    // Resetar estado de edição quando mês mudar
     setIsEditingMonthlyLimit(false);
     
-    // Usar requestIdleCallback para cÃ¡lculos pesados (se disponÃ­vel)
+    // Usar requestIdleCallback para cálculos pesados (se disponível)
     const calculateRows = () => {
       updateMonthlyRows();
       
@@ -408,8 +408,8 @@ function BoardPageInner() {
       setDesiredMonthlyExpense(desired || '');
       setResetDate(reset || '');
       
-      // Carregar accountMoney do dia 1 do mÃªs selecionado para exibir no input
-      // O input mostra o valor do dia 1, que Ã© onde salvamos quando o usuÃ¡rio edita
+      // Carregar accountMoney do dia 1 do mês selecionado para exibir no input
+      // O input mostra o valor do dia 1, que é onde salvamos quando o usuário edita
       const day1Key = formatDateKey(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1));
       const day1Initial = getAccountMoneyInitialByDate(day1Key);
       
@@ -433,14 +433,14 @@ function BoardPageInner() {
     const rItems = getReserveMovements(dateKey);
     setDailyItems(items);
     setReserveItems(rItems);
-    // Buscar valor inicial do dia 1 do mÃªs selecionado (versÃ£o simplificada, igual ao modo pixel art)
+    // Buscar valor inicial do dia 1 do mês selecionado (versão simplificada, igual ao modo pixel art)
     const day1Key = formatDateKey(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1));
     const day1Initial = getAccountMoneyInitialByDate(day1Key);
     const accountMoneyValue = day1Initial !== null ? day1Initial : getAccountMoney(day1Key);
-    // SÃ³ atualizar o estado se ele ainda nÃ£o foi editado pelo usuÃ¡rio
+    // Só atualizar o estado se ele ainda não foi editado pelo usuário
     setAccountMoney((prev: string) => {
       if (prev === '' || prev === null || prev === undefined) {
-        // Sempre mostrar o valor calculado, mesmo se for 0 (pode ser um saldo vÃ¡lido)
+        // Sempre mostrar o valor calculado, mesmo se for 0 (pode ser um saldo válido)
         return accountMoneyValue.toString();
       }
       return prev;
@@ -450,7 +450,7 @@ function BoardPageInner() {
     setAvailableMoney(budget);
     setReserve(getCurrentReserve());
     
-    // Recarregar monthlyRows quando dailyItems ou reserveItems mudarem (atualizaÃ§Ã£o automÃ¡tica)
+    // Recarregar monthlyRows quando dailyItems ou reserveItems mudarem (atualização automática)
     updateMonthlyRows();
   }, [selectedDate, formatDateKey, getDailyExpenses, getReserveMovements, getAccountMoney, getBudget, getCurrentReserve, selectedMonth, updateMonthlyRows]);
 
@@ -462,12 +462,12 @@ function BoardPageInner() {
     };
 
     const handlePossessionsChange = () => {
-      // Atualizar estado quando objetivos mudarem (seja por mudanÃ§a no dinheiro em conta ou diretamente)
+      // Atualizar estado quando objetivos mudarem (seja por mudança no dinheiro em conta ou diretamente)
       setPossessions(getAllPossessions());
     };
 
     const handleFinancialEntriesUpdate = () => {
-      // ForÃ§ar atualizaÃ§Ã£o quando entradas financeiras mudarem
+      // Forçar atualização quando entradas financeiras mudarem
       setRecurringEntriesUpdateKey((prev: number) => prev + 1);
       // Recarregar dados do dia atual
       const dateKey = formatDateKey(selectedDate);
@@ -488,7 +488,7 @@ function BoardPageInner() {
   }, [selectedDate, formatDateKey, getDailyExpenses, getAllPossessions, updateMonthlyRows, updatePossessionsProgress]);
 
 
-  // Carregar todas as movimentaÃ§Ãµes de reserva do mÃªs
+  // Carregar todas as movimentações de reserva do mês
   useEffect(() => {
     const loadMonthlyReserveItems = () => {
       const year = selectedReserveMonth.getFullYear();
@@ -515,7 +515,7 @@ function BoardPageInner() {
 
     loadMonthlyReserveItems();
 
-    // Listener para mudanÃ§as no localStorage (atualiza quando reserveItems mudam)
+    // Listener para mudanças no localStorage (atualiza quando reserveItems mudam)
     const handleStorageChange = () => {
       loadMonthlyReserveItems();
     };
@@ -549,12 +549,12 @@ function BoardPageInner() {
     today.setHours(0, 0, 0, 0);
     const endDate = lastDay > today ? today : lastDay;
     
-    // Contar apenas os dias desde a criaÃ§Ã£o do hÃ¡bito atÃ© hoje (ou fim do mÃªs)
-    // Mas calcular o progresso baseado em todos os dias do mÃªs
-    let totalDaysInMonth = lastDay.getDate(); // Total de dias no mÃªs
+    // Contar apenas os dias desde a criação do hábito até hoje (ou fim do mês)
+    // Mas calcular o progresso baseado em todos os dias do mês
+    let totalDaysInMonth = lastDay.getDate(); // Total de dias no mês
     let checkedDays = 0;
     
-    // Iterar pelos dias desde a criaÃ§Ã£o do hÃ¡bito atÃ© hoje (ou fim do mÃªs)
+    // Iterar pelos dias desde a criação do hábito até hoje (ou fim do mês)
     const startDate = habitCreatedAt > firstDay ? habitCreatedAt : firstDay;
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().substring(0, 10);
@@ -563,21 +563,21 @@ function BoardPageInner() {
       }
     }
     
-    // Progresso = dias com check / total de dias do mÃªs
+    // Progresso = dias com check / total de dias do mês
     // Isso evita que 1 check de 1 dia mostre 100%
     return totalDaysInMonth > 0 ? checkedDays / totalDaysInMonth : 0;
   };
 
   const getProgressColor = (progress: number): string => {
     if (progress >= 0.75) return '#22c55e'; // verde escuro
-    if (progress >= 0.50) return '#4ade80'; // verde sÃ³lido
+    if (progress >= 0.50) return '#4ade80'; // verde sólido
     if (progress >= 0.25) return '#86efac'; // verde claro
     return '#d1d5db'; // cinza
   };
 
   const formatMonthYear = (date: Date): string => {
     const months = [
-      'janeiro', 'fevereiro', 'marÃ§o', 'abril', 'maio', 'junho',
+      'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
       'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
     ];
     return `${months[date.getMonth()]} de ${date.getFullYear()}`;
@@ -619,10 +619,10 @@ function BoardPageInner() {
     }
 
     if (editingHabit.id === -1) {
-      // Adicionar novo hÃ¡bito
+      // Adicionar novo hábito
       addHabit(trimmedName);
     } else {
-      // Renomear hÃ¡bito existente
+      // Renomear hábito existente
       updateHabit(editingHabit.id, { name: trimmedName });
 
       if (selectedHabit && selectedHabit.id === editingHabit.id) {
@@ -641,7 +641,7 @@ function BoardPageInner() {
 
   const handleDeleteHabit = (habitId: number, habitName: string) => {
     showConfirmation({
-      message: `Tem certeza que deseja excluir o hÃ¡bito "${habitName}"?`,
+      message: `Tem certeza que deseja excluir o hábito "${habitName}"?`,
       onConfirm: () => {
     deleteHabit(habitId);
     if (selectedHabit && selectedHabit.id === habitId) {
@@ -683,7 +683,7 @@ function BoardPageInner() {
       });
     }
     
-    // Retornar apenas as semanas completas do mÃªs (sem dias do prÃ³ximo mÃªs)
+    // Retornar apenas as semanas completas do mês (sem dias do próximo mês)
     return [...prevMonthDays, ...currentMonthDays];
   };
 
@@ -743,7 +743,7 @@ function BoardPageInner() {
         <div className="max-w-6xl mx-auto w-full">
           {viewMode === 'focused' ? (
             <>
-              {/* Modo Focado: Display sempre visÃ­vel (exceto quando feedback ou guides estÃ£o ativos) */}
+              {/* Modo Focado: Display sempre visível (exceto quando feedback ou guides estão ativos) */}
               {activeBoardSection !== 'feedback' && activeBoardSection !== 'guides' && (
                 <section id="display" className="mb-8" style={{ scrollMarginTop: '10px' }}>
                   <div className="section-box">
@@ -755,14 +755,14 @@ function BoardPageInner() {
                 </section>
               )}
 
-              {/* Semi barra abaixo do Display no modo focado - sempre visÃ­vel (exceto quando feedback ou guides estÃ£o ativos) */}
+              {/* Semi barra abaixo do Display no modo focado - sempre visível (exceto quando feedback ou guides estão ativos) */}
               {activeBoardSection !== 'feedback' && activeBoardSection !== 'guides' && (() => {
                 // Helper function para evitar type narrowing
                 const getButtonClass = (targetSection: BoardSection) => {
                   return activeBoardSection === targetSection ? 'bg-white border-2 border-black' : 'bg-transparent border border-transparent';
                 };
                 
-                // Helper function para toggle: se jÃ¡ estÃ¡ ativo, volta para display
+                // Helper function para toggle: se já está ativo, volta para display
                 const handleSectionClick = (section: BoardSection) => {
                   if (activeBoardSection === section) {
                     setActiveBoardSection('display');
@@ -773,7 +773,7 @@ function BoardPageInner() {
                 
                 return (
               <div className="flex items-center gap-1 justify-center overflow-x-auto mb-8 py-4 semi-bar-below-display" style={{ borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0' }}>
-                {/* 1. DiÃ¡rio */}
+                {/* 1. Diário */}
                 <button
                   onClick={() => handleSectionClick('journal')}
                   className={`flex flex-col items-center justify-center p-2 rounded-md transition-colors touch-manipulation min-h-[60px] min-w-[80px] ${getButtonClass('journal')}`}
@@ -786,7 +786,7 @@ function BoardPageInner() {
                   </div>
                   <span className="font-pixel mt-1" style={{ fontSize: '13px' }}>{t('sections.journal')}</span>
                 </button>
-                {/* 2. HÃ¡bitos */}
+                {/* 2. Hábitos */}
                 <button
                   onClick={() => handleSectionClick('habits')}
                   className={`flex flex-col items-center justify-center p-2 rounded-md transition-colors touch-manipulation min-h-[60px] min-w-[80px] ${getButtonClass('habits')}`}
@@ -826,7 +826,7 @@ function BoardPageInner() {
                   </div>
                   <span className="font-pixel mt-1" style={{ fontSize: '13px' }}>{t('sections.mapas')}</span>
                 </button>
-                {/* 5. FinanÃ§as */}
+                {/* 5. Finanças */}
                 <button
                   onClick={() => handleSectionClick('finances')}
                   className={`flex flex-col items-center justify-center p-2 rounded-md transition-colors touch-manipulation min-h-[60px] min-w-[80px] ${getButtonClass('finances')}`}
@@ -857,14 +857,14 @@ function BoardPageInner() {
                 );
               })()}
 
-              {/* SeÃ§Ã£o X (dinÃ¢mica baseada em activeBoardSection) - abaixo da semi barra */}
+              {/* Seção X (dinâmica baseada em activeBoardSection) - abaixo da semi barra */}
               {activeBoardSection === 'habits' && isModuleActive('habits') && (
                 <section id="habits" className="scroll-mt-8 mb-8">
                   <div className="section-box">
                     <h1 className="font-pixel-bold mb-2" style={{ color: '#333', fontSize: '24px' }}>
                       {t('sections.habits')}
                     </h1>
-                    {/* ConteÃºdo de hÃ¡bitos - copiar do modo contÃ­nuo */}
+                    {/* Conteúdo de hábitos - copiar do modo contínuo */}
                     <div className="mb-4 rounded-md overflow-hidden" style={{ border: '1px solid #e0e0e0' }}>
                       <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
                         <div className="grid grid-cols-[171px_repeat(7,0.729fr)] min-w-[600px] bg-[#e8e8e8] border-b border-[#e0e0e0]">
@@ -881,7 +881,7 @@ function BoardPageInner() {
                       <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
                         {habits.length === 0 ? (
                           <div className="p-4 text-center font-pixel" style={{ color: '#999', fontSize: '16px' }}>
-                            Nenhum hÃ¡bito ainda.
+                            Nenhum hábito ainda.
                           </div>
                         ) : (
                           <div>
@@ -934,7 +934,7 @@ function BoardPageInner() {
                         )}
                       </div>
                     </div>
-                    {/* Input inline para adicionar hÃ¡bito */}
+                    {/* Input inline para adicionar hábito */}
                     <div className="flex gap-2 mt-4">
                       <div className="flex-1 relative" style={{ minWidth: '600px' }}>
                         <input
@@ -1000,7 +1000,7 @@ function BoardPageInner() {
                     <h1 className="font-pixel-bold mb-6" style={{ color: '#333', fontSize: '24px' }}>
                       {t('sections.finances')}
                     </h1>
-                    {/* ConteÃºdo de finanÃ§as - copiar do modo contÃ­nuo */}
+                    {/* Conteúdo de finanças - copiar do modo contínuo */}
                     <div className="flex gap-2 mb-6 overflow-x-auto pb-2" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'thin' }}>
                       <button
                         onClick={() => setActiveFinanceTab('daily')}
@@ -1048,13 +1048,13 @@ function BoardPageInner() {
                           fontSize: '16px',
                         }}
                       >
-                        AnÃ¡lise
+                        Análise
                       </button>
                     </div>
-                    {/* ConteÃºdo das abas - copiado do modo contÃ­nuo */}
+                    {/* Conteúdo das abas - copiado do modo contínuo */}
                     {activeFinanceTab === 'daily' && (
                       <div>
-                        {/* Data selecionada com setas de navegaÃ§Ã£o */}
+                        {/* Data selecionada com setas de navegação */}
                         <div className="mb-4">
                           <div className="flex items-center justify-center gap-2 mb-2">
                             <button
@@ -1076,7 +1076,7 @@ function BoardPageInner() {
                                 justifyContent: 'center',
                               }}
                             >
-                              â†
+                              ←
                             </button>
                             <button
                               onClick={() => {
@@ -1113,20 +1113,20 @@ function BoardPageInner() {
                                 justifyContent: 'center',
                               }}
                             >
-                              â†’
+                              →
                             </button>
                           </div>
                           {/* Data por extenso */}
                           <p className="text-center font-pixel" style={{ color: '#666', fontSize: '14px' }}>
                             {(() => {
-                              const days = ["domingo", "segunda", "terÃ§a", "quarta", "quinta", "sexta", "sÃ¡bado"];
-                              const months = ["janeiro", "fevereiro", "marÃ§o", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+                              const days = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+                              const months = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
                               return `${days[selectedDate.getDay()]}, ${selectedDate.getDate()} de ${months[selectedDate.getMonth()]} de ${selectedDate.getFullYear()}`;
                             })()}
                           </p>
                         </div>
 
-                        {/* BotÃ£o de adicionar - discreto */}
+                        {/* Botão de adicionar - discreto */}
                         <div className="mb-4 flex justify-center">
                           <div className="relative" style={{ width: '80%' }}>
                           <button
@@ -1210,7 +1210,7 @@ function BoardPageInner() {
                                   cursor: 'pointer',
                                 }}
                                     onDoubleClick={() => {
-                                      // Editar entrada (double-click tambÃ©m funciona)
+                                      // Editar entrada (double-click também funciona)
                                       const isLegacy = dailyItems.find(d => d.id === item.id);
                                       if (!isLegacy) {
                                         // Sistema novo: buscar e editar
@@ -1222,16 +1222,16 @@ function BoardPageInner() {
                                       }
                                     }}
                                     onClick={(e) => {
-                                      // Remover apenas com clique no botÃ£o X
+                                      // Remover apenas com clique no botão X
                                       e.stopPropagation();
                                 }}
                               >
                                 <div className="flex items-center gap-2 flex-1">
                                       {item.frequency === 'recorrente' && (
-                                        <span className="text-xs font-pixel" style={{ color: '#9ca3af' }}>â†»</span>
+                                        <span className="text-xs font-pixel" style={{ color: '#9ca3af' }}>↻</span>
                                       )}
                                       <span className="font-pixel" style={{ fontSize: '14px', color: '#666' }}>
-                                    {item.value >= 0 ? '+' : 'âˆ’'}
+                                    {item.value >= 0 ? '+' : '−'}
                                   </span>
                                       <span className="font-pixel" style={{ fontSize: '14px', color: '#111' }}>
                                       {item.description}
@@ -1247,13 +1247,13 @@ function BoardPageInner() {
                                         const entry = financialEntries.find(e => e.id === item.id);
                                         if (entry) {
                                           if (entry.frequency === 'recorrente') {
-                                            // Para recorrentes, atualizar status da ocorrÃªncia especÃ­fica
+                                            // Para recorrentes, atualizar status da ocorrência específica
                                             updateOccurrenceStatus(entry.id, dateKey, newStatus);
                                           } else {
                                             // Para pontuais, atualizar o status diretamente
                                             updateFinancialEntry(entry.id, { status: newStatus });
                                           }
-                                          // Recarregar dados apÃ³s um pequeno delay
+                                          // Recarregar dados após um pequeno delay
                                           setTimeout(() => {
                                             const items = getDailyExpenses(dateKey);
                                             setDailyItems(items);
@@ -1271,7 +1271,6 @@ function BoardPageInner() {
                                       }}
                                     >
                                       <option value="received">Recebido</option>
-                                      <option value="pending">Pendente</option>
                                       <option value="expected">Esperado</option>
                                       <option value="canceled">Cancelado</option>
                                     </select>
@@ -1286,7 +1285,7 @@ function BoardPageInner() {
                                     R$ {Math.abs(item.value).toFixed(2).replace('.', ',')}
                                   </span>
                                   <div className="flex items-center gap-1 ml-2">
-                                    {/* BotÃ£o de Editar */}
+                                    {/* Botão de Editar */}
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -1304,20 +1303,20 @@ function BoardPageInner() {
                                       style={{ fontSize: '12px', padding: '2px 6px' }}
                                       title="Editar"
                                     >
-                                      âœï¸
+                                      ✏️
                                     </button>
-                                    {/* BotÃ£o de Excluir */}
+                                    {/* Botão de Excluir */}
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         const confirmMessage = item.frequency === 'recorrente' 
-                                          ? `Remover "${item.description}" apenas desta data?\n\nA recorrÃªncia continuarÃ¡ ativa e aparecerÃ¡ nos prÃ³ximos dias. Isso Ã© Ãºtil quando algo atrasa ou nÃ£o cobra naquela data.` 
+                                          ? `Remover "${item.description}" apenas desta data?\n\nA recorrência continuará ativa e aparecerá nos próximos dias. Isso é útil quando algo atrasa ou não cobra naquela data.` 
                                           : `Remover "${item.description}"?`;
                                         if (confirm(confirmMessage)) {
                                           // Se for do sistema antigo, usar removeDailyExpense
                                           if (dailyItems.find(d => d.id === item.id)) {
                                             removeDailyExpense(formatDateKey(selectedDate), item.id);
-                                            // Recarregar dados e recalcular monthlyRows apÃ³s um pequeno delay
+                                            // Recarregar dados e recalcular monthlyRows após um pequeno delay
                                             setTimeout(() => {
                                               const dateKey = formatDateKey(selectedDate);
                                               const items = getDailyExpenses(dateKey);
@@ -1335,15 +1334,15 @@ function BoardPageInner() {
                                             const entryToRemove = financialEntries.find(e => e.id === item.id);
                                             
                                             if (entryToRemove && entryToRemove.frequency === 'recorrente') {
-                                              // Se for recorrente, excluir apenas desta data (mantÃ©m recorrÃªncia ativa)
+                                              // Se for recorrente, excluir apenas desta data (mantém recorrência ativa)
                                               excludeRecurrenceDate(entryToRemove.id, dateKey);
-                                              // ForÃ§ar atualizaÃ§Ã£o da lista de recorrentes
+                                              // Forçar atualização da lista de recorrentes
                                               setRecurringEntriesUpdateKey(prev => prev + 1);
                                             } else {
                                               // Se for pontual, remover completamente
                                               removeFinancialEntry(item.id);
                                             }
-                                            // Recarregar dados apÃ³s um delay maior para garantir que o localStorage foi atualizado
+                                            // Recarregar dados após um delay maior para garantir que o localStorage foi atualizado
                                             setTimeout(() => {
                                               const items = getDailyExpenses(dateKey);
                                               setDailyItems(items);
@@ -1360,7 +1359,7 @@ function BoardPageInner() {
                                       style={{ fontSize: '16px', cursor: 'pointer', padding: '2px 6px' }}
                                       title="Excluir"
                                     >
-                                      Ã—
+                                      ×
                                     </button>
                                   </div>
                                     </div>
@@ -1375,8 +1374,8 @@ function BoardPageInner() {
                         {(() => {
                           const dateKey = formatDateKey(selectedDate);
                           const financialEntries = getEntriesForDate(dateKey);
-                          // Filtrar apenas entradas que devem entrar nos cÃ¡lculos: received e expected
-                          // expected Ã© o estado base, pending Ã© derivado quando a data passa
+                          // Filtrar apenas entradas que devem entrar nos cálculos: received e expected
+                          // expected é o estado base, pending é derivado quando a data passa
                           const entriesForCalculation = financialEntries.filter(e => 
                             e.status === 'received' || e.status === 'expected'
                           );
@@ -1405,7 +1404,7 @@ function BoardPageInner() {
                                   </div>
                                 </div>
                                 <div>
-                                  <div className="font-pixel text-xs mb-1" style={{ color: '#666' }}>Total LÃ­quido</div>
+                                  <div className="font-pixel text-xs mb-1" style={{ color: '#666' }}>Total Líquido</div>
                                   <div className="font-pixel-bold" style={{ color: totalLiquido >= 0 ? '#4caf50' : '#f44336', fontSize: '16px' }}>
                                     {totalLiquido >= 0 ? '+' : ''}R$ {Math.abs(totalLiquido).toFixed(2).replace('.', ',')}
                                   </div>
@@ -1420,7 +1419,7 @@ function BoardPageInner() {
                     )}
 
                     {activeFinanceTab === 'monthly' && (() => {
-                      // CÃ¡lculos para o painel superior
+                      // Cálculos para o painel superior
                       const today = new Date();
                       const isCurrentMonth = selectedMonth.getMonth() === today.getMonth() && selectedMonth.getFullYear() === today.getFullYear();
                       const currentDay = isCurrentMonth ? today.getDate() : new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0).getDate();
@@ -1428,7 +1427,7 @@ function BoardPageInner() {
                       const daysRemaining = Math.max(0, daysInMonth - currentDay + 1);
                       
                       const monthlyLimit = (typeof desiredMonthlyExpense === 'number' ? desiredMonthlyExpense : (desiredMonthlyExpense === '' ? 0 : parseFloat(String(desiredMonthlyExpense)) || 0));
-                      // FunÃ§Ã£o wrapper para filtrar entradas baseado no filtro de status mensal (precisa estar antes do uso)
+                      // Função wrapper para filtrar entradas baseado no filtro de status mensal (precisa estar antes do uso)
                       const getFilteredEntriesForDate = (dateKey: string) => {
                         const entries = getEntriesForDate(dateKey);
                         if (monthlyStatusFilter === 'received') {
@@ -1449,14 +1448,14 @@ function BoardPageInner() {
                       const availableNow = monthlyLimit - totalSpentFiltered;
                       const recommendedDaily = daysRemaining > 0 ? Math.max(0, availableNow / daysRemaining) : 0;
                       
-                      // Status do mÃªs
+                      // Status do mês
                       const spendingPercentage = monthlyLimit > 0 ? (totalSpentFiltered / monthlyLimit) * 100 : 0;
                       const statusText = spendingPercentage < 50 ? t('finances.statusBelowPace') : spendingPercentage < 80 ? t('finances.statusAttention') : t('finances.statusAboveLimit');
                       
                       
                       return (
                       <div>
-                        {/* SEÃ‡ÃƒO A â€” CabeÃ§alho do MÃªs */}
+                        {/* SEÇÃO A — Cabeçalho do Mês */}
                         <div className="mb-4 p-4 rounded" style={{ backgroundColor: '#FFFFFF', border: '1px solid #e5e5e5', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                           <div className="flex items-center justify-between mb-4">
                             <h2 className="font-pixel-bold" style={{ color: '#111', fontSize: '20px' }}>
@@ -1491,7 +1490,7 @@ function BoardPageInner() {
                                   fontSize: '16px',
                                 }}
                               >
-                                â†
+                                ←
                               </button>
                               <button
                                 onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1))}
@@ -1503,19 +1502,19 @@ function BoardPageInner() {
                                   fontSize: '16px',
                                 }}
                               >
-                                â†’
+                                →
                               </button>
                             </div>
                           </div>
                           
-                          {/* 4 indicadores em cartÃµes pequenos */}
+                          {/* 4 indicadores em cartões pequenos */}
                           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                             <div className="p-3 rounded relative" style={{ backgroundColor: '#fafafa', border: '1px solid #e5e5e5' }}>
-                              {/* BotÃ£o + no canto superior direito */}
+                              {/* Botão + no canto superior direito */}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  // Abrir modal ou expandir card para ediÃ§Ã£o
+                                  // Abrir modal ou expandir card para edição
                                   const monthKey = formatMonthKey(selectedMonth);
                                   const currentLimit = getDesiredMonthlyExpense(monthKey) || 0;
                                   const currentReset = getResetDate(monthKey) || 1;
@@ -1554,7 +1553,7 @@ function BoardPageInner() {
                                     <input
                                       type="number"
                                       value={desiredMonthlyExpense === '' || desiredMonthlyExpense === null || desiredMonthlyExpense === undefined ? '' : desiredMonthlyExpense}
-                                      placeholder="â€“"
+                                      placeholder="–"
                                       onChange={(e) => {
                                         const val = e.target.value === '' ? '' : parseFloat(e.target.value) || '';
                                         setDesiredMonthlyExpense(val);
@@ -1574,7 +1573,7 @@ function BoardPageInner() {
                                     <input
                                       type="number"
                                       value={resetDate === '' || resetDate === null || resetDate === undefined ? '' : resetDate}
-                                      placeholder="â€“"
+                                      placeholder="–"
                                       onChange={(e) => {
                                         const val = e.target.value === '' ? '' : parseInt(e.target.value) || '';
                                         if (val === '' || (typeof val === 'number' && val >= 1 && val <= 31)) {
@@ -1633,7 +1632,7 @@ function BoardPageInner() {
                                             alert(t('finances.resetDayMustBe'));
                                           }
                                         } catch (error) {
-                                          console.error('Erro ao salvar configuraÃ§Ãµes:', error);
+                                          console.error('Erro ao salvar configurações:', error);
                                         }
                                       }}
                                       className="flex-1 px-2 py-1 rounded font-pixel text-xs transition-all hover:opacity-90"
@@ -1685,7 +1684,7 @@ function BoardPageInner() {
                                   type="text"
                                   inputMode="decimal"
                                   value={accountMoney ?? ""}
-                                  placeholder="â€“"
+                                  placeholder="–"
                                   onChange={(e) => {
                                     setAccountMoney(e.target.value);
                                   }}
@@ -1748,7 +1747,7 @@ function BoardPageInner() {
                             </div>
                           </div>
                           
-                          {/* Status do mÃªs - barra horizontal fina */}
+                          {/* Status do mês - barra horizontal fina */}
                           <div className="mt-4 pt-4 border-t" style={{ borderColor: '#e5e5e5' }}>
                             <div className="flex items-center justify-between mb-2">
                               <span className="font-pixel text-sm" style={{ color: '#666' }}>{t('common.status')} {statusText}</span>
@@ -1768,9 +1767,9 @@ function BoardPageInner() {
                           </div>
                         </div>
 
-                        {/* SEÃ‡ÃƒO C â€” Plano Mensal (Prancheta) */}
+                        {/* SEÇÃO C — Plano Mensal (Prancheta) */}
                         <div className="mb-4 rounded overflow-hidden mx-auto" style={{ border: '1px solid #e5e5e5', backgroundColor: '#FFFFFF', maxWidth: '900px' }}>
-                          {/* CabeÃ§alho da tabela */}
+                          {/* Cabeçalho da tabela */}
                           <div className="grid grid-cols-[50px_350px_110px_110px_110px_90px] md:grid-cols-[50px_350px_110px_110px_110px_90px] border-b overflow-x-auto" style={{ borderColor: '#e5e5e5', backgroundColor: '#FFFFFF' }}>
                             <div className="py-2 px-3 font-pixel-bold text-center" style={{ color: '#666', fontSize: '15px', fontWeight: 600, textRendering: 'optimizeLegibility' }}>{t('finances.day')}</div>
                             <div className="py-2 px-3 font-pixel-bold text-center" style={{ color: '#666', fontSize: '15px', fontWeight: 600, textRendering: 'optimizeLegibility' }}>{t('finances.details')}</div>
@@ -1782,7 +1781,7 @@ function BoardPageInner() {
                           <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
                             {monthlyRows.length === 0 ? (
                               <div className="p-4 text-center font-pixel" style={{ color: '#999', fontSize: '13px' }}>
-                                Nenhum dado disponÃ­vel.
+                                Nenhum dado disponível.
                               </div>
                             ) : (
                               filteredMonthlyRows.map((row, idx) => {
@@ -1793,29 +1792,29 @@ function BoardPageInner() {
                                   today.getDate() === row.day;
                                 
                                 // Calcular Limite Restante: LimiteMensal - gastosAcumulados desde o resetDay do ciclo
-                                // INVARIANTE: resetDay afeta apenas orÃ§amento, nÃ£o saldo
-                                // O ciclo de orÃ§amento pode atravessar meses
-                                // IMPORTANTE: O limite usado deve ser o do mÃªs onde o ciclo comeÃ§ou, nÃ£o do mÃªs atual
+                                // INVARIANTE: resetDay afeta apenas orçamento, não saldo
+                                // O ciclo de orçamento pode atravessar meses
+                                // IMPORTANTE: O limite usado deve ser o do mês onde o ciclo começou, não do mês atual
                                 const resetDay = (typeof resetDate === 'number' ? resetDate : parseInt(String(resetDate)) || 1);
                                 
-                                // Data do dia da linha para cÃ¡lculo
+                                // Data do dia da linha para cálculo
                                 const rowDate = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), row.day);
                                 const rowDateKey = formatDateKey(rowDate);
                                 
                                 var limiteRestante = 0;
                                 if (resetDay > 0) {
-                                  // Usar getCycleDates para calcular corretamente o inÃ­cio do ciclo
+                                  // Usar getCycleDates para calcular corretamente o início do ciclo
                                   // Isso garante que o ciclo atravessa meses corretamente
                                   const { cycleStart } = getCycleDates(rowDateKey, resetDay);
                                   
-                                  // Buscar o limite mensal do mÃªs onde o ciclo comeÃ§ou (nÃ£o do mÃªs atual)
-                                  // Se o ciclo comeÃ§ou em dezembro, usar o limite de dezembro, mesmo estando em janeiro
+                                  // Buscar o limite mensal do mês onde o ciclo começou (não do mês atual)
+                                  // Se o ciclo começou em dezembro, usar o limite de dezembro, mesmo estando em janeiro
                                   const cycleStartMonthKey = formatMonthKey(cycleStart);
                                   const monthlyLimitDoCiclo = getDesiredMonthlyExpense(cycleStartMonthKey) || 0;
                                   
                                   if (monthlyLimitDoCiclo > 0) {
-                                    // Calcular gastos acumulados desde o inÃ­cio do ciclo atÃ© o dia da linha
-                                    // IMPORTANTE: Soma apenas valores negativos (gastos), nÃ£o ganhos
+                                    // Calcular gastos acumulados desde o início do ciclo até o dia da linha
+                                    // IMPORTANTE: Soma apenas valores negativos (gastos), não ganhos
                                     let gastosAcumulados = 0;
                                     let currentDate = new Date(cycleStart);
                                     currentDate.setHours(0, 0, 0, 0);
@@ -1825,21 +1824,21 @@ function BoardPageInner() {
                                     while (currentDate <= targetDate) {
                                       const checkDateKey = formatDateKey(currentDate);
                                       const dailyTotal = calculateDailyTotal(checkDateKey);
-                                      // Soma apenas valores negativos (gastos), nÃ£o ganhos
+                                      // Soma apenas valores negativos (gastos), não ganhos
                                       if (dailyTotal < 0) {
                                         gastosAcumulados += Math.abs(dailyTotal);
                                       }
-                                      // AvanÃ§ar para o prÃ³ximo dia
+                                      // Avançar para o próximo dia
                                       currentDate.setDate(currentDate.getDate() + 1);
                                       currentDate.setHours(0, 0, 0, 0);
                                     }
                                     
-                                    // Limite Restante = Limite Mensal (do ciclo) - Gastos Acumulados (desde inÃ­cio do ciclo)
+                                    // Limite Restante = Limite Mensal (do ciclo) - Gastos Acumulados (desde início do ciclo)
                                     limiteRestante = Math.max(0, monthlyLimitDoCiclo - gastosAcumulados);
                                   }
                                 }
                                 
-                                // Total diÃ¡rio (igual ao Total LÃ­quido do diÃ¡rio): ganhos - gastos
+                                // Total diário (igual ao Total Líquido do diário): ganhos - gastos
                                 const totalDiario = row.totalDaily;
                                 
                                 // Buscar itens do dia para formatar detalhes
@@ -1894,14 +1893,14 @@ function BoardPageInner() {
                                   });
                                 });
                                 
-                                // Formatar detalhes: "DescriÃ§Ã£o 1 (Valor1) + DescriÃ§Ã£o 2 (Valor 2)"
+                                // Formatar detalhes: "Descrição 1 (Valor1) + Descrição 2 (Valor 2)"
                                 let detalhesFormatados = '-';
                                 if (allItems.length > 0) {
                                   detalhesFormatados = allItems.map(item => {
                                     const valorFormatado = `R$ ${Math.abs(item.value).toFixed(2).replace('.', ',')}`;
                                     let desc = item.description;
                                     
-                                    // Adicionar informaÃ§Ãµes de entrada financeira recorrente/parcelada
+                                    // Adicionar informações de entrada financeira recorrente/parcelada
                                     if (item.isFinancialEntry) {
                                       if (item.frequency === 'recorrente') {
                                         if (item.currentInstallment && item.totalInstallments) {
@@ -1916,7 +1915,7 @@ function BoardPageInner() {
                                   }).join(' + ');
                                 }
                                 
-                                // Dinheiro em conta: usar getAccountMoney (versÃ£o simplificada que busca o Ãºltimo valor salvo no mÃªs)
+                                // Dinheiro em conta: usar getAccountMoney (versão simplificada que busca o último valor salvo no mês)
                                 const dinheiroEmConta = getAccountMoney(dateKey);
                                 
                                 return (
@@ -1938,7 +1937,7 @@ function BoardPageInner() {
                                             const valorFormatado = `R$ ${Math.abs(item.value).toFixed(2).replace('.', ',')}`;
                                             const valorColor = item.value >= 0 ? '#4caf50' : '#f44336';
                                             const financialEntryBadge = item.isFinancialEntry && item.frequency === 'recorrente'
-                                              ? (item.currentInstallment && item.totalInstallments ? 'ðŸ“†' : 'ðŸ”')
+                                              ? (item.currentInstallment && item.totalInstallments ? '📆' : '🔁')
                                               : null;
                                             
                                             return (
@@ -2009,7 +2008,7 @@ function BoardPageInner() {
 
                     {activeFinanceTab === 'reserve' && (
                       <div>
-                        {/* NavegaÃ§Ã£o por mÃªs */}
+                        {/* Navegação por mês */}
                         <div className="mb-4 flex items-center justify-center gap-4">
                           <button
                             onClick={() => {
@@ -2026,7 +2025,7 @@ function BoardPageInner() {
                               cursor: 'pointer',
                             }}
                           >
-                            â†
+                            ←
                           </button>
                           <div className="font-pixel-bold text-center" style={{ color: '#111', fontSize: '16px', minWidth: '200px' }}>
                             {selectedReserveMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
@@ -2046,7 +2045,7 @@ function BoardPageInner() {
                               cursor: 'pointer',
                             }}
                           >
-                            â†’
+                            →
                           </button>
                         </div>
 
@@ -2058,7 +2057,7 @@ function BoardPageInner() {
                           </div>
                         </div>
 
-                        {/* BotÃ£o de adicionar - discreto */}
+                        {/* Botão de adicionar - discreto */}
                         <div className="mb-4">
                           <button
                             onClick={() => setIsAddReserveModalOpen(true)}
@@ -2074,12 +2073,12 @@ function BoardPageInner() {
                           </button>
                         </div>
 
-                        {/* Lista de movimentaÃ§Ãµes - cards limpos */}
+                        {/* Lista de movimentações - cards limpos */}
                         <div className="mb-4 space-y-2">
                           {monthlyReserveItems.length === 0 ? (
                             <div className="text-center py-8 px-4 rounded" style={{ backgroundColor: '#fafafa', border: '1px solid #e5e5e5' }}>
                               <p className="font-pixel" style={{ color: '#999', fontSize: '14px' }}>
-                                Nenhuma movimentaÃ§Ã£o registrada
+                                Nenhuma movimentação registrada
                               </p>
                             </div>
                           ) : (
@@ -2099,7 +2098,7 @@ function BoardPageInner() {
                                 >
                                   <div className="flex items-center gap-2 flex-1">
                                     <span className="font-pixel" style={{ fontSize: '16px' }}>
-                                      {isDeposit ? '+' : 'âˆ’'}
+                                      {isDeposit ? '+' : '−'}
                                     </span>
                                     <div className="flex-1">
                                       <div className="font-pixel-bold" style={{ color: '#111', fontSize: '14px' }}>
@@ -2124,7 +2123,7 @@ function BoardPageInner() {
                                   <button
                                     onClick={() => {
                                       showConfirmation({
-                                        message: `Tem certeza que deseja excluir esta movimentaÃ§Ã£o de reserva?`,
+                                        message: `Tem certeza que deseja excluir esta movimentação de reserva?`,
                                         onConfirm: () => {
                                           removeReserveMovement(itemDateKey, item.id);
                                           
@@ -2174,7 +2173,7 @@ function BoardPageInner() {
                                       e.currentTarget.style.color = '#999';
                                     }}
                                   >
-                                    Ã—
+                                    ×
                                   </button>
                                 </div>
                               );
@@ -2185,10 +2184,10 @@ function BoardPageInner() {
                     )}
 
                     {activeFinanceTab === 'analysis' && (() => {
-                      // ForÃ§ar atualizaÃ§Ã£o quando recurringEntriesUpdateKey mudar
+                      // Forçar atualização quando recurringEntriesUpdateKey mudar
                       const activeRecurring = getActiveRecurringEntries();
                       const today = new Date().toISOString().substring(0, 10);
-                      // Usar recurringEntriesUpdateKey para forÃ§ar re-render quando mudar
+                      // Usar recurringEntriesUpdateKey para forçar re-render quando mudar
                       const _ = recurringEntriesUpdateKey;
                       const currentMonthStart = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1).toISOString().substring(0, 10);
                       const currentMonthEnd = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0).toISOString().substring(0, 10);
@@ -2203,65 +2202,10 @@ function BoardPageInner() {
                       
                       const saldoRecebido = totalGanhosRecebidos - totalGastosRecebidos;
                       const saldoPendente = totalGanhosPendentes - totalGastosPendentes;
-                      const riscoCaixa = saldoPendente > saldoRecebido * 0.3 ? 'Alto' : saldoPendente > saldoRecebido * 0.1 ? 'MÃ©dio' : 'Baixo';
+                      const riscoCaixa = saldoPendente > saldoRecebido * 0.3 ? 'Alto' : saldoPendente > saldoRecebido * 0.1 ? 'Médio' : 'Baixo';
                       
                       return (
                         <div className="space-y-6">
-                          {/* AnÃ¡lise por Status */}
-                          <div className="p-4 rounded" style={{ backgroundColor: '#FFFFFF', border: '1px solid #e5e5e5', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                            <h3 className="font-pixel-bold mb-4" style={{ color: '#333', fontSize: '18px' }}>
-                              AnÃ¡lise por Status ({new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })})
-                            </h3>
-                            
-                            {/* Ganhos */}
-                            <div className="mb-6">
-                              <h4 className="font-pixel-bold mb-3" style={{ color: '#4caf50', fontSize: '16px' }}>Ganhos</h4>
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between p-2 rounded" style={{ backgroundColor: '#f0f9f4' }}>
-                                  <span className="font-pixel text-sm" style={{ color: '#333' }}>âœ” Recebidos:</span>
-                                  <span className="font-pixel-bold" style={{ color: '#4caf50' }}>R$ {statusAnalysis.ganhos.received.toFixed(2).replace('.', ',')}</span>
-                                </div>
-                                <div className="flex items-center justify-between p-2 rounded" style={{ backgroundColor: '#fff3e0' }}>
-                                  <span className="font-pixel text-sm" style={{ color: '#333' }}>â³ Pendentes:</span>
-                                  <span className="font-pixel-bold" style={{ color: '#ff9800' }}>R$ {statusAnalysis.ganhos.pending.toFixed(2).replace('.', ',')}</span>
-                                </div>
-                                <div className="flex items-center justify-between p-2 rounded" style={{ backgroundColor: '#e3f2fd' }}>
-                                  <span className="font-pixel text-sm" style={{ color: '#333' }}>ðŸ“ˆ Esperados:</span>
-                                  <span className="font-pixel-bold" style={{ color: '#2196f3' }}>R$ {statusAnalysis.ganhos.expected.toFixed(2).replace('.', ',')}</span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {/* Gastos */}
-                            <div className="mb-4">
-                              <h4 className="font-pixel-bold mb-3" style={{ color: '#f44336', fontSize: '16px' }}>Gastos</h4>
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between p-2 rounded" style={{ backgroundColor: '#ffebee' }}>
-                                  <span className="font-pixel text-sm" style={{ color: '#333' }}>âœ” Recebidos:</span>
-                                  <span className="font-pixel-bold" style={{ color: '#f44336' }}>R$ {statusAnalysis.gastos.received.toFixed(2).replace('.', ',')}</span>
-                                </div>
-                                <div className="flex items-center justify-between p-2 rounded" style={{ backgroundColor: '#fff3e0' }}>
-                                  <span className="font-pixel text-sm" style={{ color: '#333' }}>â³ Pendentes:</span>
-                                  <span className="font-pixel-bold" style={{ color: '#ff9800' }}>R$ {statusAnalysis.gastos.pending.toFixed(2).replace('.', ',')}</span>
-                                </div>
-                                <div className="flex items-center justify-between p-2 rounded" style={{ backgroundColor: '#e3f2fd' }}>
-                                  <span className="font-pixel text-sm" style={{ color: '#333' }}>ðŸ“ˆ Esperados:</span>
-                                  <span className="font-pixel-bold" style={{ color: '#2196f3' }}>R$ {statusAnalysis.gastos.expected.toFixed(2).replace('.', ',')}</span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {/* Risco de Caixa */}
-                            <div className="mt-4 p-3 rounded" style={{ backgroundColor: '#fafafa', border: '1px solid #e5e5e5' }}>
-                              <div className="font-pixel-bold text-sm mb-1" style={{ color: '#333' }}>Risco de caixa:</div>
-                              <div className="font-pixel-bold" style={{ 
-                                color: riscoCaixa === 'Alto' ? '#f44336' : riscoCaixa === 'MÃ©dio' ? '#ff9800' : '#4caf50',
-                                fontSize: '16px'
-                              }}>
-                                {riscoCaixa}
-                              </div>
-                            </div>
-                          </div>
                           {/* Recorrentes Ativos */}
                           <div className="p-4 rounded" style={{ backgroundColor: '#FFFFFF', border: '1px solid #e5e5e5' }}>
                             <h3 className="font-pixel-bold mb-4" style={{ color: '#333', fontSize: '18px' }}>
@@ -2269,7 +2213,7 @@ function BoardPageInner() {
                             </h3>
                             {activeRecurring.length === 0 ? (
                               <p className="font-pixel text-center py-8" style={{ color: '#999', fontSize: '14px' }}>
-                                Nenhum lanÃ§amento recorrente ativo
+                                Nenhum lançamento recorrente ativo
                               </p>
                             ) : (
                               <div className="grid grid-cols-2 gap-3">
@@ -2281,7 +2225,7 @@ function BoardPageInner() {
                                   const frequencyLabel = entry.recurrence === 'mensal' ? 'Mensal' : entry.recurrence === 'quinzenal' ? 'Quinzenal' : 'Anual';
                                   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
                                   const startDateLabel = `${monthNames[startDate.getMonth()]}/${startDate.getFullYear()}`;
-                                  const metadata = `${frequencyLabel} Â· ${isFuture ? 'inicia em' : 'desde'} ${startDateLabel}`;
+                                  const metadata = `${frequencyLabel} · ${isFuture ? 'inicia em' : 'desde'} ${startDateLabel}`;
                                   
                                   return (
                                     <div
@@ -2292,9 +2236,9 @@ function BoardPageInner() {
                                         border: '1px solid #e5e5e5',
                                       }}
                                     >
-                                      {/* Linha 1: Ãcone + Nome + Categoria */}
+                                      {/* Linha 1: Ícone + Nome + Categoria */}
                                       <div className="flex items-center gap-2 mb-1.5">
-                                        <span className="text-xs font-pixel" style={{ color: '#9ca3af' }}>â†»</span>
+                                        <span className="text-xs font-pixel" style={{ color: '#9ca3af' }}>↻</span>
                                         <span className="font-pixel-bold flex-1" style={{ color: '#111', fontSize: '14px' }}>
                                           {entry.description}
                                         </span>
@@ -2312,7 +2256,7 @@ function BoardPageInner() {
                                         )}
                                       </div>
                                       
-                                      {/* Linha 2: Valor + Metadados + BotÃ£o Encerrar */}
+                                      {/* Linha 2: Valor + Metadados + Botão Encerrar */}
                                       <div className="flex items-center justify-between gap-2">
                                         <div className="flex items-center gap-2 flex-1">
                                           <span 
@@ -2329,10 +2273,10 @@ function BoardPageInner() {
                                         </div>
                                         <button
                                           onClick={() => {
-                                            if (confirm(`Encerrar recorrÃªncia "${entry.description}" a partir de hoje? Isso nÃ£o afetarÃ¡ registros passados.`)) {
+                                            if (confirm(`Encerrar recorrência "${entry.description}" a partir de hoje? Isso não afetará registros passados.`)) {
                                               const todayStr = formatDateKey(today);
                                               endRecurrence(entry.id, todayStr);
-                                              // ForÃ§ar atualizaÃ§Ã£o da lista de recorrentes
+                                              // Forçar atualização da lista de recorrentes
                                               setRecurringEntriesUpdateKey(prev => prev + 1);
                                               // Recarregar dados mensais
                                               updateMonthlyRows();
@@ -2354,11 +2298,11 @@ function BoardPageInner() {
                             )}
                           </div>
 
-                          {/* AnÃ¡lise por Categoria */}
+                          {/* Análise por Categoria */}
                           <div className="p-4 rounded" style={{ backgroundColor: '#FFFFFF', border: '1px solid #e5e5e5', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                             <div className="flex items-center justify-between mb-4">
                               <h3 className="font-pixel-bold" style={{ color: '#333', fontSize: '18px' }}>
-                                AnÃ¡lise por Categoria ({new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })})
+                                Análise por Categoria ({new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })})
                               </h3>
                               <div className="flex gap-2">
                                 <button
@@ -2371,7 +2315,7 @@ function BoardPageInner() {
                                     fontSize: '16px',
                                   }}
                                 >
-                                  â†
+                                  ←
                                 </button>
                                 <button
                                   onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1))}
@@ -2383,13 +2327,13 @@ function BoardPageInner() {
                                     fontSize: '16px',
                                   }}
                                 >
-                                  â†’
+                                  →
                                 </button>
                               </div>
                             </div>
                             {categoryAnalysis.length === 0 ? (
                               <p className="font-pixel text-center py-8" style={{ color: '#999', fontSize: '14px' }}>
-                                Nenhum lanÃ§amento registrado neste perÃ­odo
+                                Nenhum lançamento registrado neste período
                               </p>
                             ) : (
                               <div className="space-y-2">
@@ -2428,7 +2372,7 @@ function BoardPageInner() {
                     <h1 className="font-pixel-bold mb-4" style={{ color: '#333', fontSize: '24px' }}>
                       {t('sections.goals')}
                     </h1>
-                    {/* OrdenaÃ§Ã£o */}
+                    {/* Ordenação */}
                     {possessions.length > 0 && (
                       <div className="mb-4">
                         <div className="flex justify-between items-center mb-2 gap-4">
@@ -2461,7 +2405,7 @@ function BoardPageInner() {
                                     borderRadius: '6px',
                                   }}
                                 >
-                                  {criteria === 'value' ? t('goals.orderByValue') : criteria === 'status' ? t('goals.orderByStatus') : t('goals.orderByDate')} {existing && (existing.order === 'asc' ? 'â†‘' : 'â†“')}
+                                  {criteria === 'value' ? t('goals.orderByValue') : criteria === 'status' ? t('goals.orderByStatus') : t('goals.orderByDate')} {existing && (existing.order === 'asc' ? '↑' : '↓')}
                                 </button>
                               );
                             })}
@@ -2496,7 +2440,7 @@ function BoardPageInner() {
                         </div>
                         {sortCriteria.length > 1 && (
                           <p className="font-pixel text-xs" style={{ color: '#666' }}>
-                            {t('goals.orderBy')}: {sortCriteria.map(s => `${s.by === 'value' ? t('goals.orderByValue') : s.by === 'status' ? t('goals.orderByStatus') : t('goals.orderByDate')} (${s.order === 'asc' ? t('goals.orderAsc') : t('goals.orderDesc')})`).join(' â†’ ')}
+                            {t('goals.orderBy')}: {sortCriteria.map(s => `${s.by === 'value' ? t('goals.orderByValue') : s.by === 'status' ? t('goals.orderByStatus') : t('goals.orderByDate')} (${s.order === 'asc' ? t('goals.orderAsc') : t('goals.orderDesc')})`).join(' → ')}
                           </p>
                         )}
                       </div>
@@ -2614,7 +2558,7 @@ function BoardPageInner() {
                       {t('sections.feedback')}
                     </h1>
                     
-                    {/* Tabs para diferentes visualizaÃ§Ãµes */}
+                    {/* Tabs para diferentes visualizações */}
                     <FeedbackSection />
                   </div>
                 </section>
@@ -2673,7 +2617,7 @@ function BoardPageInner() {
                         </button>
                       )}
                     </div>
-                    {/* ConteÃºdo de biografia - copiar do modo contÃ­nuo */}
+                    {/* Conteúdo de biografia - copiar do modo contínuo */}
                     <div className="flex gap-2 mb-6 overflow-x-auto pb-2" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'thin' }}>
                       <button
                         onClick={() => setActiveBiographyTab('about')}
@@ -2757,12 +2701,12 @@ function BoardPageInner() {
                           <>
                             {getAllDossiers().length === 0 ? (
                               <div className="text-center py-12 px-4">
-                                <div className="mb-4" style={{ fontSize: '48px', lineHeight: '1' }}>ðŸ“</div>
+                                <div className="mb-4" style={{ fontSize: '48px', lineHeight: '1' }}>📁</div>
                                 <p className="font-pixel-bold mb-2" style={{ color: '#111', fontSize: '18px' }}>
-                                  Nenhum dossiÃª ainda
+                                  Nenhum dossiê ainda
                                 </p>
                                 <p className="font-pixel" style={{ color: '#666', fontSize: '14px', maxWidth: '400px', margin: '0 auto' }}>
-                                  Crie pastas para guardar histÃ³rias, ideias ou fases da sua vida.
+                                  Crie pastas para guardar histórias, ideias ou fases da sua vida.
                                 </p>
                               </div>
                             ) : (
@@ -2828,8 +2772,8 @@ function BoardPageInner() {
             </>
           ) : (
             <>
-              {/* Modo ContÃ­nuo: todas as seÃ§Ãµes em ordem */}
-              {/* DISPLAY - Sempre visÃ­vel no topo */}
+              {/* Modo Contínuo: todas as seções em ordem */}
+              {/* DISPLAY - Sempre visível no topo */}
               <section id="display" className="mb-8" style={{ scrollMarginTop: '10px' }}>
                 <div className="section-box">
                   <h1 className="font-pixel-bold mb-2 mobile-hide-title" style={{ color: '#333', fontSize: '24px' }}>
@@ -2839,21 +2783,21 @@ function BoardPageInner() {
                 </div>
               </section>
 
-              {/* FEEDBACK - Modo contÃ­nuo: sempre visÃ­vel apÃ³s Display */}
+              {/* FEEDBACK - Modo contínuo: sempre visível após Display */}
               <section id="feedback" className="scroll-mt-8 mb-8">
                 <div className="section-box">
                   <h1 className="font-pixel-bold mb-4" style={{ color: '#333', fontSize: '24px' }}>
                     {t('sections.feedback')}
                   </h1>
                   
-                  {/* Tabs para diferentes visualizaÃ§Ãµes */}
+                  {/* Tabs para diferentes visualizações */}
                   <FeedbackSection />
                 </div>
               </section>
             </>
           )}
 
-          {/* ACHIEVEMENTS - Mostra apenas quando achievements estiver ativo (via botÃ£o) */}
+          {/* ACHIEVEMENTS - Mostra apenas quando achievements estiver ativo (via botão) */}
           {activeBoardSection === 'achievements' && (
             <section id="achievements" className="scroll-mt-8 mb-8">
               <div className="section-box">
@@ -2886,25 +2830,25 @@ function BoardPageInner() {
                     {
                       title: 'First Week',
                       description: 'Complete 7 days of habits',
-                      icon: 'ðŸ“…',
+                      icon: '📅',
                       completed: currentStreak >= 7,
                     },
                     {
                       title: 'Goal Master',
                       description: 'Complete 3 objectives',
-                      icon: 'ðŸŽ¯',
+                      icon: '🎯',
                       completed: completedGoals >= 3,
                     },
                     {
                       title: 'Journal Keeper',
                       description: 'Write 30 journal entries',
-                      icon: 'ðŸ“”',
+                      icon: '📔',
                       completed: journalDates.length >= 30,
                     },
                     {
                       title: 'Habit Builder',
                       description: 'Create 5 habits',
-                      icon: 'âœ…',
+                      icon: '✅',
                       completed: habits.length >= 5,
                     },
                   ];
@@ -2930,7 +2874,7 @@ function BoardPageInner() {
                       {achievement.completed && (
                         <div className="mt-2 text-right">
                           <span className="font-pixel-bold text-sm" style={{ color: '#4caf50' }}>
-                            âœ“ {t('goals.completed')}
+                            ✓ {t('goals.completed')}
                           </span>
                         </div>
                       )}
@@ -2942,14 +2886,14 @@ function BoardPageInner() {
           </section>
           )}
 
-          {/* HÃBITOS - Modo contÃ­nuo: sempre visÃ­vel apÃ³s Feedback */}
+          {/* HÁBITOS - Modo contínuo: sempre visível após Feedback */}
           {viewMode === 'continuous' && isModuleActive('habits') && (
             <section id="habits" className="scroll-mt-8 mb-8">
             <div className="section-box">
               <h1 className="font-pixel-bold mb-2" style={{ color: '#333', fontSize: '24px' }}>
                 {t('sections.habits')}
               </h1>
-              {/* Tabela de hÃ¡bitos */}
+              {/* Tabela de hábitos */}
               <div className="mb-4 rounded-md overflow-hidden" style={{ border: '1px solid #e0e0e0' }}>
                 <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
                   <div className="grid grid-cols-[180px_repeat(7,0.765fr)] min-w-[600px] bg-[#e8e8e8] border-b border-[#e0e0e0]">
@@ -2966,7 +2910,7 @@ function BoardPageInner() {
                 <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
                   {habits.length === 0 ? (
                     <div className="p-4 text-center font-pixel" style={{ color: '#999', fontSize: '16px' }}>
-                      Nenhum hÃ¡bito ainda.
+                      Nenhum hábito ainda.
                     </div>
                   ) : (
                     <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -3019,7 +2963,7 @@ function BoardPageInner() {
                   )}
                 </div>
               </div>
-              {/* Input inline para adicionar hÃ¡bito */}
+              {/* Input inline para adicionar hábito */}
               <div className="flex gap-2 mt-4">
                 <div className="flex-1 relative" style={{ minWidth: '600px' }}>
                   <input
@@ -3039,7 +2983,7 @@ function BoardPageInner() {
                       }
                     }}
                     maxLength={30}
-                    placeholder="+ Adicionar HÃ¡bito"
+                    placeholder="+ Adicionar Hábito"
                     className="w-full px-4 py-3 rounded-md font-pixel"
                     style={{
                       backgroundColor: '#9e9e9e',
@@ -3068,7 +3012,7 @@ function BoardPageInner() {
               </section>
           )}
 
-          {/* DIÃRIO - Modo contÃ­nuo: sempre visÃ­vel apÃ³s HÃ¡bitos */}
+          {/* DIÁRIO - Modo contínuo: sempre visível após Hábitos */}
           {viewMode === 'continuous' && isModuleActive('journal') && (
             <section id="journal" className="scroll-mt-8 mb-8">
               <div className="section-box">
@@ -3082,10 +3026,10 @@ function BoardPageInner() {
             </section>
           )}
 
-          {/* FINANÃ‡AS - Modo contÃ­nuo: sempre visÃ­vel apÃ³s DiÃ¡rio */}
+          {/* FINANÇAS - Modo contínuo: sempre visível após Diário */}
           {viewMode === 'continuous' && isModuleActive('finances') && (
             <>
-              {/* FinanÃ§as */}
+              {/* Finanças */}
               <section id="finances" className="scroll-mt-8 mb-8">
             <div className="section-box">
               <h1 className="font-pixel-bold mb-6" style={{ color: '#333', fontSize: '24px' }}>
@@ -3104,7 +3048,7 @@ function BoardPageInner() {
                     fontSize: '16px',
                   }}
                 >
-                  DiÃ¡rio
+                  Diário
                 </button>
                 <button
                   onClick={() => setActiveFinanceTab('monthly')}
@@ -3140,14 +3084,14 @@ function BoardPageInner() {
                     fontSize: '16px',
                   }}
                 >
-                  AnÃ¡lise
+                  Análise
                 </button>
               </div>
 
-              {/* ConteÃºdo das abas */}
+              {/* Conteúdo das abas */}
               {activeFinanceTab === 'daily' && (
                 <div>
-                  {/* Data selecionada com setas de navegaÃ§Ã£o */}
+                  {/* Data selecionada com setas de navegação */}
                   <div className="mb-4">
                     <div className="flex items-center justify-center gap-2 mb-2">
                       <button
@@ -3169,7 +3113,7 @@ function BoardPageInner() {
                           justifyContent: 'center',
                         }}
                       >
-                        â†
+                        ←
                       </button>
                       <button
                         onClick={() => {
@@ -3206,20 +3150,20 @@ function BoardPageInner() {
                           justifyContent: 'center',
                         }}
                       >
-                        â†’
+                        →
                       </button>
                     </div>
                     {/* Data por extenso */}
                     <p className="text-center font-pixel" style={{ color: '#666', fontSize: '14px' }}>
                       {(() => {
-                        const days = ["domingo", "segunda", "terÃ§a", "quarta", "quinta", "sexta", "sÃ¡bado"];
-                        const months = ["janeiro", "fevereiro", "marÃ§o", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+                        const days = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+                        const months = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
                         return `${days[selectedDate.getDay()]}, ${selectedDate.getDate()} de ${months[selectedDate.getMonth()]} de ${selectedDate.getFullYear()}`;
                       })()}
                     </p>
                   </div>
 
-                  {/* BotÃ£o de adicionar centralizado */}
+                  {/* Botão de adicionar centralizado */}
                   <div className="mb-4 flex justify-center">
                     <div className="relative" style={{ width: '80%', margin: '0 auto' }}>
                     <button
@@ -3308,7 +3252,7 @@ function BoardPageInner() {
                             boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                           }}
                               onDoubleClick={() => {
-                                // Abrir modal de ediÃ§Ã£o (double-click tambÃ©m funciona)
+                                // Abrir modal de edição (double-click também funciona)
                                 const isLegacy = dailyItems.find(d => d.id === item.id);
                                 if (!isLegacy) {
                                   // Sistema novo: buscar e editar
@@ -3323,15 +3267,15 @@ function BoardPageInner() {
                         >
                           <div className="flex items-center gap-2 flex-1">
                             <span className="font-pixel" style={{ fontSize: '16px' }}>
-                              {item.value >= 0 ? '+' : 'âˆ’'}
+                              {item.value >= 0 ? '+' : '−'}
                             </span>
                             <div className="flex-1">
                                   <div className="flex items-center gap-2">
                                     {item.frequency === 'recorrente' && (
-                                      <span className="text-xs font-pixel" style={{ color: '#9ca3af' }}>â†»</span>
+                                      <span className="text-xs font-pixel" style={{ color: '#9ca3af' }}>↻</span>
                                     )}
                                     {item.installments && item.installments.total > 1 && (
-                                      <span className="text-base">ðŸ“†</span>
+                                      <span className="text-base">📆</span>
                                     )}
                               <p className="font-pixel-bold" style={{ color: '#111', fontSize: '16px' }}>
                                 {item.description}
@@ -3385,15 +3329,15 @@ function BoardPageInner() {
                             </span>
                           </div>
                           <div className="flex items-center gap-2 ml-4">
-                            {/* BotÃ£o de Editar */}
+                            {/* Botão de Editar */}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                // Verificar se Ã© do sistema antigo ou novo
+                                // Verificar se é do sistema antigo ou novo
                                 const isLegacy = dailyItems.find(d => d.id === item.id);
                                 if (isLegacy) {
-                                  // Sistema antigo: converter para formato de ediÃ§Ã£o (nÃ£o suportado ainda)
-                                  alert('EdiÃ§Ã£o de entradas do sistema antigo: use o modal de adicionar gasto para criar uma nova entrada');
+                                  // Sistema antigo: converter para formato de edição (não suportado ainda)
+                                  alert('Edição de entradas do sistema antigo: use o modal de adicionar gasto para criar uma nova entrada');
                                 } else {
                                   // Sistema novo: buscar e editar
                                   const financialEntries = getEntriesForDate(dateKey);
@@ -3408,14 +3352,14 @@ function BoardPageInner() {
                               style={{ fontSize: '14px', padding: '4px 8px' }}
                               title="Editar"
                             >
-                              âœï¸
+                              ✏️
                             </button>
-                            {/* BotÃ£o de Excluir */}
+                            {/* Botão de Excluir */}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 const confirmMessage = item.frequency === 'recorrente' 
-                                  ? `Remover "${item.description}" apenas desta data?\n\nA recorrÃªncia continuarÃ¡ ativa e aparecerÃ¡ nos prÃ³ximos dias. Isso Ã© Ãºtil quando algo atrasa ou nÃ£o cobra naquela data.` 
+                                  ? `Remover "${item.description}" apenas desta data?\n\nA recorrência continuará ativa e aparecerá nos próximos dias. Isso é útil quando algo atrasa ou não cobra naquela data.` 
                                   : `Remover "${item.description}"?`;
                                 if (confirm(confirmMessage)) {
                                   // Se for do sistema antigo, usar removeDailyExpense
@@ -3427,16 +3371,16 @@ function BoardPageInner() {
                                     const entryToRemove = financialEntries.find(e => e.id === item.id);
                                     
                                     if (entryToRemove && entryToRemove.frequency === 'recorrente') {
-                                      // Se for recorrente, excluir apenas desta data (mantÃ©m recorrÃªncia ativa)
+                                      // Se for recorrente, excluir apenas desta data (mantém recorrência ativa)
                                       excludeRecurrenceDate(entryToRemove.id, dateKey);
-                                      // ForÃ§ar atualizaÃ§Ã£o da lista de recorrentes
+                                      // Forçar atualização da lista de recorrentes
                                       setRecurringEntriesUpdateKey(prev => prev + 1);
                                     } else {
                                       // Se for pontual, remover completamente
                                       removeFinancialEntry(item.id);
                                     }
                                   }
-                                  // Recarregar dados apÃ³s um delay maior para garantir que o localStorage foi atualizado
+                                  // Recarregar dados após um delay maior para garantir que o localStorage foi atualizado
                                   setTimeout(() => {
                                     const items = getDailyExpenses(dateKey);
                                     setDailyItems(items);
@@ -3452,7 +3396,7 @@ function BoardPageInner() {
                               style={{ fontSize: '18px', padding: '4px 8px' }}
                               title="Excluir"
                             >
-                              Ã—
+                              ×
                             </button>
                           </div>
                         </div>
@@ -3468,13 +3412,13 @@ function BoardPageInner() {
                     const dateKey = formatDateKey(selectedDate);
                     const financialEntries = getEntriesForDate(dateKey);
                     
-                    // Filtrar apenas entradas que devem entrar nos cÃ¡lculos: received e expected
-                    // expected Ã© o estado base, pending Ã© derivado quando a data passa
+                    // Filtrar apenas entradas que devem entrar nos cálculos: received e expected
+                    // expected é o estado base, pending é derivado quando a data passa
                     const entriesForCalculation = financialEntries.filter(e => 
                       e.status === 'received' || e.status === 'expected'
                     );
                     
-                    // Combinar gastos pontuais e entradas financeiras para cÃ¡lculo
+                    // Combinar gastos pontuais e entradas financeiras para cálculo
                     const allItemsForCalculation = [
                       ...dailyItems,
                       ...entriesForCalculation.map(entry => ({
@@ -3506,7 +3450,7 @@ function BoardPageInner() {
                             </div>
                           </div>
                           <div>
-                            <div className="font-pixel text-xs mb-1" style={{ color: '#666' }}>Total LÃ­quido</div>
+                            <div className="font-pixel text-xs mb-1" style={{ color: '#666' }}>Total Líquido</div>
                             <div className="font-pixel-bold" style={{ color: totalLiquido >= 0 ? '#4caf50' : '#f44336', fontSize: '16px' }}>
                               {totalLiquido >= 0 ? '+' : ''}R$ {Math.abs(totalLiquido).toFixed(2).replace('.', ',')}
                             </div>
@@ -3520,7 +3464,7 @@ function BoardPageInner() {
               )}
 
               {activeFinanceTab === 'monthly' && (() => {
-                // CÃ¡lculos para o painel superior
+                // Cálculos para o painel superior
                 const today = new Date();
                 const isCurrentMonth = selectedMonth.getMonth() === today.getMonth() && selectedMonth.getFullYear() === today.getFullYear();
                 const currentDay = isCurrentMonth ? today.getDate() : new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0).getDate();
@@ -3533,13 +3477,13 @@ function BoardPageInner() {
                 const availableNow = monthlyLimit - totalSpent;
                 const recommendedDaily = daysRemaining > 0 ? Math.max(0, availableNow / daysRemaining) : 0;
                 
-                // Status do mÃªs
+                // Status do mês
                 const spendingPercentage = monthlyLimit > 0 ? (totalSpent / monthlyLimit) * 100 : 0;
-                const statusText = spendingPercentage < 50 ? 'Abaixo do ritmo' : spendingPercentage < 80 ? 'AtenÃ§Ã£o' : 'Acima do limite';
+                const statusText = spendingPercentage < 50 ? 'Abaixo do ritmo' : spendingPercentage < 80 ? 'Atenção' : 'Acima do limite';
                 
                 return (
                 <div>
-                  {/* SEÃ‡ÃƒO A â€” CabeÃ§alho do MÃªs */}
+                  {/* SEÇÃO A — Cabeçalho do Mês */}
                   <div className="mb-4 p-4 rounded" style={{ backgroundColor: '#FFFFFF', border: '1px solid #e5e5e5', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="font-pixel-bold" style={{ color: '#111', fontSize: '20px' }}>
@@ -3556,7 +3500,7 @@ function BoardPageInner() {
                             fontSize: '16px',
                           }}
                         >
-                          â†
+                          ←
                         </button>
                         <button
                           onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1))}
@@ -3568,12 +3512,12 @@ function BoardPageInner() {
                             fontSize: '16px',
                           }}
                         >
-                          â†’
+                          →
                         </button>
                       </div>
                     </div>
                     
-                    {/* 4 indicadores em cartÃµes pequenos */}
+                    {/* 4 indicadores em cartões pequenos */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                       <div className="p-3 rounded" style={{ backgroundColor: '#fafafa', border: '1px solid #e5e5e5' }}>
                         <div className="font-pixel text-xs mb-1" style={{ color: '#666' }}>Limite Mensal</div>
@@ -3588,20 +3532,20 @@ function BoardPageInner() {
                         </div>
                       </div>
                       <div className="p-3 rounded" style={{ backgroundColor: '#fafafa', border: '1px solid #e5e5e5' }}>
-                        <div className="font-pixel text-xs mb-1" style={{ color: '#666' }}>DisponÃ­vel</div>
+                        <div className="font-pixel text-xs mb-1" style={{ color: '#666' }}>Disponível</div>
                         <div className="font-pixel-bold" style={{ color: '#4caf50', fontSize: '16px' }}>
                           R$ {availableNow.toFixed(2).replace('.', ',')}
                         </div>
                       </div>
                       <div className="p-3 rounded" style={{ backgroundColor: '#fafafa', border: '1px solid #e5e5e5' }}>
-                        <div className="font-pixel text-xs mb-1" style={{ color: '#666' }}>DiÃ¡rio Recomendado</div>
+                        <div className="font-pixel text-xs mb-1" style={{ color: '#666' }}>Diário Recomendado</div>
                         <div className="font-pixel-bold" style={{ color: '#111', fontSize: '16px' }}>
                           R$ {recommendedDaily.toFixed(2).replace('.', ',')}/dia
                         </div>
                       </div>
                     </div>
                     
-                    {/* Status do mÃªs - barra horizontal fina */}
+                    {/* Status do mês - barra horizontal fina */}
                     <div className="mt-4 pt-4 border-t" style={{ borderColor: '#e5e5e5' }}>
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-pixel text-sm" style={{ color: '#666' }}>Status: {statusText}</span>
@@ -3621,7 +3565,7 @@ function BoardPageInner() {
                     </div>
                   </div>
 
-                  {/* SEÃ‡ÃƒO B â€” ConfiguraÃ§Ãµes do MÃªs */}
+                  {/* SEÇÃO B — Configurações do Mês */}
                   <div className="mb-4 p-4 rounded" style={{ backgroundColor: '#fafafa', border: '1px solid #e5e5e5' }}>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
@@ -3630,7 +3574,7 @@ function BoardPageInner() {
                           <input
                             type="number"
                             value={desiredMonthlyExpense === '' || desiredMonthlyExpense === null || desiredMonthlyExpense === undefined ? '' : desiredMonthlyExpense}
-                            placeholder="â€“"
+                            placeholder="–"
                             onChange={(e) => {
                               const val = e.target.value === '' ? '' : parseFloat(e.target.value) || '';
                               setDesiredMonthlyExpense(val);
@@ -3657,7 +3601,7 @@ function BoardPageInner() {
                                 
                                 const monthKey = formatMonthKey(selectedMonth);
                                 saveDesiredMonthlyExpense(monthKey, val);
-                                // Recarregar monthlyRows apÃ³s salvar
+                                // Recarregar monthlyRows após salvar
                                 updateMonthlyRows();
                                 // Disparar evento para atualizar Display
                                 if (typeof window !== "undefined") {
@@ -3685,7 +3629,7 @@ function BoardPageInner() {
                           <input
                             type="number"
                             value={resetDate === '' || resetDate === null || resetDate === undefined ? '' : resetDate}
-                            placeholder="â€“"
+                            placeholder="–"
                             onChange={async (e) => {
                               const val = e.target.value === '' ? '' : parseInt(e.target.value) || '';
                               if (val === '' || (typeof val === 'number' && val >= 1 && val <= 31)) {
@@ -3725,7 +3669,7 @@ function BoardPageInner() {
                                 if (val >= 1 && val <= 31) {
                                   const monthKey = formatMonthKey(selectedMonth);
                                   saveResetDate(monthKey, val);
-                                  // Recarregar monthlyRows apÃ³s salvar
+                                  // Recarregar monthlyRows após salvar
                                   updateMonthlyRows();
                                   // Disparar evento para atualizar Display
                                   if (typeof window !== "undefined") {
@@ -3757,7 +3701,7 @@ function BoardPageInner() {
                             type="text"
                             inputMode="decimal"
                             value={accountMoney ?? ""}
-                            placeholder="â€“"
+                            placeholder="–"
                             onChange={(e) => {
                               // Permite apagar completamente (string vazia)
                               setAccountMoney(e.target.value);
@@ -3773,23 +3717,23 @@ function BoardPageInner() {
                           <button
                             onClick={async () => {
                               try {
-                                // Converter string para nÃºmero ao salvar
+                                // Converter string para número ao salvar
                                 if (!accountMoney || accountMoney.trim() === '') {
                                   return;
                                 }
                                 const parsed = parseFloat(accountMoney.replace(",", "."));
                                 if (isNaN(parsed)) {
-                                  // Se invÃ¡lido, nÃ£o salva
+                                  // Se inválido, não salva
                                   return;
                                 }
                                 
-                                // Salvar APENAS para o dia atual (hoje) - sÃ³ funciona para mÃªs e dia atual
+                                // Salvar APENAS para o dia atual (hoje) - só funciona para mês e dia atual
                                 const today = new Date();
                                 const isCurrentMonth = 
                                   selectedMonth.getFullYear() === today.getFullYear() &&
                                   selectedMonth.getMonth() === today.getMonth();
                                 
-                                // SÃ³ permite salvar se estiver no mÃªs atual - retorna silenciosamente se nÃ£o for
+                                // Só permite salvar se estiver no mês atual - retorna silenciosamente se não for
                                 if (!isCurrentMonth) {
                                   return;
                                 }
@@ -3797,20 +3741,20 @@ function BoardPageInner() {
                                 // Salvar para o dia de hoje
                                 const todayKey = formatDateKey(today);
                                 
-                                // Salva o valor FINAL do dia (o que o usuÃ¡rio digitou)
-                                // Os dias seguintes calcularÃ£o incrementalmente: dia+1 = dia + totalDiÃ¡rio_dia+1
+                                // Salva o valor FINAL do dia (o que o usuário digitou)
+                                // Os dias seguintes calcularão incrementalmente: dia+1 = dia + totalDiário_dia+1
                                 await saveAccountMoney(todayKey, parsed);
                                 
                                 // Atualizar o valor exibido
                                 setAccountMoney(parsed.toString());
         
-                                // Recarregar monthlyRows apÃ³s salvar (rebuild completo)
-                                // Isso garante que todos os dias do mÃªs mostrem os valores recalculados
+                                // Recarregar monthlyRows após salvar (rebuild completo)
+                                // Isso garante que todos os dias do mês mostrem os valores recalculados
                                 const monthKey = formatMonthKey(selectedMonth);
                                 const desired = getDesiredMonthlyExpense(monthKey) || 0;
                                 const reset = getResetDate(monthKey) || 1;
                                 
-                                // Recalcular mÃªs atual
+                                // Recalcular mês atual
                                 updateMonthlyRows();
                                 
                                 // Atualizar progresso dos objetivos baseado no dinheiro em conta atualizado
@@ -3839,13 +3783,13 @@ function BoardPageInner() {
                     </div>
                   </div>
 
-                  {/* SEÃ‡ÃƒO C â€” Plano Mensal (Prancheta) */}
+                  {/* SEÇÃO C — Plano Mensal (Prancheta) */}
                   <div className="mb-4 rounded overflow-hidden" style={{ border: '1px solid #e5e5e5', backgroundColor: '#FFFFFF' }}>
-                    {/* CabeÃ§alho da tabela */}
+                    {/* Cabeçalho da tabela */}
                     <div className="grid grid-cols-[50px_1.05fr_110px_110px_110px_90px] md:grid-cols-[50px_1.05fr_110px_110px_110px_90px] border-b overflow-x-auto min-w-[600px]" style={{ borderColor: '#e5e5e5', backgroundColor: '#fafafa' }}>
                       <div className="py-2 px-3 font-pixel-bold text-center" style={{ color: '#666', fontSize: '12px' }}>Dia</div>
                       <div className="py-2 px-3 font-pixel-bold text-left" style={{ color: '#666', fontSize: '12px' }}>Detalhes</div>
-                      <div className="py-2 px-3 font-pixel-bold text-right" style={{ color: '#666', fontSize: '12px' }}>Total diÃ¡rio</div>
+                      <div className="py-2 px-3 font-pixel-bold text-right" style={{ color: '#666', fontSize: '12px' }}>Total diário</div>
                       <div className="py-2 px-3 font-pixel-bold text-right" style={{ color: '#666', fontSize: '12px' }}>Limite</div>
                       <div className="py-2 px-3 font-pixel-bold text-right" style={{ color: '#666', fontSize: '12px' }}>Em conta</div>
                       <div className="py-2 px-3 font-pixel-bold text-right" style={{ color: '#666', fontSize: '12px' }}>Reserva</div>
@@ -3853,7 +3797,7 @@ function BoardPageInner() {
                     <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
                       {monthlyRows.length === 0 ? (
                         <div className="p-4 text-center font-pixel" style={{ color: '#999', fontSize: '13px' }}>
-                          Nenhum dado disponÃ­vel.
+                          Nenhum dado disponível.
                         </div>
                       ) : (
                         monthlyRows.map((row, idx) => {
@@ -3864,29 +3808,29 @@ function BoardPageInner() {
                             today.getDate() === row.day;
                           
                           // Calcular Limite Restante: LimiteMensal - gastosAcumulados desde o resetDay do ciclo
-                          // INVARIANTE: resetDay afeta apenas orÃ§amento, nÃ£o saldo
-                          // O ciclo de orÃ§amento pode atravessar meses
-                          // IMPORTANTE: O limite usado deve ser o do mÃªs onde o ciclo comeÃ§ou, nÃ£o do mÃªs atual
+                          // INVARIANTE: resetDay afeta apenas orçamento, não saldo
+                          // O ciclo de orçamento pode atravessar meses
+                          // IMPORTANTE: O limite usado deve ser o do mês onde o ciclo começou, não do mês atual
                           const resetDay = (typeof resetDate === 'number' ? resetDate : parseInt(String(resetDate)) || 1);
                           
-                          // Data do dia da linha para cÃ¡lculo
+                          // Data do dia da linha para cálculo
                           const rowDate = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), row.day);
                           const rowDateKey = formatDateKey(rowDate);
                           
                           var limiteRestante = 0;
                           if (resetDay > 0) {
-                            // Usar getCycleDates para calcular corretamente o inÃ­cio do ciclo
+                            // Usar getCycleDates para calcular corretamente o início do ciclo
                             // Isso garante que o ciclo atravessa meses corretamente
                             const { cycleStart } = getCycleDates(rowDateKey, resetDay);
                             
-                            // Buscar o limite mensal do mÃªs onde o ciclo comeÃ§ou (nÃ£o do mÃªs atual)
-                            // Se o ciclo comeÃ§ou em dezembro, usar o limite de dezembro, mesmo estando em janeiro
+                            // Buscar o limite mensal do mês onde o ciclo começou (não do mês atual)
+                            // Se o ciclo começou em dezembro, usar o limite de dezembro, mesmo estando em janeiro
                             const cycleStartMonthKey = formatMonthKey(cycleStart);
                             const monthlyLimitDoCiclo = getDesiredMonthlyExpense(cycleStartMonthKey) || 0;
                             
                             if (monthlyLimitDoCiclo > 0) {
-                              // Calcular gastos acumulados desde o inÃ­cio do ciclo atÃ© o dia da linha
-                              // IMPORTANTE: Soma apenas valores negativos (gastos), nÃ£o ganhos
+                              // Calcular gastos acumulados desde o início do ciclo até o dia da linha
+                              // IMPORTANTE: Soma apenas valores negativos (gastos), não ganhos
                               let gastosAcumulados = 0;
                               let currentDate = new Date(cycleStart);
                               currentDate.setHours(0, 0, 0, 0);
@@ -3900,16 +3844,16 @@ function BoardPageInner() {
                                 const financialEntries = getEntriesForDate(checkDateKey);
                                 const recurringTotal = financialEntries.reduce((sum, entry) => sum + entry.amount, 0);
                                 const totalWithRecurring = dailyTotal + recurringTotal;
-                                // Soma apenas valores negativos (gastos), nÃ£o ganhos
+                                // Soma apenas valores negativos (gastos), não ganhos
                                 if (totalWithRecurring < 0) {
                                   gastosAcumulados += Math.abs(totalWithRecurring);
                                 }
-                                // AvanÃ§ar para o prÃ³ximo dia
+                                // Avançar para o próximo dia
                                 currentDate.setDate(currentDate.getDate() + 1);
                                 currentDate.setHours(0, 0, 0, 0);
                               }
                               
-                              // Limite Restante = Limite Mensal (do ciclo) - Gastos Acumulados (desde inÃ­cio do ciclo)
+                              // Limite Restante = Limite Mensal (do ciclo) - Gastos Acumulados (desde início do ciclo)
                               limiteRestante = Math.max(0, monthlyLimitDoCiclo - gastosAcumulados);
                             }
                           }
@@ -3917,14 +3861,14 @@ function BoardPageInner() {
                           // Buscar itens do dia para formatar detalhes
                           const dateKey = formatDateKey(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), row.day));
                           
-                          // Total diÃ¡rio (igual ao Total LÃ­quido do diÃ¡rio): ganhos - gastos
+                          // Total diário (igual ao Total Líquido do diário): ganhos - gastos
                           // Incluir recorrentes do novo sistema que aparecem neste dia
                           const financialEntriesForDay = getEntriesForDate(dateKey);
                           const recurringTotalForDay = financialEntriesForDay.reduce((sum, entry) => sum + entry.amount, 0);
                           const totalDiario = row.totalDaily + recurringTotalForDay;
                           const dayItems = getDailyExpenses(dateKey);
                           
-                          // Buscar entradas financeiras do novo sistema (pontuais + recorrentes vÃ¡lidos para este dia)
+                          // Buscar entradas financeiras do novo sistema (pontuais + recorrentes válidos para este dia)
                           const financialEntries = getEntriesForDate(dateKey);
                           
                           // Combinar itens do dia e entradas financeiras
@@ -3944,7 +3888,7 @@ function BoardPageInner() {
                             });
                           });
                           
-                          // Adicionar entradas do novo sistema (pontuais e recorrentes vÃ¡lidos para este dia)
+                          // Adicionar entradas do novo sistema (pontuais e recorrentes válidos para este dia)
                           financialEntries.forEach(entry => {
                             allItems.push({
                               description: entry.description,
@@ -3954,10 +3898,10 @@ function BoardPageInner() {
                             });
                           });
                           
-                          // IMPORTANTE: Recorrentes sÃ£o UMA entidade que aparece dinamicamente
-                          // NÃ£o sÃ£o duplicados - apenas interpretados para cada dia
+                          // IMPORTANTE: Recorrentes são UMA entidade que aparece dinamicamente
+                          // Não são duplicados - apenas interpretados para cada dia
                           
-                          // Formatar detalhes: "DescriÃ§Ã£o 1 (Valor1) + DescriÃ§Ã£o 2 (Valor 2)"
+                          // Formatar detalhes: "Descrição 1 (Valor1) + Descrição 2 (Valor 2)"
                           let detalhesFormatados = '-';
                           if (allItems.length > 0) {
                             detalhesFormatados = allItems.map(item => {
@@ -3966,7 +3910,7 @@ function BoardPageInner() {
                             }).join(' + ');
                           }
                           
-                          // Dinheiro em conta: usar getAccountMoney (versÃ£o simplificada que busca o Ãºltimo valor salvo no mÃªs)
+                          // Dinheiro em conta: usar getAccountMoney (versão simplificada que busca o último valor salvo no mês)
                           const dinheiroEmConta = getAccountMoney(dateKey);
                           
                           return (
@@ -3996,8 +3940,8 @@ function BoardPageInner() {
                                       return (
                                         <span key={itemIdx} className="whitespace-nowrap">
                                           {itemIdx > 0 && <span className="mx-0.5">+</span>}
-                                          {isRecurring && <span className="mr-1">ðŸ”</span>}
-                                          {isInstallment && <span className="mr-1">ðŸ“†</span>}
+                                          {isRecurring && <span className="mr-1">🔁</span>}
+                                          {isInstallment && <span className="mr-1">📆</span>}
                                           <span>{item.description}</span>
                                           {isInstallment && item.installments && (
                                             <span className="text-xs ml-1" style={{ color: '#666' }}>
@@ -4061,7 +4005,7 @@ function BoardPageInner() {
 
               {activeFinanceTab === 'reserve' && (
                 <div>
-                  {/* NavegaÃ§Ã£o por mÃªs */}
+                  {/* Navegação por mês */}
                   <div className="mb-4 flex items-center justify-center gap-4">
                     <button
                       onClick={() => {
@@ -4078,7 +4022,7 @@ function BoardPageInner() {
                         cursor: 'pointer',
                       }}
                     >
-                      â†
+                      ←
                     </button>
                     <div className="font-pixel-bold text-center" style={{ color: '#111', fontSize: '16px', minWidth: '200px' }}>
                       {selectedReserveMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
@@ -4098,7 +4042,7 @@ function BoardPageInner() {
                         cursor: 'pointer',
                       }}
                     >
-                      â†’
+                      →
                     </button>
                   </div>
 
@@ -4110,7 +4054,7 @@ function BoardPageInner() {
                     </div>
                   </div>
 
-                  {/* BotÃ£o de adicionar - discreto */}
+                  {/* Botão de adicionar - discreto */}
                   <div className="mb-4">
                     <button
                       onClick={() => setIsAddReserveModalOpen(true)}
@@ -4122,16 +4066,16 @@ function BoardPageInner() {
                         fontSize: '16px',
                       }}
                     >
-                      + Adicionar MovimentaÃ§Ã£o
+                      + Adicionar Movimentação
                     </button>
                   </div>
 
-                  {/* Lista de movimentaÃ§Ãµes - cards limpos */}
+                  {/* Lista de movimentações - cards limpos */}
                   <div className="mb-4 space-y-2">
                     {monthlyReserveItems.length === 0 ? (
                       <div className="text-center py-8 px-4 rounded" style={{ backgroundColor: '#fafafa', border: '1px solid #e5e5e5' }}>
                         <p className="font-pixel" style={{ color: '#999', fontSize: '14px' }}>
-                          Nenhuma movimentaÃ§Ã£o registrada
+                          Nenhuma movimentação registrada
                         </p>
                       </div>
                     ) : (
@@ -4151,11 +4095,11 @@ function BoardPageInner() {
                           >
                             <div className="flex items-center gap-2 flex-1">
                               <span className="font-pixel" style={{ fontSize: '16px' }}>
-                                {isDeposit ? '+' : 'âˆ’'}
+                                {isDeposit ? '+' : '−'}
                               </span>
                               <div className="flex-1">
                                 <div className="font-pixel-bold" style={{ color: '#111', fontSize: '14px' }}>
-                                  {item.description ? item.description : (isDeposit ? 'DepÃ³sito' : 'Retirada')}
+                                  {item.description ? item.description : (isDeposit ? 'Depósito' : 'Retirada')}
                                 </div>
                                 <div className="font-pixel text-xs mt-1" style={{ color: '#666' }}>
                                   {itemDateKey}
@@ -4176,7 +4120,7 @@ function BoardPageInner() {
                             <button
                               onClick={() => {
                                 showConfirmation({
-                                  message: `Tem certeza que deseja excluir esta movimentaÃ§Ã£o de reserva?`,
+                                  message: `Tem certeza que deseja excluir esta movimentação de reserva?`,
                                   onConfirm: () => {
                                     removeReserveMovement(itemDateKey, item.id);
                                     
@@ -4227,7 +4171,7 @@ function BoardPageInner() {
                                 e.currentTarget.style.color = '#999';
                               }}
                             >
-                              Ã—
+                              ×
                             </button>
                           </div>
                         );
@@ -4238,14 +4182,25 @@ function BoardPageInner() {
               )}
 
               {activeFinanceTab === 'analysis' && (() => {
-                // ForÃ§ar atualizaÃ§Ã£o quando recurringEntriesUpdateKey mudar
+                // Forçar atualização quando recurringEntriesUpdateKey mudar
                 const activeRecurring = getActiveRecurringEntries();
                 const today = new Date().toISOString().substring(0, 10);
-                // Usar recurringEntriesUpdateKey para forÃ§ar re-render quando mudar
+                // Usar recurringEntriesUpdateKey para forçar re-render quando mudar
                 const _ = recurringEntriesUpdateKey;
                 const currentMonthStart = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1).toISOString().substring(0, 10);
                 const currentMonthEnd = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0).toISOString().substring(0, 10);
                 const categoryAnalysis = getCategoryAnalysis(currentMonthStart, currentMonthEnd);
+                const statusAnalysis = getStatusAnalysis(currentMonthStart, currentMonthEnd);
+                
+                // Calcular risco de caixa baseado em pendentes vs recebidos
+                const totalGanhosRecebidos = statusAnalysis.ganhos.received;
+                const totalGanhosPendentes = statusAnalysis.ganhos.pending;
+                const totalGastosRecebidos = statusAnalysis.gastos.received;
+                const totalGastosPendentes = statusAnalysis.gastos.pending;
+                
+                const saldoRecebido = totalGanhosRecebidos - totalGastosRecebidos;
+                const saldoPendente = totalGanhosPendentes - totalGastosPendentes;
+                const riscoCaixa = saldoPendente > saldoRecebido * 0.3 ? 'Alto' : saldoPendente > saldoRecebido * 0.1 ? 'Médio' : 'Baixo';
                 
                 return (
                   <div className="space-y-6">
@@ -4256,7 +4211,7 @@ function BoardPageInner() {
                       </h3>
                       {activeRecurring.length === 0 ? (
                         <p className="font-pixel text-center py-8" style={{ color: '#999', fontSize: '14px' }}>
-                          Nenhum lanÃ§amento recorrente ativo
+                          Nenhum lançamento recorrente ativo
                         </p>
                       ) : (
                         <div className="grid grid-cols-2 gap-3">
@@ -4268,7 +4223,7 @@ function BoardPageInner() {
                             const frequencyLabel = entry.recurrence === 'mensal' ? 'Mensal' : entry.recurrence === 'quinzenal' ? 'Quinzenal' : 'Anual';
                             const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
                             const startDateLabel = `${monthNames[startDate.getMonth()]}/${startDate.getFullYear()}`;
-                            const metadata = `${frequencyLabel} Â· ${isFuture ? 'inicia em' : 'desde'} ${startDateLabel}`;
+                            const metadata = `${frequencyLabel} · ${isFuture ? 'inicia em' : 'desde'} ${startDateLabel}`;
                             
                             return (
                               <div
@@ -4279,9 +4234,9 @@ function BoardPageInner() {
                                   border: '1px solid #e5e5e5',
                                 }}
                               >
-                                {/* Linha 1: Ãcone + Nome + Categoria */}
+                                {/* Linha 1: Ícone + Nome + Categoria */}
                                 <div className="flex items-center gap-2 mb-1.5">
-                                  <span className="text-xs font-pixel" style={{ color: '#9ca3af' }}>â†»</span>
+                                  <span className="text-xs font-pixel" style={{ color: '#9ca3af' }}>↻</span>
                                   <span className="font-pixel-bold flex-1" style={{ color: '#111', fontSize: '14px' }}>
                                     {entry.description}
                                   </span>
@@ -4299,7 +4254,7 @@ function BoardPageInner() {
                                   )}
                                 </div>
                                 
-                                {/* Linha 2: Valor + Metadados + BotÃ£o Encerrar */}
+                                {/* Linha 2: Valor + Metadados + Botão Encerrar */}
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="flex items-center gap-2 flex-1">
                                     <span 
@@ -4316,10 +4271,10 @@ function BoardPageInner() {
                                   </div>
                                   <button
                                     onClick={() => {
-                                      if (confirm(`Encerrar recorrÃªncia "${entry.description}" a partir de hoje? Isso nÃ£o afetarÃ¡ registros passados.`)) {
+                                      if (confirm(`Encerrar recorrência "${entry.description}" a partir de hoje? Isso não afetará registros passados.`)) {
                                         const todayStr = formatDateKey(today);
                                         endRecurrence(entry.id, todayStr);
-                                        // ForÃ§ar atualizaÃ§Ã£o da lista de recorrentes
+                                        // Forçar atualização da lista de recorrentes
                                         setRecurringEntriesUpdateKey(prev => prev + 1);
                                         // Recarregar dados mensais
                                         const monthKey = formatMonthKey(selectedMonth);
@@ -4342,11 +4297,11 @@ function BoardPageInner() {
                       )}
                     </div>
 
-                    {/* AnÃ¡lise por Categoria */}
+                    {/* Análise por Categoria */}
                     <div className="p-4 rounded" style={{ backgroundColor: '#FFFFFF', border: '1px solid #e5e5e5', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="font-pixel-bold" style={{ color: '#333', fontSize: '18px' }}>
-                          AnÃ¡lise por Categoria ({new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })})
+                          Análise por Categoria ({new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })})
                         </h3>
                         <div className="flex gap-2">
                           <button
@@ -4359,7 +4314,7 @@ function BoardPageInner() {
                               fontSize: '16px',
                             }}
                           >
-                            â†
+                            ←
                           </button>
                           <button
                             onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1))}
@@ -4371,13 +4326,13 @@ function BoardPageInner() {
                               fontSize: '16px',
                             }}
                           >
-                            â†’
+                            →
                           </button>
                         </div>
                       </div>
                       {categoryAnalysis.length === 0 ? (
                         <p className="font-pixel text-center py-8" style={{ color: '#999', fontSize: '14px' }}>
-                          Nenhum lanÃ§amento registrado neste perÃ­odo
+                          Nenhum lançamento registrado neste período
                         </p>
                       ) : (
                       <div className="space-y-2">
@@ -4410,7 +4365,7 @@ function BoardPageInner() {
             </div>
               </section>
 
-          {/* MAPAS - Modo contÃ­nuo: sempre visÃ­vel apÃ³s FinanÃ§as; Modo focado: apenas quando ativo */}
+          {/* MAPAS - Modo contínuo: sempre visível após Finanças; Modo focado: apenas quando ativo */}
           {viewMode === 'continuous' && (
             <section id="map" className="scroll-mt-8 mb-8">
             <div className="section-box">
@@ -4418,7 +4373,7 @@ function BoardPageInner() {
                 Mapas
               </h1>
               <p className="font-pixel text-center py-8 mb-4" style={{ color: '#666', fontSize: '16px' }}>
-                Acesse a pÃ¡gina de Mapas para explorar experiÃªncias da vida.
+                Acesse a página de Mapas para explorar experiências da vida.
               </p>
               <div className="text-center">
                 <button
@@ -4440,7 +4395,7 @@ function BoardPageInner() {
           </section>
           )}
 
-          {/* GUIAS - Modo contÃ­nuo: sempre visÃ­vel apÃ³s Mapas; Modo focado: apenas quando ativo */}
+          {/* GUIAS - Modo contínuo: sempre visível após Mapas; Modo focado: apenas quando ativo */}
           {viewMode === 'continuous' && (
             <section id="guides" className="scroll-mt-8 mb-8">
               <div className="section-box">
@@ -4452,7 +4407,7 @@ function BoardPageInner() {
             </section>
           )}
 
-          {/* BIOGRAFIA - Modo contÃ­nuo: sempre visÃ­vel apÃ³s Guias; Modo focado: apenas quando ativo */}
+          {/* BIOGRAFIA - Modo contínuo: sempre visível após Guias; Modo focado: apenas quando ativo */}
           {viewMode === 'continuous' && isModuleActive('biography') && (
             <section id="biography" className="scroll-mt-8 mb-8">
             <div className="section-box">
@@ -4493,7 +4448,7 @@ function BoardPageInner() {
                       borderRadius: '8px',
                     }}
                   >
-                    + Novo DossiÃª
+                    + Novo Dossiê
                   </button>
                 )}
               </div>
@@ -4524,7 +4479,7 @@ function BoardPageInner() {
                     borderRadius: '6px',
                   }}
                 >
-                  DossiÃªs
+                  Dossiês
                 </button>
                 <button
                   onClick={() => setActiveBiographyTab('timeline')}
@@ -4541,7 +4496,7 @@ function BoardPageInner() {
                 </button>
               </div>
 
-              {/* ConteÃºdo das abas */}
+              {/* Conteúdo das abas */}
               {activeBiographyTab === 'timeline' && (
                 <TimelineView
                   onEdit={(event) => {
@@ -4588,12 +4543,12 @@ function BoardPageInner() {
                     <>
                       {getAllDossiers().length === 0 ? (
                         <div className="text-center py-12 px-4">
-                          <div className="mb-4" style={{ fontSize: '48px', lineHeight: '1' }}>ðŸ“</div>
+                          <div className="mb-4" style={{ fontSize: '48px', lineHeight: '1' }}>📁</div>
                           <p className="font-pixel-bold mb-2" style={{ color: '#111', fontSize: '18px' }}>
-                            Nenhum dossiÃª ainda
+                            Nenhum dossiê ainda
                           </p>
                           <p className="font-pixel" style={{ color: '#666', fontSize: '14px', maxWidth: '400px', margin: '0 auto' }}>
-                            Crie pastas para guardar histÃ³rias, ideias ou fases da sua vida.
+                            Crie pastas para guardar histórias, ideias ou fases da sua vida.
                           </p>
                         </div>
                       ) : (
@@ -4641,13 +4596,13 @@ function BoardPageInner() {
         </div>
       </div>
 
-      {/* Modal de PersonalizaÃ§Ã£o */}
+      {/* Modal de Personalização */}
       <CustomizeAppModal
         isOpen={isCustomizeModalOpen}
         onClose={() => setIsCustomizeModalOpen(false)}
       />
 
-      {/* Modal de calendÃ¡rio de hÃ¡bito */}
+      {/* Modal de calendário de hábito */}
       {selectedHabit && (() => {
         const monthlyProgress = calculateMonthlyProgress(selectedHabit, calendarMonth);
         const progressColor = getProgressColor(monthlyProgress);
@@ -4675,7 +4630,7 @@ function BoardPageInner() {
                   className="px-2 py-1 rounded font-pixel border border-[#e0e0e0] hover:bg-[#f0f0f0] transition-colors"
                   style={{ color: '#111', fontSize: '16px' }}
                 >
-                  âœŽ Renomear
+                  ✎ Renomear
                 </button>
                 <button
                   onClick={() => {
@@ -4684,7 +4639,7 @@ function BoardPageInner() {
                   className="px-2 py-1 rounded font-pixel border border-[#e0e0e0] hover:bg-red-50 transition-colors"
                   style={{ color: '#C62828', fontSize: '16px' }}
                 >
-                  ðŸ—‘ Excluir
+                  🗑 Excluir
                 </button>
               </div>
               <button
@@ -4692,7 +4647,7 @@ function BoardPageInner() {
                 className="text-gray-400 hover:text-gray-600"
                 style={{ fontSize: '24px' }}
               >
-                Ã—
+                ×
               </button>
             </div>
             
@@ -4702,7 +4657,7 @@ function BoardPageInner() {
                 className="px-3 py-1 rounded border border-[#e0e0e0] hover:bg-[#f0f0f0] transition-colors font-pixel-bold"
                 style={{ color: '#111', fontSize: '16px' }}
               >
-                â†‘
+                ↑
               </button>
               <span className="font-pixel-bold" style={{ color: '#333', fontSize: '16px' }}>
                 {formatMonthYear(calendarMonth)}
@@ -4712,13 +4667,13 @@ function BoardPageInner() {
                 className="px-3 py-1 rounded border border-[#e0e0e0] hover:bg-[#f0f0f0] transition-colors font-pixel-bold"
                 style={{ color: '#111', fontSize: '16px' }}
               >
-                â†“
+                ↓
               </button>
             </div>
 
-            {/* CalendÃ¡rio e barra de progresso lado a lado */}
+            {/* Calendário e barra de progresso lado a lado */}
             <div className="flex gap-4">
-              {/* Grid do calendÃ¡rio */}
+              {/* Grid do calendário */}
               <div className="flex-1 grid grid-cols-7 gap-1">
                 {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day) => (
                   <div 
@@ -4805,13 +4760,13 @@ function BoardPageInner() {
             addDailyExpense(formatDateKey(selectedDate), description, value, relatedGoalId, category);
             setIsAddExpenseModalOpen(false);
             
-            // ForÃ§ar atualizaÃ§Ã£o do estado apÃ³s um pequeno delay para garantir que o localStorage foi atualizado
+            // Forçar atualização do estado após um pequeno delay para garantir que o localStorage foi atualizado
             setTimeout(() => {
               const dateKey = formatDateKey(selectedDate);
               const items = getDailyExpenses(dateKey);
               setDailyItems(items);
               
-              // Recalcular monthlyRows imediatamente apÃ³s adicionar gasto
+              // Recalcular monthlyRows imediatamente após adicionar gasto
               updateMonthlyRows();
               updatePossessionsProgress();
             }, 50);
@@ -4831,15 +4786,15 @@ function BoardPageInner() {
           }}
           onSave={(entry) => {
             if (editingFinancialEntry) {
-              // Modo ediÃ§Ã£o: atualizar entrada existente
+              // Modo edição: atualizar entrada existente
               updateFinancialEntry(editingFinancialEntry.id, entry);
               setEditingFinancialEntry(undefined);
             } else {
-              // Modo criaÃ§Ã£o: adicionar nova entrada
+              // Modo criação: adicionar nova entrada
               addFinancialEntry(entry);
             }
             setIsAddFinancialEntryModalOpen(false);
-            // ForÃ§ar atualizaÃ§Ã£o do estado
+            // Forçar atualização do estado
             setTimeout(() => {
               const dateKey = formatDateKey(selectedDate);
               const items = getDailyExpenses(dateKey);
@@ -4857,7 +4812,7 @@ function BoardPageInner() {
         />
       )}
 
-      {/* Modal de CalendÃ¡rio para FinanÃ§as DiÃ¡rio */}
+      {/* Modal de Calendário para Finanças Diário */}
       {showFinanceDateCalendar && (
         <div 
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]"
@@ -4893,11 +4848,11 @@ function BoardPageInner() {
                   e.currentTarget.style.backgroundColor = '#f7f7f7';
                 }}
               >
-                Ã—
+                ×
               </button>
             </div>
             
-            {/* NavegaÃ§Ã£o do mÃªs */}
+            {/* Navegação do mês */}
             <div className="flex items-center justify-between mb-4">
               <button
                 onClick={() => {
@@ -4916,11 +4871,11 @@ function BoardPageInner() {
                   e.currentTarget.style.backgroundColor = '#f7f7f7';
                 }}
               >
-                â†‘
+                ↑
               </button>
               <span className="font-pixel-bold" style={{ fontSize: '16px', color: '#333' }}>
                 {(() => {
-                  const months = ["janeiro", "fevereiro", "marÃ§o", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+                  const months = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
                   return `${months[financeDateCalendarMonth.getMonth()]} de ${financeDateCalendarMonth.getFullYear()}`;
                 })()}
               </span>
@@ -4941,13 +4896,13 @@ function BoardPageInner() {
                   e.currentTarget.style.backgroundColor = '#f7f7f7';
                 }}
               >
-                â†“
+                ↓
               </button>
             </div>
 
-            {/* Grid do calendÃ¡rio */}
+            {/* Grid do calendário */}
             <div className="grid grid-cols-7 gap-1">
-              {/* CabeÃ§alho dos dias da semana */}
+              {/* Cabeçalho dos dias da semana */}
               {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day) => (
                 <div 
                   key={day} 
@@ -4963,7 +4918,7 @@ function BoardPageInner() {
                 </div>
               ))}
 
-              {/* Dias do calendÃ¡rio */}
+              {/* Dias do calendário */}
               {(() => {
                 const year = financeDateCalendarMonth.getFullYear();
                 const month = financeDateCalendarMonth.getMonth();
@@ -4976,7 +4931,7 @@ function BoardPageInner() {
                 
                 const days: React.ReactElement[] = [];
                 
-                // Dias do mÃªs anterior
+                // Dias do mês anterior
                 const prevMonthLastDay = new Date(year, month, 0).getDate();
                 for (let i = firstDayOfWeek - 1; i >= 0; i--) {
                   const day = prevMonthLastDay - i;
@@ -5001,7 +4956,7 @@ function BoardPageInner() {
                   );
                 }
                 
-                // Dias do mÃªs atual
+                // Dias do mês atual
                 for (let day = 1; day <= daysInMonth; day++) {
                   const date = new Date(year, month, day);
                   const dateStr = formatDateKey(date);
@@ -5032,7 +4987,7 @@ function BoardPageInner() {
                   );
                 }
                 
-                // Dias do prÃ³ximo mÃªs para completar a grade
+                // Dias do próximo mês para completar a grade
                 const totalCells = days.length;
                 const remainingCells = 42 - totalCells;
                 for (let day = 1; day <= remainingCells; day++) {
@@ -5064,12 +5019,12 @@ function BoardPageInner() {
         </div>
       )}
 
-      {/* Modal de ImportaÃ§Ã£o CSV */}
+      {/* Modal de Importação CSV */}
       <CSVImporter
         isOpen={isCSVImporterOpen}
         onClose={() => setIsCSVImporterOpen(false)}
         onImport={(transactions) => {
-          // Processar cada transaÃ§Ã£o importada
+          // Processar cada transação importada
           transactions.forEach((transaction) => {
             const dateKey = transaction.date;
             addDailyExpense(
@@ -5140,7 +5095,7 @@ function BoardPageInner() {
           onSave={async (dateKey, value) => {
             await saveAccountMoney(dateKey, value);
             
-            // Recarregar monthlyRows apÃ³s salvar
+            // Recarregar monthlyRows após salvar
             updateMonthlyRows();
             updatePossessionsProgress();
             
@@ -5172,7 +5127,7 @@ function BoardPageInner() {
             // Criar posse com progresso inicial calculado baseado no dinheiro em conta
             addPossession(possession, accountMoney);
             
-            // Atualizar progresso imediatamente apÃ³s criar (garante sincronizaÃ§Ã£o)
+            // Atualizar progresso imediatamente após criar (garante sincronização)
             updatePossessionsProgress();
             
             // Atualizar lista com os valores atualizados
@@ -5218,7 +5173,7 @@ function BoardPageInner() {
             const expenses = getExpensesByGoalId(selectedPossession.id);
             setSelectedExpenses(expenses);
             
-            // Recalcular monthlyRows apÃ³s remover gasto
+            // Recalcular monthlyRows após remover gasto
             updateMonthlyRows();
             updatePossessionsProgress();
           }}
@@ -5295,7 +5250,7 @@ function BoardPageInner() {
         editingEvent={editingTimelineEvent}
       />
 
-      {/* Modal de DossiÃª */}
+      {/* Modal de Dossiê */}
       <DossierModal
         isOpen={isDossierModalOpen}
         onClose={() => {
@@ -5353,7 +5308,7 @@ function BoardPageInner() {
         editingAttribute={editingAttribute}
       />
 
-      {/* Modais de FinanÃ§as */}
+      {/* Modais de Finanças */}
       {isIncomeConfigModalOpen && (
         <IncomeConfigModal
           isOpen={isIncomeConfigModalOpen}
@@ -5385,7 +5340,7 @@ function BoardPageInner() {
         />
       )}
 
-      {/* Modal de EdiÃ§Ã£o/Renomear HÃ¡bito */}
+      {/* Modal de Edição/Renomear Hábito */}
       {editingHabit && (
         <div 
           className="fixed inset-0 bg-black/20 flex items-center justify-center z-[100]"
@@ -5484,6 +5439,5 @@ export default function BoardPage() {
     </Suspense>
   );
 }
-
 
 
