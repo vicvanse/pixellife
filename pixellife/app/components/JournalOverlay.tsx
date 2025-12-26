@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLanguage } from "../context/LanguageContext";
-import { useJournal, type JournalEntry, type QuickNote } from "../hooks/useJournal";
+import { useJournal, type JournalEntry, type QuickNote, type Mood } from "../hooks/useJournal";
 import { MoodSelector } from "./journal/MoodSelector";
 import { QuickNoteModal } from "./journal/QuickNoteModal";
 import { DossierSelector } from "./journal/DossierSelector";
@@ -29,7 +29,7 @@ export function JournalOverlay({ isOpen, onClose }: JournalOverlayProps) {
   const { getAllDossiers } = useDossiers();
   
   const [today, setToday] = useState("");
-  const [mood, setMood] = useState<"good" | "neutral" | "bad" | null>(null);
+  const [mood, setMood] = useState<Mood | null>(null);
   const [moodNumber, setMoodNumber] = useState<number | null>(null);
   const [text, setText] = useState("");
   const [saved, setSaved] = useState(false);
@@ -43,7 +43,7 @@ export function JournalOverlay({ isOpen, onClose }: JournalOverlayProps) {
   // Carrega dados quando o overlay abre
   useEffect(() => {
     if (!isOpen) {
-      setMood(null);
+      setMood("none");
       setMoodNumber(null);
       setText("");
       setShowDossierSelector(false);
@@ -59,11 +59,12 @@ export function JournalOverlay({ isOpen, onClose }: JournalOverlayProps) {
     const entry = getEntry(todayDate);
     
     if (entry) {
-      setMood(entry.mood ?? null);
+      // Converter null para "none" ao carregar
+      setMood(entry.mood ?? "none");
       setMoodNumber(entry.moodNumber ?? null);
       setText(entry.text ?? "");
     } else {
-      setMood(null);
+      setMood("none");
       setMoodNumber(null);
       setText("");
     }
@@ -208,7 +209,7 @@ export function JournalOverlay({ isOpen, onClose }: JournalOverlayProps) {
                   // Sempre salvar quando mood muda
                   if (today) {
                     updateJournalEntry(today, {
-                      mood: newMood,
+                      mood: newMood === "none" ? null : newMood, // Converter "none" para null ao salvar
                       moodNumber: undefined,
                       text,
                     });
