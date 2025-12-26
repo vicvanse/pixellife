@@ -581,6 +581,7 @@ export function DailyOverview() {
 
   // Helper para formatar data sem problemas de fuso horário
   const formatDateKey = (date: Date): string => {
+    // Usar métodos locais para evitar problemas de timezone
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
@@ -1064,6 +1065,7 @@ export function DailyOverview() {
                           if (e.key === 'Enter') {
                             if (selectedDate && editingQuickNoteText.trim()) {
                               updateQuickNote(selectedDate, note.id, editingQuickNoteText.trim());
+                              saveJournalImmediately();
                               setEditingQuickNote(null);
                               setEditingQuickNoteText('');
                             }
@@ -1075,9 +1077,10 @@ export function DailyOverview() {
                         onBlur={() => {
                           if (selectedDate && editingQuickNoteText.trim()) {
                             updateQuickNote(selectedDate, note.id, editingQuickNoteText.trim());
+                            saveJournalImmediately();
                           }
-                            setEditingQuickNote(null);
-                            setEditingQuickNoteText('');
+                          setEditingQuickNote(null);
+                          setEditingQuickNoteText('');
                         }}
                         className="flex-1 px-2 py-1 rounded font-pixel border"
                         style={{
@@ -1192,10 +1195,12 @@ export function DailyOverview() {
                   }
                 });
 
-              const today = new Date();
-              const todayYearForHighlight = today.getFullYear();
-              const todayMonthForHighlight = today.getMonth() + 1;
-              const todayDayForHighlight = today.getDate();
+              // Usar getTodayDate() para consistência
+              const todayStr = getTodayDate();
+              const [todayYearStr, todayMonthStr, todayDayStr] = todayStr.split('-');
+              const todayYearForHighlight = parseInt(todayYearStr, 10);
+              const todayMonthForHighlight = parseInt(todayMonthStr, 10);
+              const todayDayForHighlight = parseInt(todayDayStr, 10);
 
               const getMonthName = () => {
                 const monthsFull = t('journal.monthsFull') as string[];
@@ -1329,11 +1334,12 @@ export function DailyOverview() {
                   >
                     <div className="inline-flex gap-3" style={{ minWidth: 'max-content' }}>
                       {(() => {
-                        // Obter data de hoje
-                        const today = new Date();
-                        const todayYear = today.getFullYear();
-                        const todayMonth = today.getMonth() + 1;
-                        const todayDay = today.getDate();
+                        // Obter data de hoje usando getTodayDate para consistência
+                        const todayStr = getTodayDate();
+                        const [todayYearStr, todayMonthStr, todayDayStr] = todayStr.split('-');
+                        const todayYear = parseInt(todayYearStr, 10);
+                        const todayMonth = parseInt(todayMonthStr, 10);
+                        const todayDay = parseInt(todayDayStr, 10);
             
                         // Verificar se estamos no mês atual
                         const isCurrentMonth = year === todayYear && month + 1 === todayMonth;
@@ -1363,9 +1369,8 @@ export function DailyOverview() {
               const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                           const entry = journal[dateStr];
                           const quickNotesForDay = entry?.quickNotes || [];
-                          const isToday = year === todayYearForHighlight && 
-                                         month + 1 === todayMonthForHighlight && 
-                                         day === todayDayForHighlight;
+                          const todayStr = getTodayDate();
+                          const isToday = dateStr === todayStr;
                           
                           // Verificar se é um dia futuro (não deve aparecer, mas por segurança)
                           const dateObj = new Date(year, month, day);
@@ -1435,20 +1440,22 @@ export function DailyOverview() {
                                             if (e.key === 'Enter') {
                                               if (editingQuickNoteText.trim()) {
                                                 updateQuickNote(dateStr, note.id, editingQuickNoteText.trim());
+                                                saveJournalImmediately();
                                               }
-                setEditingQuickNote(null);
-                setEditingQuickNoteText('');
+                                              setEditingQuickNote(null);
+                                              setEditingQuickNoteText('');
                                             } else if (e.key === 'Escape') {
-                setEditingQuickNote(null);
-                setEditingQuickNoteText('');
-              }
+                                              setEditingQuickNote(null);
+                                              setEditingQuickNoteText('');
+                                            }
                                           }}
                                           onBlur={() => {
                                             if (editingQuickNoteText.trim()) {
                                               updateQuickNote(dateStr, note.id, editingQuickNoteText.trim());
+                                              saveJournalImmediately();
                                             }
-                                              setEditingQuickNote(null);
-                                              setEditingQuickNoteText('');
+                                            setEditingQuickNote(null);
+                                            setEditingQuickNoteText('');
                                           }}
                                           className="w-full px-2 py-1 rounded font-pixel border"
                 style={{
@@ -1487,6 +1494,7 @@ export function DailyOverview() {
                                           e.stopPropagation();
                                           removeQuickNote(dateStr, note.id);
                                           setJournalDates(getAllDates());
+                                          saveJournalImmediately();
                                         }}
                                         className="absolute top-0 right-0 w-5 h-5 flex items-center justify-center rounded-full bg-red-400 hover:bg-red-500 text-white text-xs font-bold transition-opacity z-50"
                                         style={{ 
@@ -1610,8 +1618,9 @@ export function DailyOverview() {
                                     onClick={(e) => {
                                       e.preventDefault();
                                       e.stopPropagation();
-                                      // NÃO mudar a data selecionada, apenas abrir input inline
+                                      // Atualizar selectedDate para permitir criar quick notes
                                       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                      setSelectedDate(dateStr);
                                       setEditingQuickNoteDate(dateStr);
                                       setInlineQuickNoteText('');
                                     }}

@@ -86,10 +86,13 @@ export function useJournal() {
   const { journal, setJournal } = useApp();
 
   const getTodayDate = useCallback((): string => {
+    // Usar data local para evitar problemas de timezone
     const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-    const day = String(today.getDate()).padStart(2, "0");
+    // Ajustar para timezone local
+    const localDate = new Date(today.getTime() - (today.getTimezoneOffset() * 60000));
+    const year = localDate.getFullYear();
+    const month = String(localDate.getMonth() + 1).padStart(2, "0");
+    const day = String(localDate.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   }, []);
 
