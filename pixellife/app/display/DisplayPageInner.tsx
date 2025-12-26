@@ -14,6 +14,7 @@ import { JournalOverlay } from "../components/JournalOverlay";
 import { ExpensesOverlay } from "../components/ExpensesOverlay";
 import { CosmeticsOverlay } from "../components/CosmeticsOverlay";
 import { PossessionsOverlay } from "../components/PossessionsOverlay";
+import { ScheduleOverlay } from "../components/schedule/ScheduleOverlay";
 import Link from "next/link";
 
 export default function DisplayPageInner() {
@@ -31,6 +32,7 @@ export default function DisplayPageInner() {
   const [isExpensesOpen, setIsExpensesOpen] = useState(false);
   const [isCosmeticsOpen, setIsCosmeticsOpen] = useState(false);
   const [isPossessionsOpen, setIsPossessionsOpen] = useState(false);
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [availableMoney, setAvailableMoney] = useState(0);
   const [reserve, setReserve] = useState(0);
 
@@ -77,6 +79,9 @@ export default function DisplayPageInner() {
       router.replace("/display");
     } else if (overlay === "possessions") {
       setIsPossessionsOpen(true);
+      router.replace("/display");
+    } else if (overlay === "schedule") {
+      setIsScheduleOpen(true);
       router.replace("/display");
     }
   }, [searchParams, router, user, mode]);
@@ -433,6 +438,12 @@ export default function DisplayPageInner() {
       <PossessionsOverlay
         isOpen={isPossessionsOpen}
         onClose={() => setIsPossessionsOpen(false)}
+      />
+
+      {/* Overlay de Schedule */}
+      <ScheduleOverlay
+        isOpen={isScheduleOpen}
+        onClose={() => setIsScheduleOpen(false)}
       />
     </div>
   );

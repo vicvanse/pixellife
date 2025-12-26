@@ -146,6 +146,22 @@ const Icons = {
       <div className="absolute top-2.5 left-1.5 w-3 h-0.5 bg-black"></div>
     </div>
   ),
+  Schedule: () => (
+    <div className="w-6 h-6 bg-black border-2 border-black relative" style={{ imageRendering: 'pixelated' }}>
+      {/* Calendário pixel art */}
+      <div className="absolute inset-0.5 bg-white border border-black"></div>
+      {/* Linhas do calendário */}
+      <div className="absolute top-1.5 left-0.5 right-0.5 h-0.5 bg-black"></div>
+      <div className="absolute top-2.5 left-0.5 right-0.5 h-0.5 bg-black"></div>
+      {/* Pontos representando dias */}
+      <div className="absolute top-3.5 left-1 w-0.5 h-0.5 bg-black"></div>
+      <div className="absolute top-3.5 left-2 w-0.5 h-0.5 bg-black"></div>
+      <div className="absolute top-3.5 left-3 w-0.5 h-0.5 bg-black"></div>
+      <div className="absolute top-4 left-1 w-0.5 h-0.5 bg-black"></div>
+      <div className="absolute top-4 left-2 w-0.5 h-0.5 bg-black"></div>
+      <div className="absolute top-4 left-3 w-0.5 h-0.5 bg-black"></div>
+    </div>
+  ),
 };
 
 export default function PixelMenu({ 
@@ -626,6 +642,29 @@ export default function PixelMenu({
                     <Icons.Mapas />
                   </PixelIcon>
                   <span>MAPAS</span>
+                </Link>
+              )}
+
+              {/* Cronograma */}
+              {mode === 'board' ? (
+                <button
+                  onClick={() => handleNavClick('schedule', '/board')}
+                  className={activeSection === 'schedule' ? activeNavItemClass : navItemClass}
+                >
+                  <PixelIcon>
+                    <Icons.Schedule />
+                  </PixelIcon>
+                  <span>CRONOGRAMA</span>
+                </button>
+              ) : (
+                <Link 
+                  href="/schedule" 
+                  className={isActive("/schedule") ? activeNavItemClass : navItemClass}
+                >
+                  <PixelIcon>
+                    <Icons.Schedule />
+                  </PixelIcon>
+                  <span>CRONOGRAMA</span>
                 </Link>
               )}
 
