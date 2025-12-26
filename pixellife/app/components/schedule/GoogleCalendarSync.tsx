@@ -37,7 +37,13 @@ export function GoogleCalendarSync() {
     setIsLoading(true);
     try {
       const dates = getAllDates();
-      const events = [];
+      const events: Array<{
+        summary: string;
+        description: string;
+        start: { dateTime: string; timeZone: string };
+        end: { dateTime: string; timeZone: string };
+        colorId: string;
+      }> = [];
 
       for (const date of dates) {
         const summary = getDaySummary(date);
