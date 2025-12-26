@@ -854,6 +854,27 @@ function BoardPageInner() {
                   </div>
                   <span className="font-pixel mt-1" style={{ fontSize: '13px' }}>{t('sections.goals')}</span>
                 </button>
+                {/* 7. Cronograma */}
+                <button
+                  onClick={() => handleSectionClick('schedule')}
+                  className={`flex flex-col items-center justify-center p-2 rounded-md transition-colors touch-manipulation min-h-[60px] min-w-[80px] ${getButtonClass('schedule')}`}
+                >
+                  <div className="w-6 h-6 bg-black border-2 border-black relative" style={{ imageRendering: 'pixelated' }}>
+                    {/* Calendário pixel art */}
+                    <div className="absolute inset-0.5 bg-white border border-black"></div>
+                    {/* Linhas do calendário */}
+                    <div className="absolute top-1.5 left-0.5 right-0.5 h-0.5 bg-black"></div>
+                    <div className="absolute top-2.5 left-0.5 right-0.5 h-0.5 bg-black"></div>
+                    {/* Pontos representando dias */}
+                    <div className="absolute top-3.5 left-1 w-0.5 h-0.5 bg-black"></div>
+                    <div className="absolute top-3.5 left-2 w-0.5 h-0.5 bg-black"></div>
+                    <div className="absolute top-3.5 left-3 w-0.5 h-0.5 bg-black"></div>
+                    <div className="absolute top-4 left-1 w-0.5 h-0.5 bg-black"></div>
+                    <div className="absolute top-4 left-2 w-0.5 h-0.5 bg-black"></div>
+                    <div className="absolute top-4 left-3 w-0.5 h-0.5 bg-black"></div>
+                  </div>
+                  <span className="font-pixel mt-1" style={{ fontSize: '13px' }}>CRONOGRAMA</span>
+                </button>
               </div>
                 );
               })()}
