@@ -1238,8 +1238,8 @@ function BoardPageInner() {
                                       </span>
                                   </div>
                                     <div className="flex items-center gap-2">
-                                  {/* Seletor de Status (apenas para entradas financeiras) */}
-                                  {item.isFinancialEntry && item.status !== undefined && (
+                                  {/* Seletor de Status (apenas para ganhos, não para gastos) */}
+                                  {item.isFinancialEntry && item.status !== undefined && item.entry?.nature !== 'gasto' && (
                                     <select
                                       value={item.status}
                                       onChange={(e) => {

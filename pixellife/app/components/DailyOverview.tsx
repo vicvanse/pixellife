@@ -448,24 +448,67 @@ export function DailyOverview() {
       });
     }
     
+    // Se estamos adicionando na data selecionada, criar um ID temporário e atualizar estado local imediatamente
+    let tempId: string | null = null;
+    if (isHistoryOp) {
+      // Criar ID temporário para feedback visual imediato
+      tempId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const updatedNotes = [...quickNotes, { id: tempId, text: textToAdd }];
+      setQuickNotes(updatedNotes);
+      // Atualizar a referência de sincronização com o estado esperado (incluindo o temporário)
+      // Isso evita que o useEffect sobrescreva antes do journal atualizar
+      const expectedState = updatedNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
+      lastSyncedJournalRef.current = expectedState;
+    }
+    
     // Usar apenas addQuickNote para adicionar o pensamento rápido (evita duplicação)
     addQuickNote(dateStr, textToAdd);
     
-    // Se estamos adicionando na data selecionada, atualizar o estado local imediatamente
-    if (isHistoryOp) {
-      // Aguardar um pequeno delay para o journal atualizar
+    // Se estamos adicionando na data selecionada, sincronizar com o journal após um delay
+    if (isHistoryOp && tempId) {
+      // Aguardar um delay para o journal atualizar via setJournal
       setTimeout(() => {
         const entry = getEntry(dateStr);
         if (entry && entry.quickNotes) {
-          // Encontrar o quick note recém-adicionado (o último com o texto correspondente)
-          const newNote = entry.quickNotes.find(n => n.text === textToAdd && !quickNotes.find(qn => qn.id === n.id));
-          if (newNote) {
-            setQuickNotes([...quickNotes, { id: newNote.id, text: newNote.text }]);
-            // Atualizar a referência de sincronização imediatamente para evitar conflitos
-            lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
-          }
+          // Usar função de atualização para sempre pegar o estado mais recente
+          setQuickNotes(prev => {
+            // Encontrar o quick note recém-adicionado pelo texto (o último com o texto correspondente)
+            // Filtrar para encontrar o que não está no estado atual (o novo)
+            const currentNoteIds = new Set(prev.map(n => n.id));
+            const newNote = entry.quickNotes
+              .filter(n => n.text === textToAdd && !currentNoteIds.has(n.id))
+              .pop(); // Pegar o último (o mais recente)
+            
+            if (newNote) {
+              // Substituir o ID temporário pelo ID real do journal
+              const updated = prev.map(n => n.id === tempId ? { id: newNote.id, text: newNote.text } : n);
+              // Atualizar a referência de sincronização imediatamente para evitar conflitos
+              lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
+              return updated;
+            }
+            return prev; // Se não encontrou, manter como está
+          });
+          
+          // Se ainda não encontrou, tentar novamente com mais delay
+          setTimeout(() => {
+            const entry2 = getEntry(dateStr);
+            if (entry2 && entry2.quickNotes) {
+              setQuickNotes(prev => {
+                const currentNoteIds2 = new Set(prev.map(n => n.id));
+                const newNote2 = entry2.quickNotes
+                  .filter(n => n.text === textToAdd && !currentNoteIds2.has(n.id))
+                  .pop();
+                if (newNote2) {
+                  const updated = prev.map(n => n.id === tempId ? { id: newNote2.id, text: newNote2.text } : n);
+                  lastSyncedJournalRef.current = entry2.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
+                  return updated;
+                }
+                return prev;
+              });
+            }
+          }, 200);
         }
-      }, 50);
+      }, 150);
     }
     
     // Limpar o estado após adicionar
@@ -1854,10 +1897,10 @@ export function DailyOverview() {
                                       }}
                                       onBlur={(e) => {
                                         // Verificar se o blur foi causado por um clique em um botão
-                                        // Se sim, não fechar o input
+                                        // Se sim, não fechar o input (deixar o botão lidar com isso)
                                         const relatedTarget = e.relatedTarget as HTMLElement;
                                         if (relatedTarget && (relatedTarget.tagName === 'BUTTON' || relatedTarget.closest('button'))) {
-                                          return; // Não fechar se foi um clique em botão
+                                          return; // Não fechar se foi um clique em botão - o botão vai chamar handleAddInlineQuickNote
                                         }
                                         // Verificar se o input ainda está montado (pode ter sido removido pelo handleAddInlineQuickNote)
                                         const currentDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -1891,8 +1934,11 @@ export function DailyOverview() {
                                           e.preventDefault();
                                           e.stopPropagation();
                                           const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                                          // Adicionar o pensamento rápido
-                                          handleAddInlineQuickNote(dateStr);
+                                          // Verificar se há texto para adicionar
+                                          if (inlineQuickNoteText.trim()) {
+                                            // Adicionar o pensamento rápido
+                                            handleAddInlineQuickNote(dateStr);
+                                          }
                       }}
                                         onMouseDown={(e) => {
                                           e.preventDefault(); // Prevenir blur do input

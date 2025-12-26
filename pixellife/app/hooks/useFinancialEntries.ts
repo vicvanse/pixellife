@@ -392,7 +392,12 @@ export function useFinancialEntries() {
           if (startDate && entry.date < startDate) return;
           if (endDate && entry.date > endDate) return;
           
-          const status = entry.status || "received";
+          // Auto-determinar: se status é "expected" e a data já passou -> "pending", senão usar o status original
+          let status = entry.status || "received";
+          if (status === "expected" && entry.date <= today) {
+            status = "pending";
+          }
+          
           if (entry.nature === "ganho") {
             analysis.ganhos[status] += entry.amount;
           } else {
@@ -481,17 +486,63 @@ export function useFinancialEntries() {
           // Calcular quantas ocorrências no período
           if (entry.recurrence === "mensal") {
             let count = 0;
-            let currentDate = new Date(Math.max(entryStart.getTime(), periodStart?.getTime() || entryStart.getTime()));
-            const maxDate = periodEnd || new Date();
+            const startDay = entryStart.getDate();
             
-            while (currentDate <= maxDate) {
-              if (currentDate >= entryStart && (!entryEnd || currentDate <= entryEnd)) {
-                if (currentDate.getDate() === entryStart.getDate()) {
+            // Começar do primeiro mês que pode ter ocorrência no período
+            let currentYear = entryStart.getFullYear();
+            let currentMonth = entryStart.getMonth();
+            
+            // Se o período começa depois da entrada, avançar para o início do período
+            if (periodStart) {
+              const periodStartDate = new Date(periodStart + "T00:00:00");
+              if (periodStartDate > entryStart) {
+                // Encontrar o primeiro mês válido após ou igual ao período de início
+                currentYear = periodStartDate.getFullYear();
+                currentMonth = periodStartDate.getMonth();
+                
+                // Se o dia da entrada ainda não passou neste mês, usar este mês
+                // Caso contrário, avançar para o próximo
+                const daysInThisMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                const dayToCheck = Math.min(startDay, daysInThisMonth);
+                const dateThisMonth = new Date(currentYear, currentMonth, dayToCheck);
+                
+                if (dateThisMonth < periodStartDate) {
+                  // A data deste mês já passou, avançar para o próximo
+                  currentMonth++;
+                  if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                  }
+                }
+              }
+            }
+            
+            const maxDate = periodEnd ? new Date(periodEnd + "T23:59:59") : new Date();
+            
+            while (true) {
+              // Criar data para este mês
+              const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+              const dayToUse = Math.min(startDay, daysInMonth);
+              const currentDate = new Date(currentYear, currentMonth, dayToUse);
+              
+              // Se passou do máximo, parar
+              if (currentDate > maxDate) break;
+              
+              // Verificar se está dentro do período da entrada recorrente
+              if (currentDate >= entryStart && (!entryEnd || currentDate <= new Date(entryEnd + "T23:59:59"))) {
+                // Verificar se está dentro do período de análise
+                if ((!periodStart || currentDate >= new Date(periodStart + "T00:00:00")) && 
+                    (!periodEnd || currentDate <= new Date(periodEnd + "T23:59:59"))) {
                   count++;
                 }
               }
-              // Próximo mês
-              currentDate.setMonth(currentDate.getMonth() + 1);
+              
+              // Avançar para o próximo mês
+              currentMonth++;
+              if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+              }
             }
             
             const category = entry.category || "Sem categoria";
