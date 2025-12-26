@@ -192,67 +192,69 @@ export function useSchedule() {
   }, [journal, habits, calculateDailyTotal, formatDateKey, financialEntries, biographyEntries]);
 
   const getAllDates = useMemo(() => {
-    const dates = new Set<string>();
-    
-    // Datas do journal
-    getJournalDates().forEach(date => dates.add(date));
-    
-    // Datas dos hábitos
-    habits.forEach(habit => {
-      Object.keys(habit.checks).forEach(date => dates.add(date));
-    });
-    
-    // Datas das despesas (precisa buscar do hook de expenses)
-    // Vamos adicionar as datas dos últimos 90 dias para garantir cobertura
-    const today = new Date();
-    for (let i = 0; i < 90; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateKey = formatDateKey(date);
-      const dailyTotal = calculateDailyTotal(dateKey);
-      if (dailyTotal !== 0) {
-        dates.add(dateKey);
-      }
-    }
-    
-    // Datas dos compromissos financeiros
-    financialEntries.forEach(entry => {
-      if (entry.frequency === 'pontual' && entry.date) {
-        dates.add(formatDateKey(new Date(entry.date)));
-      } else if (entry.frequency === 'recorrente' && entry.startDate) {
-        const startDate = new Date(entry.startDate);
-        const endDate = entry.endDate ? new Date(entry.endDate) : new Date();
-        endDate.setFullYear(endDate.getFullYear() + 1); // Próximo ano
-        
-        let currentDate = new Date(startDate);
-        while (currentDate <= endDate) {
-          dates.add(formatDateKey(currentDate));
-          
-          if (entry.recurrence === 'mensal') {
-            currentDate.setMonth(currentDate.getMonth() + 1);
-          } else if (entry.recurrence === 'quinzenal') {
-            currentDate.setDate(currentDate.getDate() + 15);
-          } else if (entry.recurrence === 'anual') {
-            currentDate.setFullYear(currentDate.getFullYear() + 1);
-          } else {
-            break;
-          }
+    return (): string[] => {
+      const dates = new Set<string>();
+      
+      // Datas do journal
+      getJournalDates().forEach(date => dates.add(date));
+      
+      // Datas dos hábitos
+      habits.forEach(habit => {
+        Object.keys(habit.checks).forEach(date => dates.add(date));
+      });
+      
+      // Datas das despesas (precisa buscar do hook de expenses)
+      // Vamos adicionar as datas dos últimos 90 dias para garantir cobertura
+      const today = new Date();
+      for (let i = 0; i < 90; i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dateKey = formatDateKey(date);
+        const dailyTotal = calculateDailyTotal(dateKey);
+        if (dailyTotal !== 0) {
+          dates.add(dateKey);
         }
       }
-    });
-    
-    // Datas da biografia
-    biographyEntries.forEach(entry => {
-      const entryDate = entry.date;
-      if (entryDate.year) {
-        const year = entryDate.year;
-        const month = entryDate.month || 1;
-        const day = entryDate.day || 1;
-        dates.add(formatDateKey(new Date(year, month - 1, day)));
-      }
-    });
-    
-    return Array.from(dates).sort().reverse();
+      
+      // Datas dos compromissos financeiros
+      financialEntries.forEach(entry => {
+        if (entry.frequency === 'pontual' && entry.date) {
+          dates.add(formatDateKey(new Date(entry.date)));
+        } else if (entry.frequency === 'recorrente' && entry.startDate) {
+          const startDate = new Date(entry.startDate);
+          const endDate = entry.endDate ? new Date(entry.endDate) : new Date();
+          endDate.setFullYear(endDate.getFullYear() + 1); // Próximo ano
+          
+          let currentDate = new Date(startDate);
+          while (currentDate <= endDate) {
+            dates.add(formatDateKey(currentDate));
+            
+            if (entry.recurrence === 'mensal') {
+              currentDate.setMonth(currentDate.getMonth() + 1);
+            } else if (entry.recurrence === 'quinzenal') {
+              currentDate.setDate(currentDate.getDate() + 15);
+            } else if (entry.recurrence === 'anual') {
+              currentDate.setFullYear(currentDate.getFullYear() + 1);
+            } else {
+              break;
+            }
+          }
+        }
+      });
+      
+      // Datas da biografia
+      biographyEntries.forEach(entry => {
+        const entryDate = entry.date;
+        if (entryDate.year) {
+          const year = entryDate.year;
+          const month = entryDate.month || 1;
+          const day = entryDate.day || 1;
+          dates.add(formatDateKey(new Date(year, month - 1, day)));
+        }
+      });
+      
+      return Array.from(dates).sort().reverse();
+    };
   }, [getJournalDates, habits, formatDateKey, calculateDailyTotal, financialEntries, biographyEntries]);
 
   return {
