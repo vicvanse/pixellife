@@ -843,8 +843,6 @@ export function DailyOverview() {
                                 onClick={() => {
                           // Salvar o texto da data atual antes de mudar
                           saveCurrentEntry();
-                          // Bloquear sincronização durante mudança de data
-                          isInitialSyncRef.current = true;
                           setSelectedDate(date);
                           loadJournalEntry(date);
                           setShowJournalHistory(false);
