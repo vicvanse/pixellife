@@ -498,17 +498,6 @@ export default function PixelMenu({
                 </PixelIcon>
                 <span>GUIAS</span>
               </button>
-
-              {/* Cronograma */}
-              <button
-                onClick={() => handleNavClick('schedule', '/board')}
-                className={activeSection === 'schedule' ? activeNavItemClass : navItemClass}
-              >
-                <PixelIcon>
-                  <Icons.Schedule />
-                </PixelIcon>
-                <span>CRONOGRAMA</span>
-              </button>
             </>
           ) : (
             <>
@@ -658,29 +647,6 @@ export default function PixelMenu({
                 </Link>
               )}
 
-              {/* Cronograma */}
-              {mode === 'board' ? (
-                <button
-                  onClick={() => handleNavClick('schedule', '/board')}
-                  className={activeSection === 'schedule' ? activeNavItemClass : navItemClass}
-                >
-                  <PixelIcon>
-                    <Icons.Schedule />
-                  </PixelIcon>
-                  <span>CRONOGRAMA</span>
-                </button>
-              ) : (
-                <Link 
-                  href="/schedule" 
-                  className={isActive("/schedule") ? activeNavItemClass : navItemClass}
-                >
-                  <PixelIcon>
-                    <Icons.Schedule />
-                  </PixelIcon>
-                  <span>CRONOGRAMA</span>
-                </Link>
-              )}
-
               {/* Objetivos */}
               {mode === 'board' ? (
                 <button
@@ -734,6 +700,29 @@ export default function PixelMenu({
                     <Icons.Biography />
                   </PixelIcon>
                   <span>BIOGRAFIA</span>
+                </Link>
+              )}
+
+              {/* Cronograma */}
+              {mode === 'board' ? (
+                <button
+                  onClick={() => handleNavClick('schedule', '/board')}
+                  className={activeSection === 'schedule' ? activeNavItemClass : navItemClass}
+                >
+                  <PixelIcon>
+                    <Icons.Schedule />
+                  </PixelIcon>
+                  <span>CRONOGRAMA</span>
+                </button>
+              ) : (
+                <Link 
+                  href="/schedule" 
+                  className={isActive("/schedule") ? activeNavItemClass : navItemClass}
+                >
+                  <PixelIcon>
+                    <Icons.Schedule />
+                  </PixelIcon>
+                  <span>CRONOGRAMA</span>
                 </Link>
               )}
             </>
