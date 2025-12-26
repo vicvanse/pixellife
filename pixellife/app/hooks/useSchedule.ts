@@ -52,8 +52,8 @@ export function useSchedule() {
           type: 'journal',
           title: 'Entrada de Diário',
           description: journalEntry.text || 'Sem texto',
-          color: getMoodColor(journalEntry.mood),
-          icon: getMoodIcon(journalEntry.mood),
+          color: getMoodColor(journalEntry.mood ?? undefined),
+          icon: getMoodIcon(journalEntry.mood ?? undefined),
           metadata: { mood: journalEntry.mood, quickNotes: journalEntry.quickNotes }
         });
       }
