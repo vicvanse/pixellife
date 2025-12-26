@@ -86,6 +86,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const hasLoadedFromSupabaseRef = useRef(false);
   const isLoadingRef = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
+  const isSavingJournalRef = useRef(false);
+  const isUpdatingFromSupabaseRef = useRef(false);
   const saveTimeoutRef = useRef<{ habits: NodeJS.Timeout | null; journal: NodeJS.Timeout | null }>({
     habits: null,
     journal: null,
@@ -137,6 +139,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
 
         // Carregar journal
+        isUpdatingFromSupabaseRef.current = true; // Marcar que está carregando do Supabase
         const { data: journalData, error: journalError } = await loadFromSupabase(user.id, "journal");
         if (!journalError && journalData && typeof journalData === "object" && journalData !== null) {
           const journalObj = journalData as JournalData;
@@ -154,10 +157,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
               // Aguardar um pouco antes de salvar para não interferir com outros processos
               setTimeout(async () => {
                 try {
+                  isSavingJournalRef.current = true;
                   await saveToSupabase(user.id, "journal", normalizedJournal);
                   console.log("✅ AppContext: Journal normalizado salvo com sucesso");
                 } catch (err) {
                   console.error("⚠️ AppContext: Erro ao salvar journal normalizado:", err);
+                } finally {
+                  isSavingJournalRef.current = false;
                 }
               }, 1000);
             }
@@ -169,6 +175,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         } else {
           console.log("ℹ️ AppContext: Nenhum journal encontrado no Supabase (primeira vez?)");
         }
+        isUpdatingFromSupabaseRef.current = false; // Marcar que terminou de carregar
 
         // IMPORTANTE: Sempre marcar como carregado, mesmo se não houver dados
         // Isso permite que os saves funcionem mesmo na primeira vez
@@ -238,27 +245,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Função para salvar journal imediatamente (sem debounce)
   const saveJournalImmediately = useCallback(async () => {
     if (!user?.id || !hasLoadedFromSupabaseRef.current) return;
+    if (isSavingJournalRef.current) {
+      console.log("⏸️ AppContext: Já está salvando journal, pulando...");
+      return; // Evitar salvamentos simultâneos
+    }
+    if (isUpdatingFromSupabaseRef.current) {
+      console.log("⏸️ AppContext: Atualizando do Supabase, não salvar...");
+      return; // Não salvar quando está carregando do Supabase
+    }
     
-    const journalKeys = Object.keys(journal);
+    isSavingJournalRef.current = true;
+      const journalKeys = Object.keys(journal);
     console.log("💾 AppContext: Salvando journal no Supabase (imediato)...", { userId: user.id, journalEntries: journalKeys.length });
-    try {
-      await withRetry(
-        async () => {
-          const { error } = await saveToSupabase(user.id, "journal", journal);
-          if (error) throw error;
-        },
-        {
-          maxRetries: 3,
-          initialDelay: 1000,
-          onRetry: (attempt) => {
-            console.warn(`⚠️ Tentativa ${attempt} de salvar journal falhou, tentando novamente...`);
+      try {
+        await withRetry(
+          async () => {
+            const { error } = await saveToSupabase(user.id, "journal", journal);
+            if (error) throw error;
           },
-        }
-      );
-      console.log("✅ AppContext: Journal salvo com sucesso!");
-    } catch (err) {
-      console.error("❌ AppContext: Erro ao salvar journal após múltiplas tentativas:", err);
-      showToast("Erro ao salvar diário. Verifique sua conexão.", "error");
+          {
+            maxRetries: 3,
+            initialDelay: 1000,
+            onRetry: (attempt) => {
+              console.warn(`⚠️ Tentativa ${attempt} de salvar journal falhou, tentando novamente...`);
+            },
+          }
+        );
+        console.log("✅ AppContext: Journal salvo com sucesso!");
+      } catch (err) {
+        console.error("❌ AppContext: Erro ao salvar journal após múltiplas tentativas:", err);
+        showToast("Erro ao salvar diário. Verifique sua conexão.", "error");
+    } finally {
+      isSavingJournalRef.current = false;
     }
   }, [journal, user?.id, showToast]);
 
@@ -270,6 +288,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!hasLoadedFromSupabaseRef.current) {
       console.log("🔍 AppContext: Ainda não carregou dados - aguardando antes de salvar journal");
       return; // Não salvar antes de carregar
+    }
+    if (isUpdatingFromSupabaseRef.current) {
+      return; // Não salvar quando está carregando do Supabase
     }
 
     // Limpar timeout anterior
@@ -288,7 +309,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journal, user?.id, saveJournalImmediately]);
+  }, [journal, user?.id]); // Remover saveJournalImmediately das dependências para evitar loop
 
   // Forçar salvamento no beforeunload
   useEffect(() => {

@@ -11,7 +11,15 @@ interface MoodSelectorProps {
 }
 
 export function MoodSelector({ value, onChange, onNumberChange, currentNumber }: MoodSelectorProps) {
-  const [showNumeric, setShowNumeric] = useState(false);
+  // Se há um número, mostrar modo numérico inicialmente
+  const [showNumeric, setShowNumeric] = useState(currentNumber !== null && currentNumber !== undefined);
+  
+  // Atualizar showNumeric quando currentNumber muda (ex: ao carregar dados)
+  useEffect(() => {
+    if (currentNumber !== null && currentNumber !== undefined) {
+      setShowNumeric(true);
+    }
+  }, [currentNumber]);
 
   const moods: { value: Mood; emoji: string }[] = [
     { value: "bad", emoji: "🙁" },
@@ -76,6 +84,17 @@ export function MoodSelector({ value, onChange, onNumberChange, currentNumber }:
     <div className="flex gap-2 justify-center md:justify-start items-center">
       {!showNumeric ? (
         <>
+          {/* Mostrar botão "#" quando não há mood selecionado para alternar para modo numérico */}
+          {value === null && (
+            <button
+              onClick={() => setShowNumeric(true)}
+              className="border-2 border-black px-3 py-2 font-mono font-bold text-sm bg-gray-200 hover:opacity-90 touch-manipulation min-h-[48px] flex items-center gap-2"
+              aria-label="Mostrar números"
+              title="Mostrar números (0-10)"
+            >
+              <span className="text-xl">#</span>
+            </button>
+          )}
           {moods.map((mood) => (
             <button
               key={mood.value}

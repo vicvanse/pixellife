@@ -152,12 +152,16 @@ export function DailyOverview() {
     if (!hasText && !hasQuickNotes && !hasMood) return;
     
     const timeout = setTimeout(() => {
+      // Obter quickNotes atuais do journal para preservá-los
+      const currentEntry = getEntry(selectedDate);
+      const currentQuickNotes = currentEntry?.quickNotes || [];
+      
       // Usar quickNotes diretamente do journal (fonte única da verdade)
       updateJournalEntry(selectedDate, { 
         mood: mood, // Passar null explicitamente quando desescolhido, não undefined
         moodNumber: currentMoodNumber ?? undefined, // Só salvar se houver número selecionado
-        text
-        // quickNotes já estão no journal, não precisamos passar
+        text, 
+        quickNotes: currentQuickNotes // Preservar quickNotes existentes
       });
       setJournalDates(getAllDates());
     }, 800); // Reduzido para 800ms para salvar mais rapidamente
@@ -180,12 +184,16 @@ export function DailyOverview() {
       
       // Só salvar se houver conteúdo
       if (hasText || hasQuickNotes || hasMood) {
+        // Obter quickNotes atuais do journal para preservá-los
+        const currentEntry = getEntry(selectedDate);
+        const currentQuickNotes = currentEntry?.quickNotes || [];
+        
         // Usar quickNotes diretamente do journal (fonte única da verdade)
         updateJournalEntry(selectedDate, { 
           mood: mood, // Passar null explicitamente quando desescolhido, não undefined
           moodNumber: currentMoodNumber ?? undefined,
-          text
-          // quickNotes já estão no journal, não precisamos passar
+          text, 
+          quickNotes: currentQuickNotes // Preservar quickNotes existentes
         });
         // Forçar salvamento imediato no beforeunload
         saveJournalImmediately();
@@ -218,12 +226,12 @@ export function DailyOverview() {
       const hasContent = text.trim() || mood !== null || currentQuickNotes.length > 0;
       
       if (hasContent) {
-        // Usar quickNotes diretamente do journal (fonte única da verdade)
+        // Preservar quickNotes existentes
       updateJournalEntry(selectedDate, { 
           mood: mood, // Passar null explicitamente quando desescolhido, não undefined
         moodNumber: currentMoodNumber ?? undefined,
-          text
-          // quickNotes já estão no journal, não precisamos passar
+        text, 
+          quickNotes: currentQuickNotes // Preservar quickNotes existentes
       });
       setJournalDates(getAllDates());
       }
