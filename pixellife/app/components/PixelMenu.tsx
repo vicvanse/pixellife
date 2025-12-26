@@ -573,20 +573,6 @@ export default function PixelMenu({
                 </Link>
               )}
 
-              {/* Diário Novo */}
-              {mode === 'board' && (
-                <button
-                  onClick={() => handleNavClick('journal-new', '/board')}
-                  className={activeSection === 'journal-new' ? activeNavItemClass : navItemClass}
-                  title="Diário (Nova Versão)"
-                >
-                  <PixelIcon>
-                    <Icons.Journal />
-                  </PixelIcon>
-                  <span>DIÁRIO (NOVO)</span>
-                </button>
-              )}
-
               {/* Finanças */}
               {mode === 'board' ? (
                 <button

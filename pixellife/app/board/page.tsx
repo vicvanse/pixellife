@@ -2,7 +2,6 @@
 
 import PixelMenu from '../components/PixelMenu';
 import { DailyOverview } from '../components/DailyOverview';
-import { JournalSectionNew } from '../components/JournalSectionNew';
 import { ProfileSection } from '../components/ProfileSection';
 import { PixelCard } from '../components/PixelCard';
 import { useHabits, type Habit } from '../hooks/useHabits';
@@ -59,7 +58,7 @@ import { useUI } from '../context/UIContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useSyncFinancialEntries } from '../hooks/useSyncData';
 
-type BoardSection = 'display' | 'habits' | 'journal' | 'journal-new' | 'finances' | 'goals' | 'mapas' | 'biography' | 'feedback' | 'guides' | 'achievements';
+type BoardSection = 'display' | 'habits' | 'journal' | 'finances' | 'goals' | 'mapas' | 'biography' | 'feedback' | 'guides' | 'achievements';
 
 function BoardPageInner() {
   const searchParams = useSearchParams();
@@ -270,7 +269,7 @@ function BoardPageInner() {
     const updateSection = () => {
       if (typeof window !== 'undefined') {
         const hash = window.location.hash.replace('#', '');
-        const validSections: BoardSection[] = ['display', 'journal', 'journal-new', 'habits', 'finances', 'goals', 'mapas', 'guides', 'biography', 'achievements', 'feedback'];
+        const validSections: BoardSection[] = ['display', 'journal', 'habits', 'finances', 'goals', 'mapas', 'guides', 'biography', 'achievements', 'feedback'];
         if (hash && validSections.includes(hash as BoardSection)) {
           setActiveBoardSection(hash === 'map' ? 'mapas' : (hash as BoardSection));
         } else {
@@ -287,7 +286,7 @@ function BoardPageInner() {
     // Escutar evento customizado de mudança de seção
     const handleSectionChange = (e: CustomEvent) => {
       const section = e.detail.section as BoardSection;
-      if (['display', 'habits', 'journal', 'journal-new', 'finances', 'goals', 'mapas', 'biography', 'feedback', 'guides', 'achievements'].includes(section)) {
+      if (['display', 'habits', 'journal', 'finances', 'goals', 'mapas', 'biography', 'feedback', 'guides', 'achievements'].includes(section)) {
         setActiveBoardSection(section);
       }
     };
@@ -991,18 +990,6 @@ function BoardPageInner() {
                     </h1>
                     <div className="max-w-5xl mx-auto">
                       <DailyOverview />
-                    </div>
-                  </div>
-                </section>
-              )}
-              {activeBoardSection === 'journal-new' && isModuleActive('journal') && (
-                <section id="journal-new" className="scroll-mt-8 mb-8">
-                  <div className="section-box">
-                    <h1 className="font-pixel-bold mb-6" style={{ color: '#333', fontSize: '24px' }}>
-                      {t('sections.journal')} (Nova)
-                    </h1>
-                    <div className="max-w-5xl mx-auto">
-                      <JournalSectionNew />
                     </div>
                   </div>
                 </section>
@@ -3034,20 +3021,6 @@ function BoardPageInner() {
                 </h1>
                 <div className="max-w-5xl mx-auto">
                   <DailyOverview />
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* DIÁRIO NOVO - Modo contínuo: nova versão corrigida */}
-          {viewMode === 'continuous' && isModuleActive('journal') && (
-            <section id="journal-new" className="scroll-mt-8 mb-8">
-              <div className="section-box">
-                <h1 className="font-pixel-bold mb-6" style={{ color: '#333', fontSize: '24px' }}>
-                  {t('sections.journal')} (Nova)
-                </h1>
-                <div className="max-w-5xl mx-auto">
-                  <JournalSectionNew />
                 </div>
               </div>
             </section>

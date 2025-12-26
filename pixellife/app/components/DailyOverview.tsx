@@ -17,7 +17,7 @@ export function DailyOverview() {
   const [selectedDate, setSelectedDate] = useState('');
   const [mood, setMood] = useState<Mood | null>(null);
   const [text, setText] = useState('');
-  const [quickNotes, setQuickNotes] = useState<Array<{ id: string; text: string }>>([]);
+  // Removido estado local quickNotes - usar diretamente do journal global
   const [newQuickNote, setNewQuickNote] = useState('');
   const [isAddingQuickNote, setIsAddingQuickNote] = useState(false);
   const [editingQuickNoteDate, setEditingQuickNoteDate] = useState<string | null>(null); // Data do card que está sendo editado
@@ -42,7 +42,6 @@ export function DailyOverview() {
   const [showQuickThoughtsView, setShowQuickThoughtsView] = useState(false);
   const [showJournalHistory, setShowJournalHistory] = useState(false);
   const isInitialLoadRef = useRef(true);
-  const isInitialSyncRef = useRef(true); // Flag para evitar sincronização durante carregamento inicial
 
   // Inicializar com data de hoje
   useEffect(() => {
@@ -53,11 +52,7 @@ export function DailyOverview() {
     // Marcar que a carga inicial foi concluída após um pequeno delay
     setTimeout(() => {
       isInitialLoadRef.current = false;
-      // Aguardar mais um pouco antes de permitir sincronização para evitar loops
-      setTimeout(() => {
-        isInitialSyncRef.current = false;
-      }, 300);
-    }, 200); // Aumentado para garantir que loadJournalEntry terminou
+    }, 200);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -114,6 +109,12 @@ export function DailyOverview() {
     return () => clearTimeout(timeoutId);
   }, []);
 
+  // Helper para obter quickNotes diretamente do journal (fonte única da verdade)
+  const getQuickNotes = useCallback((date: string) => {
+    const entry = getEntry(date);
+    return entry?.quickNotes || [];
+  }, [getEntry]);
+
   const loadJournalEntry = (date: string) => {
     const entry = getEntry(date);
     if (entry) {
@@ -122,70 +123,15 @@ export function DailyOverview() {
       setCurrentMoodNumber(entry.moodNumber ?? null);
       setText(entry.text);
       setIsTextExpanded(!!entry.text);
-      const notes = entry.quickNotes.map((note) => ({ id: note.id, text: note.text }));
-      setQuickNotes(notes);
-      // Atualizar a referência de sincronização
-      lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
     } else {
       setMood(null);
       setCurrentMoodNumber(null);
       setText('');
       setIsTextExpanded(false);
-      setQuickNotes([]);
-      lastSyncedJournalRef.current = '';
     }
   };
 
-  // Sincronizar quickNotes quando o journal do dia selecionado mudar (para sincronizar com exclusões no histórico)
-  // IMPORTANTE: Usar refs para rastrear operações em andamento e evitar sincronização prematura
-  const isDeletingRef = useRef(false);
-  const isAddingRef = useRef(false);
-  const isEditingRef = useRef(false);
-  const isHistoryOperationRef = useRef(false); // Rastrear operações vindas do histórico
-  const lastSyncedJournalRef = useRef<string>('');
-  
-  useEffect(() => {
-    if (!selectedDate) return;
-    
-    // Não sincronizar durante o carregamento inicial
-    if (isInitialSyncRef.current) {
-      return;
-    }
-    
-    // Se estamos deletando, adicionando ou editando, ou se é uma operação do histórico, não sincronizar ainda
-    if (isDeletingRef.current || isAddingRef.current || isEditingRef.current || isHistoryOperationRef.current) {
-      return;
-    }
-    
-    const entry = getEntry(selectedDate);
-    if (entry && entry.quickNotes) {
-      // Criar uma chave única do estado atual do journal para esta data
-      const journalStateKey = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
-      
-      // Se o journal não mudou desde a última sincronização, não fazer nada
-      if (lastSyncedJournalRef.current === journalStateKey) {
-        return;
-      }
-      
-      // Comparar IDs e textos para detectar mudanças reais
-      const currentNotesIds = quickNotes.map(n => n.id).sort().join('|');
-      const journalNotesIds = entry.quickNotes.map(n => n.id).sort().join('|');
-      const currentNotesText = quickNotes.map(n => n.text).join('|');
-      const journalNotesText = entry.quickNotes.map(n => n.text).join('|');
-      
-      // Só atualizar se houver diferença real (IDs ou textos diferentes)
-      // E se a última sincronização não corresponde ao estado atual do journal
-      if ((currentNotesIds !== journalNotesIds || currentNotesText !== journalNotesText) && 
-          lastSyncedJournalRef.current !== journalStateKey) {
-        setQuickNotes(entry.quickNotes.map((note) => ({ id: note.id, text: note.text })));
-        lastSyncedJournalRef.current = journalStateKey;
-      }
-    } else if (!entry && quickNotes.length > 0) {
-      setQuickNotes([]);
-      lastSyncedJournalRef.current = '';
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journal, selectedDate]);
+  // Removida toda a lógica complexa de sincronização - agora usamos diretamente do journal global
   
 
   // Auto-save journal text (salva apenas se houver interação explícita)
@@ -196,53 +142,28 @@ export function DailyOverview() {
     // Não salvar durante a carga inicial
     if (isInitialLoadRef.current) return;
     
-    // Não salvar se estamos adicionando, deletando ou editando (evitar conflitos)
-    if (isAddingRef.current || isDeletingRef.current || isEditingRef.current) return;
-    
     // Não salvar se não houver conteúdo (texto, quickNotes ou mood selecionado)
+    const currentEntry = getEntry(selectedDate);
+    const currentQuickNotes = currentEntry?.quickNotes || [];
     const hasText = text.trim().length > 0;
-    const hasQuickNotes = quickNotes.some(n => n.text && n.text.trim().length > 0);
+    const hasQuickNotes = currentQuickNotes.some(n => n.text && n.text.trim().length > 0);
     const hasMood = mood !== null;
     
     if (!hasText && !hasQuickNotes && !hasMood) return;
     
     const timeout = setTimeout(() => {
-      // Obter a entrada atual do journal para preservar os IDs dos quickNotes
-      const currentEntry = getEntry(selectedDate);
-      const existingQuickNotes = currentEntry?.quickNotes || [];
-      
-      // Filtrar pensamentos vazios antes de salvar, preservando IDs quando possível
-      const filteredQuickNotes = quickNotes
-        .filter(n => n.text && n.text.trim().length > 0)
-        .map(n => {
-          // Tentar encontrar o quickNote correspondente no journal para preservar ID e time
-          const existing = existingQuickNotes.find(e => e.id === n.id) || 
-                          existingQuickNotes.find(e => e.text.trim() === n.text.trim());
-          return {
-            id: existing?.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9)),
-            time: existing?.time || '',
-            text: n.text.trim()
-          };
-        });
-      
-      // Salvar mood e moodNumber apenas se foram selecionados
+      // Usar quickNotes diretamente do journal (fonte única da verdade)
       updateJournalEntry(selectedDate, { 
-        mood: mood || undefined,
+        mood: mood, // Passar null explicitamente quando desescolhido, não undefined
         moodNumber: currentMoodNumber ?? undefined, // Só salvar se houver número selecionado
-        text, 
-        quickNotes: filteredQuickNotes
+        text
+        // quickNotes já estão no journal, não precisamos passar
       });
       setJournalDates(getAllDates());
-      
-      // Atualizar a referência de sincronização após salvar
-      const entry = getEntry(selectedDate);
-      if (entry && entry.quickNotes) {
-        lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
-      }
     }, 2000); // Aumentado de 1000ms para 2000ms para reduzir salvamentos frequentes
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text, selectedDate, mood, currentMoodNumber, setJournal, quickNotes]);
+  }, [text, selectedDate, mood, currentMoodNumber, journal]);
 
   // Salvar texto antes de sair da página ou desmontar componente
   useEffect(() => {
@@ -250,34 +171,21 @@ export function DailyOverview() {
       if (!selectedDate) return;
       
       // Verificar se há conteúdo para salvar
+      // Verificar se há conteúdo para salvar usando journal global
+      const currentEntry = getEntry(selectedDate);
+      const currentQuickNotes = currentEntry?.quickNotes || [];
       const hasText = text.trim().length > 0;
-      const hasQuickNotes = quickNotes.some(n => n.text && n.text.trim().length > 0);
+      const hasQuickNotes = currentQuickNotes.some(n => n.text && n.text.trim().length > 0);
       const hasMood = mood !== null;
       
       // Só salvar se houver conteúdo
       if (hasText || hasQuickNotes || hasMood) {
-        // Obter a entrada atual do journal para preservar os IDs dos quickNotes
-        const currentEntry = getEntry(selectedDate);
-        const existingQuickNotes = currentEntry?.quickNotes || [];
-        
-        // Filtrar pensamentos vazios antes de salvar, preservando IDs quando possível
-        const filteredQuickNotes = quickNotes
-          .filter(n => n.text && n.text.trim().length > 0)
-          .map(n => {
-            // Tentar encontrar o quickNote correspondente no journal para preservar ID e time
-            const existing = existingQuickNotes.find(e => e.id === n.id) || 
-                            existingQuickNotes.find(e => e.text.trim() === n.text.trim());
-            return {
-              id: existing?.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9)),
-              time: existing?.time || '',
-              text: n.text.trim()
-            };
-          });
+        // Usar quickNotes diretamente do journal (fonte única da verdade)
         updateJournalEntry(selectedDate, { 
-          mood: mood || undefined,
+          mood: mood, // Passar null explicitamente quando desescolhido, não undefined
           moodNumber: currentMoodNumber ?? undefined,
-          text, 
-          quickNotes: filteredQuickNotes
+          text
+          // quickNotes já estão no journal, não precisamos passar
         });
       }
     };
@@ -298,32 +206,25 @@ export function DailyOverview() {
       window.removeEventListener('pagehide', handleUnload);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text, selectedDate, mood, currentMoodNumber, quickNotes, updateJournalEntry]);
+  }, [text, selectedDate, mood, currentMoodNumber, journal, updateJournalEntry]);
 
   // Função auxiliar para salvar antes de mudar de data
   const saveCurrentEntry = () => {
-    if (selectedDate && (text.trim() || mood !== null || quickNotes.length > 0)) {
+    if (selectedDate) {
       const currentEntry = getEntry(selectedDate);
-      const existingQuickNotes = currentEntry?.quickNotes || [];
+      const currentQuickNotes = currentEntry?.quickNotes || [];
+      const hasContent = text.trim() || mood !== null || currentQuickNotes.length > 0;
       
-      const filteredQuickNotes = quickNotes
-        .filter(n => n.text && n.text.trim().length > 0)
-        .map(n => {
-          const existing = existingQuickNotes.find(e => e.id === n.id) || 
-                          existingQuickNotes.find(e => e.text.trim() === n.text.trim());
-          return {
-            id: existing?.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9)),
-            time: existing?.time || '',
-            text: n.text.trim()
-          };
-        });
+      if (hasContent) {
+        // Usar quickNotes diretamente do journal (fonte única da verdade)
       updateJournalEntry(selectedDate, { 
-        mood: mood || undefined,
+          mood: mood, // Passar null explicitamente quando desescolhido, não undefined
         moodNumber: currentMoodNumber ?? undefined,
-        text, 
-        quickNotes: filteredQuickNotes
+          text
+          // quickNotes já estão no journal, não precisamos passar
       });
       setJournalDates(getAllDates());
+      }
     }
   };
 
@@ -332,17 +233,11 @@ export function DailyOverview() {
     saveCurrentEntry();
     // Marcar como carga inicial ao mudar de data
     isInitialLoadRef.current = true;
-    isInitialSyncRef.current = true; // Também bloquear sincronização durante mudança de data
     setSelectedDate(date);
     loadJournalEntry(date);
     // Permitir salvamento após carregar a nova data
-    // Aumentar um pouco para garantir que loadJournalEntry terminou e evitar sobreposição
     setTimeout(() => {
       isInitialLoadRef.current = false;
-      // Aguardar mais um pouco antes de permitir sincronização
-      setTimeout(() => {
-        isInitialSyncRef.current = false;
-      }, 300);
     }, 200);
   };
 
@@ -366,7 +261,7 @@ export function DailyOverview() {
       setJournalDates(getAllDates().filter(date => date !== selectedDate));
     } else {
       updateJournalEntry(selectedDate, { 
-        mood: newMood || undefined,
+        mood: newMood, // Passar null explicitamente quando desescolhido, não undefined
         moodNumber: undefined, // Limpar número quando seleciona emoji
         text: existingText, 
         quickNotes: existingQuickNotes
@@ -403,7 +298,7 @@ export function DailyOverview() {
       setJournalDates(getAllDates().filter(date => date !== selectedDate));
     } else {
       updateJournalEntry(selectedDate, { 
-        mood: newMood || undefined,
+        mood: newMood, // Passar null explicitamente quando desescolhido, não undefined
         moodNumber: num ?? undefined, // Salvar número ou undefined se null
         text: existingText, 
         quickNotes: existingQuickNotes
@@ -415,23 +310,10 @@ export function DailyOverview() {
 
   const handleAddQuickNote = () => {
     if (newQuickNote.trim() && selectedDate) {
-      // Marcar que estamos adicionando para evitar sincronização prematura
-      isAddingRef.current = true;
-      
       addQuickNote(selectedDate, newQuickNote.trim());
-      
-      // Atualizar o estado local imediatamente para feedback visual
-      // O ID será corrigido pela sincronização quando o journal atualizar
-      const tempId = Date.now().toString();
-      setQuickNotes([...quickNotes, { id: tempId, text: newQuickNote.trim() }]);
-      
       setNewQuickNote('');
       setIsAddingQuickNote(false);
-      
-      // Resetar a flag após um delay para permitir que a adição complete
-      setTimeout(() => {
-        isAddingRef.current = false;
-      }, 300);
+      setJournalDates(getAllDates());
     }
   };
 
@@ -439,109 +321,28 @@ export function DailyOverview() {
     const textToAdd = inlineQuickNoteText.trim();
     if (!textToAdd) return;
     
-    // Verificar se é uma operação do histórico no mesmo dia selecionado
-    const isHistoryOp = dateStr === selectedDate;
-    
-    // Marcar que estamos adicionando para evitar sincronização prematura
-    isAddingRef.current = true;
-    if (isHistoryOp) {
-      isHistoryOperationRef.current = true;
-    }
-    
-    // Obter a entrada atual do journal para garantir que estamos trabalhando com dados atualizados
-    const currentEntry = getEntry(dateStr);
-    
     // Obter o texto longo da data selecionada para preservá-lo
     const selectedEntry = selectedDate ? getEntry(selectedDate) : null;
     const textToPreserve = selectedEntry?.text || '';
     
     // Se não existe entrada para esta data, criar uma com o texto preservado antes de adicionar o quickNote
+    const currentEntry = getEntry(dateStr);
     if (!currentEntry) {
       updateJournalEntry(dateStr, {
-        mood: undefined,
+        mood: null,
         moodNumber: undefined,
-        text: textToPreserve, // Preservar o texto longo da data selecionada
+        text: textToPreserve,
         quickNotes: [],
       });
     }
     
-    // Se estamos adicionando na data selecionada, criar um ID temporário e atualizar estado local imediatamente
-    let tempId: string | null = null;
-    if (isHistoryOp) {
-      // Criar ID temporário para feedback visual imediato
-      tempId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const updatedNotes = [...quickNotes, { id: tempId, text: textToAdd }];
-      setQuickNotes(updatedNotes);
-      // Atualizar a referência de sincronização com o estado esperado (incluindo o temporário)
-      // Isso evita que o useEffect sobrescreva antes do journal atualizar
-      const expectedState = updatedNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
-      lastSyncedJournalRef.current = expectedState;
-    }
-    
-    // Usar apenas addQuickNote para adicionar o pensamento rápido (evita duplicação)
+    // Adicionar o quick note diretamente no journal
     addQuickNote(dateStr, textToAdd);
-    
-    // Se estamos adicionando na data selecionada, sincronizar com o journal após um delay
-    if (isHistoryOp && tempId) {
-      // Aguardar um delay para o journal atualizar via setJournal
-      setTimeout(() => {
-        const entry = getEntry(dateStr);
-        if (entry && entry.quickNotes) {
-          // Usar função de atualização para sempre pegar o estado mais recente
-          setQuickNotes(prev => {
-            // Encontrar o quick note recém-adicionado pelo texto (o último com o texto correspondente)
-            // Filtrar para encontrar o que não está no estado atual (o novo)
-            const currentNoteIds = new Set(prev.map(n => n.id));
-            const newNote = entry.quickNotes
-              .filter(n => n.text === textToAdd && !currentNoteIds.has(n.id))
-              .pop(); // Pegar o último (o mais recente)
-            
-            if (newNote) {
-              // Substituir o ID temporário pelo ID real do journal
-              const updated = prev.map(n => n.id === tempId ? { id: newNote.id, text: newNote.text } : n);
-              // Atualizar a referência de sincronização imediatamente para evitar conflitos
-              lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
-              return updated;
-            }
-            return prev; // Se não encontrou, manter como está
-          });
-          
-          // Se ainda não encontrou, tentar novamente com mais delay
-          setTimeout(() => {
-            const entry2 = getEntry(dateStr);
-            if (entry2 && entry2.quickNotes) {
-              setQuickNotes(prev => {
-                const currentNoteIds2 = new Set(prev.map(n => n.id));
-                const newNote2 = entry2.quickNotes
-                  .filter(n => n.text === textToAdd && !currentNoteIds2.has(n.id))
-                  .pop();
-                if (newNote2) {
-                  const updated = prev.map(n => n.id === tempId ? { id: newNote2.id, text: newNote2.text } : n);
-                  lastSyncedJournalRef.current = entry2.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
-                  return updated;
-                }
-                return prev;
-              });
-            }
-          }, 200);
-        }
-      }, 150);
-    }
     
     // Limpar o estado após adicionar
     setInlineQuickNoteText('');
     setEditingQuickNoteDate(null);
-    
-    // Atualizar as datas do journal
     setJournalDates(getAllDates());
-    
-    // Resetar as flags após um delay para permitir que a adição complete
-    setTimeout(() => {
-      isAddingRef.current = false;
-      if (isHistoryOp) {
-        isHistoryOperationRef.current = false;
-      }
-    }, 500); // Aumentado para 500ms para garantir que a operação complete
   };
 
   const handleQuickNoteKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -552,64 +353,38 @@ export function DailyOverview() {
 
   const handleRemoveQuickNote = (noteId: string) => {
     if (selectedDate) {
-      // Marcar que estamos deletando para evitar sincronização prematura
-      isDeletingRef.current = true;
-      
-      // Remover do estado local imediatamente para feedback visual
-      setQuickNotes(prev => {
-        const updated = prev.filter(n => n.id !== noteId);
-        // Atualizar a referência de sincronização com o estado esperado
-        const expectedState = updated.map(n => `${n.id}:${n.text}`).sort().join('|');
-        lastSyncedJournalRef.current = expectedState;
-        return updated;
-      });
-      
-      // Remover do journal
       removeQuickNote(selectedDate, noteId);
       setJournalDates(getAllDates());
-      
-      // Atualizar a referência de sincronização após um delay para garantir que o journal atualizou
-      setTimeout(() => {
-        const entry = getEntry(selectedDate);
-        if (entry && entry.quickNotes) {
-          lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
-        } else {
-          lastSyncedJournalRef.current = '';
-        }
-        // Resetar a flag após atualizar a referência
-        isDeletingRef.current = false;
-      }, 200);
     }
   };
 
   // Funções para modo blocos
   const handleToggleBlocksMode = () => {
     setBlocksMode(!blocksMode);
-    if (!blocksMode && quickNotes.length === 0 && text.trim()) {
+    if (!blocksMode && getQuickNotes(selectedDate).length === 0 && text.trim()) {
       // Se não há quick notes mas há texto, converter texto em primeiro bloco
-      const firstBlock = { 
-        id: Date.now().toString(), 
-        text: text.trim(),
-        createdAt: new Date().toISOString()
-      };
-      setQuickNotes([firstBlock]);
+      addQuickNote(selectedDate, text.trim());
     }
   };
 
   const handleAddBlock = () => {
-    const newBlock = {
-      id: Date.now().toString(),
-      text: '',
-      createdAt: new Date().toISOString()
-    };
-    const updatedNotes = [...quickNotes, newBlock];
-    setQuickNotes(updatedNotes);
-    setEditingBlockId(newBlock.id);
-    setEditingBlockText('');
+    if (selectedDate) {
+      addQuickNote(selectedDate, '');
+      // O novo bloco será editado imediatamente
+      setTimeout(() => {
+        const currentNotes = getQuickNotes(selectedDate);
+        const newBlock = currentNotes[currentNotes.length - 1];
+        if (newBlock) {
+          setEditingBlockId(newBlock.id);
+          setEditingBlockText('');
+        }
+      }, 100);
+    }
   };
 
   const handleEditBlock = (blockId: string) => {
-    const block = quickNotes.find(n => n.id === blockId);
+    const currentNotes = getQuickNotes(selectedDate);
+    const block = currentNotes.find(n => n.id === blockId);
     if (block) {
       setEditingBlockId(blockId);
       setEditingBlockText(block.text);
@@ -618,34 +393,12 @@ export function DailyOverview() {
 
   const handleSaveBlock = (blockId: string) => {
     if (selectedDate) {
-      const updatedNotes = editingBlockText.trim()
-        ? quickNotes.map(note => 
-            note.id === blockId 
-              ? { ...note, text: editingBlockText.trim() }
-              : note
-          )
-        : quickNotes.filter(note => note.id !== blockId); // Remove se estiver vazio
-      
-      setQuickNotes(updatedNotes);
-      // Obter a entrada atual do journal para preservar os IDs e times dos quickNotes
-      const currentEntry = getEntry(selectedDate);
-      const existingQuickNotes = currentEntry?.quickNotes || [];
-      
-      // Salvar no journal, preservando IDs e times quando possível
-      updateJournalEntry(selectedDate, {
-        mood: mood as Mood,
-        moodNumber: currentMoodNumber ?? undefined,
-        text,
-        quickNotes: updatedNotes.map(n => {
-          // Tentar encontrar o quickNote correspondente no journal para preservar ID e time
-          const existing = existingQuickNotes.find(e => e.id === n.id);
-          return {
-            id: existing?.id || n.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9)),
-            time: existing?.time || '',
-            text: n.text
-          };
-        })
-      });
+      if (editingBlockText.trim()) {
+        updateQuickNote(selectedDate, blockId, editingBlockText.trim());
+      } else {
+        // Se estiver vazio, remover
+        removeQuickNote(selectedDate, blockId);
+      }
     }
     setEditingBlockId(null);
     setEditingBlockText('');
@@ -658,28 +411,10 @@ export function DailyOverview() {
 
   const handleRemoveBlock = (blockId: string) => {
     if (selectedDate) {
-      const updatedNotes = quickNotes.filter(n => n.id !== blockId);
-      setQuickNotes(updatedNotes);
-      // Obter a entrada atual do journal para preservar os IDs e times dos quickNotes
-      const currentEntry = getEntry(selectedDate);
-      const existingQuickNotes = currentEntry?.quickNotes || [];
-      
-      // Atualizar no journal, preservando IDs e times quando possível
-      updateJournalEntry(selectedDate, {
-        mood: mood as Mood,
-        moodNumber: currentMoodNumber ?? undefined,
-        text,
-        quickNotes: updatedNotes.map(n => {
-          // Tentar encontrar o quickNote correspondente no journal para preservar ID e time
-          const existing = existingQuickNotes.find(e => e.id === n.id);
-          return {
-            id: existing?.id || n.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9)),
-            time: existing?.time || '',
-            text: n.text
-          };
-        })
-      });
+      removeQuickNote(selectedDate, blockId);
     }
+    setEditingBlockId(null);
+    setEditingBlockText('');
   };
 
   const handleAddHabit = () => {
@@ -1113,10 +848,6 @@ export function DailyOverview() {
                           setSelectedDate(date);
                           loadJournalEntry(date);
                           setShowJournalHistory(false);
-                          // Permitir sincronização após carregar
-                          setTimeout(() => {
-                            isInitialSyncRef.current = false;
-                          }, 300);
                         }}
                         className="p-4 rounded-lg cursor-pointer transition-all"
                                 style={{
@@ -1280,7 +1011,7 @@ export function DailyOverview() {
                   </div>
 
               <div className="flex flex-col gap-2" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                {quickNotes.map((note, idx) => (
+                {getQuickNotes(selectedDate).map((note, idx) => (
                       <div
                         key={note.id}
                         className="p-2 rounded-md font-pixel text-gray-800 flex justify-between items-center relative group border border-[#e0e0e0]"
@@ -1305,76 +1036,21 @@ export function DailyOverview() {
                         onKeyPress={(e) => {
                           if (e.key === 'Enter') {
                             if (selectedDate && editingQuickNoteText.trim()) {
-                              // Marcar que estamos editando
-                              isEditingRef.current = true;
-                              
-                              // Atualizar estado local imediatamente
-                              setQuickNotes(prev => {
-                                const updated = prev.map(n => 
-                                  n.id === note.id ? { ...n, text: editingQuickNoteText.trim() } : n
-                                );
-                                // Atualizar a referência de sincronização com o estado esperado
-                                const expectedState = updated.map(n => `${n.id}:${n.text}`).sort().join('|');
-                                lastSyncedJournalRef.current = expectedState;
-                                return updated;
-                              });
-                              
-                              // Atualizar no journal
                               updateQuickNote(selectedDate, note.id, editingQuickNoteText.trim());
-                              
                               setEditingQuickNote(null);
                               setEditingQuickNoteText('');
-                              
-                              // Atualizar referência de sincronização após delay e resetar flag
-                              setTimeout(() => {
-                                const entry = getEntry(selectedDate);
-                                if (entry && entry.quickNotes) {
-                                  lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
-                                }
-                                isEditingRef.current = false;
-                              }, 200);
                             }
                           } else if (e.key === 'Escape') {
                             setEditingQuickNote(null);
                             setEditingQuickNoteText('');
-                            isEditingRef.current = false;
                           }
                         }}
                         onBlur={() => {
                           if (selectedDate && editingQuickNoteText.trim()) {
-                            // Marcar que estamos editando
-                            isEditingRef.current = true;
-                            
-                            // Atualizar estado local imediatamente
-                            setQuickNotes(prev => {
-                              const updated = prev.map(n => 
-                                n.id === note.id ? { ...n, text: editingQuickNoteText.trim() } : n
-                              );
-                              // Atualizar a referência de sincronização com o estado esperado
-                              const expectedState = updated.map(n => `${n.id}:${n.text}`).sort().join('|');
-                              lastSyncedJournalRef.current = expectedState;
-                              return updated;
-                            });
-                            
-                            // Atualizar no journal
                             updateQuickNote(selectedDate, note.id, editingQuickNoteText.trim());
-                            
-                            setEditingQuickNote(null);
-                            setEditingQuickNoteText('');
-                            
-                            // Atualizar referência de sincronização após delay e resetar flag
-                            setTimeout(() => {
-                              const entry = getEntry(selectedDate);
-                              if (entry && entry.quickNotes) {
-                                lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
-                              }
-                              isEditingRef.current = false;
-                            }, 200);
-                          } else {
-                            setEditingQuickNote(null);
-                            setEditingQuickNoteText('');
-                            isEditingRef.current = false;
                           }
+                            setEditingQuickNote(null);
+                            setEditingQuickNoteText('');
                         }}
                         className="flex-1 px-2 py-1 rounded font-pixel border"
                         style={{
@@ -1391,8 +1067,6 @@ export function DailyOverview() {
                         onDoubleClick={(e) => {
                           e.stopPropagation();
                           if (selectedDate) {
-                            // Resetar flag de edição antes de iniciar nova edição
-                            isEditingRef.current = false;
                             setEditingQuickNote({ date: selectedDate, noteId: note.id });
                             setEditingQuickNoteText(note.text);
                           }
@@ -1733,104 +1407,21 @@ export function DailyOverview() {
                                           onKeyPress={(e) => {
                                             if (e.key === 'Enter') {
                                               if (editingQuickNoteText.trim()) {
-                                                // Verificar se é uma operação do histórico no mesmo dia selecionado
-                                                const isHistoryOp = dateStr === selectedDate;
-                                                
-                                                // Marcar que estamos editando
-                                                isEditingRef.current = true;
-                                                if (isHistoryOp) {
-                                                  isHistoryOperationRef.current = true;
-                                                }
-                                                
-                                                // Se for a data selecionada, atualizar estado local imediatamente
-                                                if (isHistoryOp) {
-                                                  setQuickNotes(prev => {
-                                                    const updated = prev.map(n => 
-                                                      n.id === note.id ? { ...n, text: editingQuickNoteText.trim() } : n
-                                                    );
-                                                    // Atualizar a referência de sincronização com o estado esperado
-                                                    const expectedState = updated.map(n => `${n.id}:${n.text}`).sort().join('|');
-                                                    lastSyncedJournalRef.current = expectedState;
-                                                    return updated;
-                                                  });
-                                                }
-                                                
-                                                // Atualizar no journal
                                                 updateQuickNote(dateStr, note.id, editingQuickNoteText.trim());
-                                                
-                setEditingQuickNote(null);
-                setEditingQuickNoteText('');
-                                                
-                                                // Resetar flags após delay e sincronizar referência
-                                                setTimeout(() => {
-                                                  if (isHistoryOp) {
-                                                    const entry = getEntry(dateStr);
-                                                    if (entry && entry.quickNotes) {
-                                                      lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
-                                                    }
-                                                  }
-                                                  isEditingRef.current = false;
-                                                  if (isHistoryOp) {
-                                                    isHistoryOperationRef.current = false;
-                                                  }
-                                                }, 200);
                                               }
+                                              setEditingQuickNote(null);
+                                              setEditingQuickNoteText('');
                                             } else if (e.key === 'Escape') {
-                setEditingQuickNote(null);
-                setEditingQuickNoteText('');
-                                                isEditingRef.current = false;
-                                                isHistoryOperationRef.current = false;
-              }
+                                              setEditingQuickNote(null);
+                                              setEditingQuickNoteText('');
+                                            }
                                           }}
                                           onBlur={() => {
                                             if (editingQuickNoteText.trim()) {
-                                              // Verificar se é uma operação do histórico no mesmo dia selecionado
-                                              const isHistoryOp = dateStr === selectedDate;
-                                              
-                                              // Marcar que estamos editando
-                                              isEditingRef.current = true;
-                                              if (isHistoryOp) {
-                                                isHistoryOperationRef.current = true;
-                                              }
-                                              
-                                              // Se for a data selecionada, atualizar estado local imediatamente
-                                              if (isHistoryOp) {
-                                                setQuickNotes(prev => {
-                                                  const updated = prev.map(n => 
-                                                    n.id === note.id ? { ...n, text: editingQuickNoteText.trim() } : n
-                                                  );
-                                                  // Atualizar a referência de sincronização com o estado esperado
-                                                  const expectedState = updated.map(n => `${n.id}:${n.text}`).sort().join('|');
-                                                  lastSyncedJournalRef.current = expectedState;
-                                                  return updated;
-                                                });
-                                              }
-                                              
-                                              // Atualizar no journal
                                               updateQuickNote(dateStr, note.id, editingQuickNoteText.trim());
-                                              
-              setEditingQuickNote(null);
-              setEditingQuickNoteText('');
-                                              
-                                              // Resetar flags após delay e sincronizar referência
-                                              setTimeout(() => {
-                                                if (isHistoryOp) {
-                                                  const entry = getEntry(dateStr);
-                                                  if (entry && entry.quickNotes) {
-                                                    lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
-                                                  }
-                                                }
-                                                isEditingRef.current = false;
-                                                if (isHistoryOp) {
-                                                  isHistoryOperationRef.current = false;
-                                                }
-                                              }, 200);
-                                            } else {
-                                              setEditingQuickNote(null);
-                                              setEditingQuickNoteText('');
-                                              isEditingRef.current = false;
-                                              isHistoryOperationRef.current = false;
                                             }
+                                            setEditingQuickNote(null);
+                                            setEditingQuickNoteText('');
                                           }}
                                           className="w-full px-2 py-1 rounded font-pixel border"
                 style={{
@@ -1849,8 +1440,6 @@ export function DailyOverview() {
                                           className="cursor-text select-none"
                                           onDoubleClick={(e) => {
                                             e.stopPropagation();
-                                            // Resetar flag de edição antes de iniciar nova edição
-                                            isEditingRef.current = false;
                                             setEditingQuickNote({ date: dateStr, noteId: note.id });
                                             setEditingQuickNoteText(note.text);
                                           }}
@@ -1869,45 +1458,8 @@ export function DailyOverview() {
                                         type="button"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          // Verificar se é uma operação do histórico no mesmo dia selecionado
-                                          const isHistoryOp = dateStr === selectedDate;
-                                          
-                                          // Marcar que estamos deletando para evitar sincronização prematura
-                                          isDeletingRef.current = true;
-                                          if (isHistoryOp) {
-                                            isHistoryOperationRef.current = true;
-                                          }
-                                          
-                                          // Se for a data selecionada, atualizar estado local imediatamente
-                                          if (isHistoryOp) {
-                                            setQuickNotes(prev => {
-                                              const updated = prev.filter(n => n.id !== note.id);
-                                              // Atualizar a referência de sincronização com o estado esperado
-                                              const expectedState = updated.map(n => `${n.id}:${n.text}`).sort().join('|');
-                                              lastSyncedJournalRef.current = expectedState;
-                                              return updated;
-                                            });
-                                          }
-                                          
-                                          // Remover o pensamento rápido usando a função do hook
                                           removeQuickNote(dateStr, note.id);
                                           setJournalDates(getAllDates());
-                                          
-                                          // Atualizar a referência de sincronização após um delay e resetar flags
-                                          setTimeout(() => {
-                                            if (isHistoryOp) {
-                                              const entry = getEntry(dateStr);
-                                              if (entry && entry.quickNotes) {
-                                                lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
-                                              } else {
-                                                lastSyncedJournalRef.current = '';
-                                              }
-                                            }
-                                            isDeletingRef.current = false;
-                                            if (isHistoryOp) {
-                                              isHistoryOperationRef.current = false;
-                                            }
-                                          }, 200);
                                         }}
                                         className="absolute top-0 right-0 w-5 h-5 flex items-center justify-center rounded-full bg-red-400 hover:bg-red-500 text-white text-xs font-bold transition-opacity z-50"
                                         style={{ 
