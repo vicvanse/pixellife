@@ -54,11 +54,12 @@ import { LifeDexSection } from '../components/lifedex/LifeDexSection';
 import { FeedbackSection } from '../components/feedback/FeedbackSection';
 import { GuidesSection } from '../components/guides/GuidesSection';
 import { MapasSection } from '../components/mapas/MapasSection';
+import { ScheduleSection } from '../components/schedule/ScheduleSection';
 import { useUI } from '../context/UIContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useSyncFinancialEntries } from '../hooks/useSyncData';
 
-type BoardSection = 'display' | 'habits' | 'journal' | 'finances' | 'goals' | 'mapas' | 'biography' | 'feedback' | 'guides' | 'achievements';
+type BoardSection = 'display' | 'habits' | 'journal' | 'finances' | 'goals' | 'mapas' | 'biography' | 'feedback' | 'guides' | 'achievements' | 'schedule';
 
 function BoardPageInner() {
   const searchParams = useSearchParams();
@@ -269,7 +270,7 @@ function BoardPageInner() {
     const updateSection = () => {
       if (typeof window !== 'undefined') {
         const hash = window.location.hash.replace('#', '');
-        const validSections: BoardSection[] = ['display', 'journal', 'habits', 'finances', 'goals', 'mapas', 'guides', 'biography', 'achievements', 'feedback'];
+        const validSections: BoardSection[] = ['display', 'journal', 'habits', 'finances', 'goals', 'mapas', 'guides', 'biography', 'achievements', 'feedback', 'schedule'];
         if (hash && validSections.includes(hash as BoardSection)) {
           setActiveBoardSection(hash === 'map' ? 'mapas' : (hash as BoardSection));
         } else {

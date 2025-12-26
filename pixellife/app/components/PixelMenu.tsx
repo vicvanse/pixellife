@@ -193,7 +193,7 @@ export default function PixelMenu({
         setActiveSection('feedback');
       } else if (pathname === '/board/guides') {
         setActiveSection('guides');
-      } else if (pathname === '/board/schedule' || hash === '#schedule') {
+      } else if (hash === '#schedule') {
         setActiveSection('schedule');
       } else {
         setActiveSection('display');
@@ -498,6 +498,17 @@ export default function PixelMenu({
                 </PixelIcon>
                 <span>GUIAS</span>
               </button>
+
+              {/* Cronograma */}
+              <button
+                onClick={() => handleNavClick('schedule', '/board')}
+                className={activeSection === 'schedule' ? activeNavItemClass : navItemClass}
+              >
+                <PixelIcon>
+                  <Icons.Schedule />
+                </PixelIcon>
+                <span>CRONOGRAMA</span>
+              </button>
             </>
           ) : (
             <>
@@ -700,29 +711,6 @@ export default function PixelMenu({
                     <Icons.Biography />
                   </PixelIcon>
                   <span>BIOGRAFIA</span>
-                </Link>
-              )}
-
-              {/* Cronograma */}
-              {mode === 'board' ? (
-                <button
-                  onClick={() => router.push('/schedule')}
-                  className={pathname === '/schedule' ? activeNavItemClass : navItemClass}
-                >
-                  <PixelIcon>
-                    <Icons.Schedule />
-                  </PixelIcon>
-                  <span>CRONOGRAMA</span>
-                </button>
-              ) : (
-                <Link 
-                  href="/schedule" 
-                  className={isActive("/schedule") ? activeNavItemClass : navItemClass}
-                >
-                  <PixelIcon>
-                    <Icons.Schedule />
-                  </PixelIcon>
-                  <span>CRONOGRAMA</span>
                 </Link>
               )}
             </>
