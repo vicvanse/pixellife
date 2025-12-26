@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useJournal, type Mood } from '../hooks/useJournal';
 import { useHabits, type Habit } from '../hooks/useHabits';
 import { PixelCard } from './PixelCard';
