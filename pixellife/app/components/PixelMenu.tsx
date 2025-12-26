@@ -706,8 +706,8 @@ export default function PixelMenu({
               {/* Cronograma */}
               {mode === 'board' ? (
                 <button
-                  onClick={() => handleNavClick('schedule', '/board')}
-                  className={activeSection === 'schedule' ? activeNavItemClass : navItemClass}
+                  onClick={() => router.push('/schedule')}
+                  className={pathname === '/schedule' ? activeNavItemClass : navItemClass}
                 >
                   <PixelIcon>
                     <Icons.Schedule />
