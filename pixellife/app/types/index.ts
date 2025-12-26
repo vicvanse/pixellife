@@ -3,7 +3,7 @@
  */
 
 // Tipos de humor
-export type Mood = "good" | "neutral" | "bad";
+export type Mood = "good" | "neutral" | "bad" | "none";
 
 // Tipos de status de objetivo
 export type PossessionStatus = "locked" | "in-progress" | "completed";

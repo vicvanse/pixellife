@@ -65,8 +65,10 @@ function normalizeJournalData(journalData: JournalData): JournalData {
                                   moodNumberValue !== undefined && 
                                   typeof moodNumberValue === 'number';
       
+      // Converter null para "none" ao carregar (para compatibilidade com UI)
+      const moodValue = entry.mood ?? null;
       normalized[date] = {
-        mood: entry.mood ?? null,
+        mood: moodValue, // Manter null no banco, converter para "none" na UI quando necessário
         ...(hasValidMoodNumber && { moodNumber: moodNumberValue }),
         text: entry.text ?? "",
         quickNotes: uniqueQuickNotes,
@@ -88,6 +90,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const lastUserIdRef = useRef<string | null>(null);
   const isSavingJournalRef = useRef(false);
   const isUpdatingFromSupabaseRef = useRef(false);
+  const lastSavedJournalRef = useRef<string>(''); // Rastrear último journal salvo para evitar salvamentos desnecessários
   const saveTimeoutRef = useRef<{ habits: NodeJS.Timeout | null; journal: NodeJS.Timeout | null }>({
     habits: null,
     journal: null,
@@ -149,9 +152,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const normalizedJournal = normalizeJournalData(journalObj);
             setJournalLocal(normalizedJournal);
             
+            // Atualizar ref do último journal salvo
+            const normalizedStr = JSON.stringify(normalizedJournal);
+            lastSavedJournalRef.current = normalizedStr;
+            
             // Se houve normalização (dados mudaram), salvar de volta para persistir IDs
             const originalStr = JSON.stringify(journalObj);
-            const normalizedStr = JSON.stringify(normalizedJournal);
             if (originalStr !== normalizedStr) {
               console.log("🔄 AppContext: Normalizando quickNotes e salvando de volta no Supabase...");
               // Aguardar um pouco antes de salvar para não interferir com outros processos
@@ -160,6 +166,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   isSavingJournalRef.current = true;
                   await saveToSupabase(user.id, "journal", normalizedJournal);
                   console.log("✅ AppContext: Journal normalizado salvo com sucesso");
+                  lastSavedJournalRef.current = normalizedStr;
                 } catch (err) {
                   console.error("⚠️ AppContext: Erro ao salvar journal normalizado:", err);
                 } finally {
@@ -169,6 +176,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }
           } else {
             console.log("ℹ️ AppContext: Journal vazio no Supabase");
+            lastSavedJournalRef.current = JSON.stringify({});
           }
         } else if (journalError && (journalError as PostgrestError).code !== "PGRST116") {
           console.warn("⚠️ AppContext: Erro ao carregar journal do Supabase:", journalError);
@@ -246,12 +254,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const saveJournalImmediately = useCallback(async () => {
     if (!user?.id || !hasLoadedFromSupabaseRef.current) return;
     if (isSavingJournalRef.current) {
-      console.log("⏸️ AppContext: Já está salvando journal, pulando...");
-      return; // Evitar salvamentos simultâneos
+      return; // Evitar salvamentos simultâneos (sem log para reduzir ruído)
     }
     if (isUpdatingFromSupabaseRef.current) {
-      console.log("⏸️ AppContext: Atualizando do Supabase, não salvar...");
       return; // Não salvar quando está carregando do Supabase
+    }
+    
+    // Verificar se os dados realmente mudaram
+    const currentJournalStr = JSON.stringify(journal);
+    if (currentJournalStr === lastSavedJournalRef.current) {
+      return; // Dados não mudaram, não precisa salvar
     }
     
     isSavingJournalRef.current = true;
@@ -272,6 +284,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
         );
         console.log("✅ AppContext: Journal salvo com sucesso!");
+      // Atualizar ref apenas após sucesso
+      lastSavedJournalRef.current = currentJournalStr;
       } catch (err) {
         console.error("❌ AppContext: Erro ao salvar journal após múltiplas tentativas:", err);
         showToast("Erro ao salvar diário. Verifique sua conexão.", "error");
@@ -280,36 +294,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [journal, user?.id, showToast]);
 
-  useEffect(() => {
-    if (!user?.id) {
-      console.log("🔍 AppContext: Usuário não logado - não salvando journal");
-      return;
-    }
-    if (!hasLoadedFromSupabaseRef.current) {
-      console.log("🔍 AppContext: Ainda não carregou dados - aguardando antes de salvar journal");
-      return; // Não salvar antes de carregar
-    }
-    if (isUpdatingFromSupabaseRef.current) {
-      return; // Não salvar quando está carregando do Supabase
-    }
-
-    // Limpar timeout anterior
-    if (saveTimeoutRef.current.journal) {
-      clearTimeout(saveTimeoutRef.current.journal);
-    }
-
-    // Debounce apenas para texto (800ms) - mudanças em mood/quick notes salvam imediatamente
-    saveTimeoutRef.current.journal = setTimeout(() => {
-      saveJournalImmediately();
-    }, 800);
-
-    return () => {
-      if (saveTimeoutRef.current.journal) {
-        clearTimeout(saveTimeoutRef.current.journal);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journal, user?.id]); // Remover saveJournalImmediately das dependências para evitar loop
+  // REMOVIDO: useEffect que monitora journal - agora salvamos apenas por eventos
+  // O salvamento é feito diretamente quando há mudanças (mood, quick notes, etc)
+  // e através do debounce no DailyOverview para texto
 
   // Forçar salvamento no beforeunload
   useEffect(() => {

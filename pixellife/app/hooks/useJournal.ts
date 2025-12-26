@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { useApp } from "../context/AppContext";
 
-export type Mood = "good" | "neutral" | "bad";
+export type Mood = "good" | "neutral" | "bad" | "none";
 
 export interface QuickNote {
   id: string;
@@ -68,8 +68,12 @@ function normalizeEntry(
     moodNumber = prev?.moodNumber;
   }
   
+  // Converter "none" para null ao salvar (para compatibilidade com dados antigos)
+  const moodValue = patch.mood;
+  const normalizedMood = moodValue === "none" ? null : (moodValue ?? prev?.mood ?? null);
+  
   return {
-    mood: patch.mood ?? prev?.mood ?? null,
+    mood: normalizedMood,
     // Só incluir moodNumber se for um número válido (não undefined e não null)
     ...(moodNumber !== undefined && moodNumber !== null && typeof moodNumber === 'number' && { moodNumber }),
     text: patch.text ?? prev?.text ?? "",

@@ -118,13 +118,14 @@ export function DailyOverview() {
   const loadJournalEntry = (date: string) => {
     const entry = getEntry(date);
     if (entry) {
-      setMood(entry.mood);
+      // Se o mood for null (dados antigos), converter para "none"
+      setMood(entry.mood ?? "none");
       // Carregar moodNumber se existir, caso contrário null
       setCurrentMoodNumber(entry.moodNumber ?? null);
       setText(entry.text);
       setIsTextExpanded(!!entry.text);
     } else {
-      setMood(null);
+      setMood("none");
       setCurrentMoodNumber(null);
       setText('');
       setIsTextExpanded(false);
@@ -147,7 +148,7 @@ export function DailyOverview() {
     const currentQuickNotes = currentEntry?.quickNotes || [];
     const hasText = text.trim().length > 0;
     const hasQuickNotes = currentQuickNotes.some(n => n.text && n.text.trim().length > 0);
-    const hasMood = mood !== null;
+    const hasMood = mood !== null && mood !== "none";
     
     if (!hasText && !hasQuickNotes && !hasMood) return;
     
@@ -253,7 +254,9 @@ export function DailyOverview() {
 
   const handleMoodChange = (newMood: Mood | null) => {
     if (!selectedDate) return;
-    setMood(newMood);
+    // Converter null para "none" se necessário
+    const moodToSave = newMood ?? "none";
+    setMood(moodToSave);
     // Limpar número quando seleciona emoji
     setCurrentMoodNumber(null);
     
@@ -261,8 +264,8 @@ export function DailyOverview() {
     const existingQuickNotes = currentEntry?.quickNotes || [];
     const existingText = currentEntry?.text || text;
     
-    // Se não há mood, texto e quickNotes, deletar a entrada
-    if (newMood === null && !existingText.trim() && existingQuickNotes.length === 0) {
+    // Se o mood é "none" e não há texto e quickNotes, deletar a entrada
+    if (moodToSave === "none" && !existingText.trim() && existingQuickNotes.length === 0) {
       setJournal((prev) => {
         const updated = { ...prev };
         delete updated[selectedDate];
@@ -271,7 +274,7 @@ export function DailyOverview() {
       setJournalDates(getAllDates().filter(date => date !== selectedDate));
     } else {
       updateJournalEntry(selectedDate, { 
-        mood: newMood, // Passar null explicitamente quando desescolhido, não undefined
+        mood: moodToSave === "none" ? null : moodToSave, // Salvar "none" como null no banco
         moodNumber: undefined, // Limpar número quando seleciona emoji
         text: existingText, 
         quickNotes: existingQuickNotes
@@ -569,8 +572,8 @@ export function DailyOverview() {
     const hasText = entry.text && entry.text.trim().length > 0;
     // Verifica se tem pensamentos rápidos
     const hasQuickNotes = entry.quickNotes && entry.quickNotes.length > 0;
-    // Verifica se tem mood selecionado (não é null e existe)
-    const hasMood = entry.mood !== null && entry.mood !== undefined;
+    // Verifica se tem mood selecionado (não null, não undefined e não "none")
+    const hasMood = entry.mood !== null && entry.mood !== undefined && entry.mood !== "none";
     
     // Retorna true se tiver pelo menos um desses
     return hasText || hasQuickNotes || hasMood;

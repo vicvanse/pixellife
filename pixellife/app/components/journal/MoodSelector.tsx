@@ -25,13 +25,15 @@ export function MoodSelector({ value, onChange, onNumberChange, currentNumber }:
     { value: "bad", emoji: "🙁" },
     { value: "neutral", emoji: "😐" },
     { value: "good", emoji: "🙂" },
+    { value: "none", emoji: "-" },
   ];
 
   // Mapeamento: triste=2, sério=5, feliz=8
-  const moodToNumber: Record<Mood, number> = {
+  const moodToNumber: Partial<Record<Mood, number>> = {
     bad: 2,
     neutral: 5,
     good: 8,
+    // "none" não tem número correspondente
   };
 
   // Converter número para mood
@@ -42,20 +44,20 @@ export function MoodSelector({ value, onChange, onNumberChange, currentNumber }:
   };
 
   const handleMoodClick = (moodValue: Mood) => {
-    // Se já está selecionado, desseleciona
+    // Se já está selecionado, vai para "none" (deseleciona)
     if (value === moodValue) {
-      onChange(null);
+      onChange("none");
       if (onNumberChange) {
         onNumberChange(null);
       }
     } else {
       // Seleciona o mood
       onChange(moodValue);
-      // Se está em modo numérico, também seleciona o número correspondente
-      if (showNumeric && onNumberChange) {
-        onNumberChange(moodToNumber[moodValue]);
+      // Se está em modo numérico e o mood tem número correspondente, também seleciona o número
+      if (showNumeric && onNumberChange && moodToNumber[moodValue] !== undefined) {
+        onNumberChange(moodToNumber[moodValue]!);
       } else if (onNumberChange) {
-        // Se não está em modo numérico, limpa o número
+        // Se não está em modo numérico ou o mood não tem número, limpa o número
         onNumberChange(null);
       }
     }
@@ -65,9 +67,9 @@ export function MoodSelector({ value, onChange, onNumberChange, currentNumber }:
     const mappedMood = numberToMood(num);
     const isSelected = value === mappedMood && currentNumber === num;
 
-    // Se já está selecionado, desseleciona
+    // Se já está selecionado, vai para "none" (deseleciona)
     if (isSelected) {
-      onChange(null);
+      onChange("none");
       if (onNumberChange) {
         onNumberChange(null);
       }
@@ -84,17 +86,6 @@ export function MoodSelector({ value, onChange, onNumberChange, currentNumber }:
     <div className="flex gap-2 justify-center md:justify-start items-center">
       {!showNumeric ? (
         <>
-          {/* Mostrar botão "#" quando não há mood selecionado para alternar para modo numérico */}
-          {value === null && (
-            <button
-              onClick={() => setShowNumeric(true)}
-              className="border-2 border-black px-3 py-2 font-mono font-bold text-sm bg-gray-200 hover:opacity-90 touch-manipulation min-h-[48px] flex items-center gap-2"
-              aria-label="Mostrar números"
-              title="Mostrar números (0-10)"
-            >
-              <span className="text-xl">#</span>
-            </button>
-          )}
           {moods.map((mood) => (
             <button
               key={mood.value}
@@ -105,7 +96,7 @@ export function MoodSelector({ value, onChange, onNumberChange, currentNumber }:
                 hover:opacity-90 touch-manipulation min-h-[48px]
                 flex items-center gap-2
               `}
-              aria-label={`Humor: ${mood.value}`}
+              aria-label={`Humor: ${mood.value === "none" ? "nenhum" : mood.value}`}
               aria-pressed={value === mood.value}
             >
               <span className="text-xl">{mood.emoji}</span>
