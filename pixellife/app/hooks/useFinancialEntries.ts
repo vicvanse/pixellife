@@ -460,97 +460,89 @@ export function useFinancialEntries() {
     (startDate?: string, endDate?: string) => {
       const categoryMap = new Map<string, number>();
       
-      // Processar todas as entradas no período
-      entries.forEach((entry) => {
-        // Se for pontual, verificar se está no período
-        if (entry.frequency === "pontual" && entry.date) {
-          if (startDate && entry.date < startDate) return;
-          if (endDate && entry.date > endDate) return;
-          
-          const category = entry.category || "Sem categoria";
-          const current = categoryMap.get(category) || 0;
-          categoryMap.set(category, current + entry.amount);
-        }
+      // Se temos um período definido, usar getEntriesForDate para garantir consistência
+      if (startDate && endDate) {
+        const start = new Date(startDate + "T00:00:00");
+        const end = new Date(endDate + "T23:59:59");
+        const currentDate = new Date(start);
         
-        // Se for recorrente, verificar se impacta o período
-        if (entry.frequency === "recorrente" && entry.startDate) {
-          const entryStart = new Date(entry.startDate + "T00:00:00");
-          const entryEnd = entry.endDate ? new Date(entry.endDate + "T00:00:00") : null;
-          const periodStart = startDate ? new Date(startDate + "T00:00:00") : null;
-          const periodEnd = endDate ? new Date(endDate + "T00:00:00") : null;
+        // Iterar sobre cada dia do período
+        while (currentDate <= end) {
+          const dateKey = currentDate.toISOString().substring(0, 10);
+          const entriesForDate = getEntriesForDate(dateKey);
           
-          // Verificar se há sobreposição
-          if (periodStart && entryEnd && entryEnd < periodStart) return;
-          if (periodEnd && entryStart > periodEnd) return;
+          // Somar cada entrada por categoria
+          entriesForDate.forEach((entry) => {
+            const category = entry.category || "Sem categoria";
+            const current = categoryMap.get(category) || 0;
+            categoryMap.set(category, current + entry.amount);
+          });
           
-          // Calcular quantas ocorrências no período
-          if (entry.recurrence === "mensal") {
-            let count = 0;
-            const startDay = entryStart.getDate();
+          // Avançar para o próximo dia
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+      } else {
+        // Sem período: processar todas as entradas diretamente
+        entries.forEach((entry) => {
+          // Entradas pontuais
+          if (entry.frequency === "pontual" && entry.date) {
+            const category = entry.category || "Sem categoria";
+            const current = categoryMap.get(category) || 0;
+            categoryMap.set(category, current + entry.amount);
+          }
+          
+          // Entradas recorrentes: calcular todas as ocorrências até onde está configurado
+          if (entry.frequency === "recorrente" && entry.startDate) {
+            const entryStart = new Date(entry.startDate + "T00:00:00");
+            const entryEnd = entry.endDate ? new Date(entry.endDate + "T23:59:59") : null;
             
-            // Determinar data final para parar
+            // Limite: até entryEnd ou 2 anos no futuro
             let maxDate: Date;
-            if (periodEnd) {
-              maxDate = new Date(periodEnd + "T23:59:59");
-            } else if (entryEnd) {
-              maxDate = new Date(entryEnd + "T23:59:59");
+            if (entryEnd) {
+              maxDate = entryEnd;
             } else {
-              // Limite de segurança: 2 anos no futuro
               maxDate = new Date();
               maxDate.setFullYear(maxDate.getFullYear() + 2);
             }
             
-            // Começar do primeiro mês possível
-            let year = entryStart.getFullYear();
-            let month = entryStart.getMonth();
-            
-            // Se o período começa depois, ajustar para o início do período
-            if (periodStart) {
-              const periodStartDate = new Date(periodStart + "T00:00:00");
-              if (periodStartDate > entryStart) {
-                year = periodStartDate.getFullYear();
-                month = periodStartDate.getMonth();
-              }
-            }
-            
-            // Limite de segurança para evitar loops infinitos
-            let iterations = 0;
-            const maxIterations = 2400; // 200 anos * 12 meses
-            
-            while (iterations < maxIterations) {
-              iterations++;
+            // Calcular ocorrências mensais usando isRecurringValidForDate
+            if (entry.recurrence === "mensal") {
+              const startDay = entryStart.getDate();
+              let year = entryStart.getFullYear();
+              let month = entryStart.getMonth();
+              let iterations = 0;
+              const maxIterations = 2400; // 200 anos * 12 meses
               
-              // Criar data para este mês
-              const daysInMonth = new Date(year, month + 1, 0).getDate();
-              const dayToUse = Math.min(startDay, daysInMonth);
-              const currentDate = new Date(year, month, dayToUse);
-              
-              // Se passou do máximo, parar
-              if (currentDate > maxDate) break;
-              
-              // Verificar se está dentro do período da entrada recorrente
-              if (currentDate >= entryStart && (!entryEnd || currentDate <= new Date(entryEnd + "T23:59:59"))) {
-                // Verificar se está dentro do período de análise
-                if ((!periodStart || currentDate >= new Date(periodStart + "T00:00:00")) && 
-                    (!periodEnd || currentDate <= new Date(periodEnd + "T23:59:59"))) {
-                  count++;
+              while (iterations < maxIterations) {
+                iterations++;
+                
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const dayToUse = Math.min(startDay, daysInMonth);
+                const currentOccurrenceDate = new Date(year, month, dayToUse);
+                
+                if (currentOccurrenceDate > maxDate) break;
+                
+                if (currentOccurrenceDate >= entryStart && (!entryEnd || currentOccurrenceDate <= entryEnd)) {
+                  const dateKey = currentOccurrenceDate.toISOString().substring(0, 10);
+                  // Verificar se não está excluída e se é válida
+                  if ((!entry.excludedDates || !entry.excludedDates.includes(dateKey)) && 
+                      isRecurringValidForDate(entry, dateKey)) {
+                    const category = entry.category || "Sem categoria";
+                    const current = categoryMap.get(category) || 0;
+                    categoryMap.set(category, current + entry.amount);
+                  }
+                }
+                
+                month++;
+                if (month > 11) {
+                  month = 0;
+                  year++;
                 }
               }
-              
-              // Avançar para o próximo mês
-              month++;
-              if (month > 11) {
-                month = 0;
-                year++;
-              }
             }
-            
-            const category = entry.category || "Sem categoria";
-            const current = categoryMap.get(category) || 0;
-            categoryMap.set(category, current + (entry.amount * count));
           }
-        }
-      });
+        });
+      }
       
       // Converter para array e ordenar
       const result = Array.from(categoryMap.entries())
@@ -559,7 +551,7 @@ export function useFinancialEntries() {
       
       return result;
     },
-    [entries]
+    [entries, getEntriesForDate, isRecurringValidForDate]
   );
 
   return {

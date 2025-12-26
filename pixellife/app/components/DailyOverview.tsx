@@ -42,6 +42,7 @@ export function DailyOverview() {
   const [showQuickThoughtsView, setShowQuickThoughtsView] = useState(false);
   const [showJournalHistory, setShowJournalHistory] = useState(false);
   const isInitialLoadRef = useRef(true);
+  const isInitialSyncRef = useRef(true); // Flag para evitar sincronização durante carregamento inicial
 
   // Inicializar com data de hoje
   useEffect(() => {
@@ -52,6 +53,10 @@ export function DailyOverview() {
     // Marcar que a carga inicial foi concluída após um pequeno delay
     setTimeout(() => {
       isInitialLoadRef.current = false;
+      // Aguardar mais um pouco antes de permitir sincronização para evitar loops
+      setTimeout(() => {
+        isInitialSyncRef.current = false;
+      }, 300);
     }, 200); // Aumentado para garantir que loadJournalEntry terminou
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -142,6 +147,11 @@ export function DailyOverview() {
   useEffect(() => {
     if (!selectedDate) return;
     
+    // Não sincronizar durante o carregamento inicial
+    if (isInitialSyncRef.current) {
+      return;
+    }
+    
     // Se estamos deletando, adicionando ou editando, ou se é uma operação do histórico, não sincronizar ainda
     if (isDeletingRef.current || isAddingRef.current || isEditingRef.current || isHistoryOperationRef.current) {
       return;
@@ -164,7 +174,9 @@ export function DailyOverview() {
       const journalNotesText = entry.quickNotes.map(n => n.text).join('|');
       
       // Só atualizar se houver diferença real (IDs ou textos diferentes)
-      if (currentNotesIds !== journalNotesIds || currentNotesText !== journalNotesText) {
+      // E se a última sincronização não corresponde ao estado atual do journal
+      if ((currentNotesIds !== journalNotesIds || currentNotesText !== journalNotesText) && 
+          lastSyncedJournalRef.current !== journalStateKey) {
         setQuickNotes(entry.quickNotes.map((note) => ({ id: note.id, text: note.text })));
         lastSyncedJournalRef.current = journalStateKey;
       }
@@ -320,12 +332,17 @@ export function DailyOverview() {
     saveCurrentEntry();
     // Marcar como carga inicial ao mudar de data
     isInitialLoadRef.current = true;
+    isInitialSyncRef.current = true; // Também bloquear sincronização durante mudança de data
     setSelectedDate(date);
     loadJournalEntry(date);
     // Permitir salvamento após carregar a nova data
     // Aumentar um pouco para garantir que loadJournalEntry terminou e evitar sobreposição
     setTimeout(() => {
       isInitialLoadRef.current = false;
+      // Aguardar mais um pouco antes de permitir sincronização
+      setTimeout(() => {
+        isInitialSyncRef.current = false;
+      }, 300);
     }, 200);
   };
 
@@ -1091,9 +1108,15 @@ export function DailyOverview() {
                                 onClick={() => {
                           // Salvar o texto da data atual antes de mudar
                           saveCurrentEntry();
+                          // Bloquear sincronização durante mudança de data
+                          isInitialSyncRef.current = true;
                           setSelectedDate(date);
                           loadJournalEntry(date);
                           setShowJournalHistory(false);
+                          // Permitir sincronização após carregar
+                          setTimeout(() => {
+                            isInitialSyncRef.current = false;
+                          }, 300);
                         }}
                         className="p-4 rounded-lg cursor-pointer transition-all"
                                 style={{
