@@ -249,7 +249,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       clearTimeout(saveTimeoutRef.current.journal);
     }
 
-    // Aguardar 2 segundos antes de salvar (debounce)
+    // Aguardar 800ms antes de salvar (debounce reduzido para salvar mais rapidamente)
     saveTimeoutRef.current.journal = setTimeout(async () => {
       const journalKeys = Object.keys(journal);
       console.log("💾 AppContext: Salvando journal no Supabase...", { userId: user.id, journalEntries: journalKeys.length });

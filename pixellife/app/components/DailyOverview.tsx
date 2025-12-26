@@ -160,7 +160,7 @@ export function DailyOverview() {
         // quickNotes já estão no journal, não precisamos passar
       });
       setJournalDates(getAllDates());
-    }, 2000); // Aumentado de 1000ms para 2000ms para reduzir salvamentos frequentes
+    }, 800); // Reduzido para 800ms para salvar mais rapidamente
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text, selectedDate, mood, currentMoodNumber, journal]);
@@ -375,8 +375,8 @@ export function DailyOverview() {
         const currentNotes = getQuickNotes(selectedDate);
         const newBlock = currentNotes[currentNotes.length - 1];
         if (newBlock) {
-          setEditingBlockId(newBlock.id);
-          setEditingBlockText('');
+    setEditingBlockId(newBlock.id);
+    setEditingBlockText('');
         }
       }, 100);
     }
@@ -1407,19 +1407,19 @@ export function DailyOverview() {
                                               if (editingQuickNoteText.trim()) {
                                                 updateQuickNote(dateStr, note.id, editingQuickNoteText.trim());
                                               }
-                                              setEditingQuickNote(null);
-                                              setEditingQuickNoteText('');
+                setEditingQuickNote(null);
+                setEditingQuickNoteText('');
                                             } else if (e.key === 'Escape') {
-                                              setEditingQuickNote(null);
-                                              setEditingQuickNoteText('');
-                                            }
+                setEditingQuickNote(null);
+                setEditingQuickNoteText('');
+              }
                                           }}
                                           onBlur={() => {
                                             if (editingQuickNoteText.trim()) {
                                               updateQuickNote(dateStr, note.id, editingQuickNoteText.trim());
                                             }
-                                            setEditingQuickNote(null);
-                                            setEditingQuickNoteText('');
+                                              setEditingQuickNote(null);
+                                              setEditingQuickNoteText('');
                                           }}
                                           className="w-full px-2 py-1 rounded font-pixel border"
                 style={{
