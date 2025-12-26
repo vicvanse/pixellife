@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mood } from "@/app/hooks/useJournal";
 
 interface MoodSelectorProps {
