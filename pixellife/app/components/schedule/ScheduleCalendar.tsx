@@ -65,7 +65,7 @@ export function ScheduleCalendar({ onDateSelect }: ScheduleCalendarProps) {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full bg-gray-300 p-4 rounded">
       {/* Header do calendário */}
       <div className="flex items-center justify-between mb-4">
         <button
@@ -111,7 +111,7 @@ export function ScheduleCalendar({ onDateSelect }: ScheduleCalendarProps) {
                 }
               }}
               className={`
-                aspect-square p-1 rounded border-2 font-pixel text-sm
+                w-10 h-10 p-1 rounded border-2 font-pixel text-base font-bold
                 ${isCurrentMonth ? 'border-black' : 'border-gray-300 text-gray-400'}
                 ${isToday(date) ? 'ring-2 ring-blue-500' : ''}
                 ${getDayColor(date)}
@@ -121,13 +121,13 @@ export function ScheduleCalendar({ onDateSelect }: ScheduleCalendarProps) {
               disabled={!isCurrentMonth}
             >
               <div className="flex flex-col items-center justify-center h-full">
-                <span>{date.getDate()}</span>
+                <span className="text-base font-bold">{date.getDate()}</span>
                 {summary && summary.events.length > 0 && (
-                  <div className="flex gap-0.5 mt-1">
+                  <div className="flex gap-0.5 mt-0.5">
                     {summary.events.slice(0, 3).map((event, i) => (
                       <div
                         key={i}
-                        className="w-1 h-1 rounded-full"
+                        className="w-2 h-2 rounded-full"
                         style={{ backgroundColor: event.color }}
                         title={event.title}
                       />

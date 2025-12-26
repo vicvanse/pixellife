@@ -498,17 +498,6 @@ export default function PixelMenu({
                 </PixelIcon>
                 <span>GUIAS</span>
               </button>
-
-              {/* Cronograma */}
-              <button
-                onClick={() => handleNavClick('schedule', '/board')}
-                className={activeSection === 'schedule' ? activeNavItemClass : navItemClass}
-              >
-                <PixelIcon>
-                  <Icons.Schedule />
-                </PixelIcon>
-                <span>CRONOGRAMA</span>
-              </button>
             </>
           ) : (
             <>
