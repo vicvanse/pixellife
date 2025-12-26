@@ -863,6 +863,7 @@ export function DailyOverview() {
                       good: { label: t('journal.moodGood'), emoji: '🙂' },
                       neutral: { label: t('journal.moodNeutral'), emoji: '😐' },
                       bad: { label: t('journal.moodBad'), emoji: '🙁' },
+                      none: { label: '-', emoji: '-' },
                     }[entry.mood] : null;
                     
                         return (
