@@ -193,6 +193,8 @@ export default function PixelMenu({
         setActiveSection('feedback');
       } else if (pathname === '/board/guides') {
         setActiveSection('guides');
+      } else if (pathname === '/board/schedule' || hash === '#schedule') {
+        setActiveSection('schedule');
       } else {
         setActiveSection('display');
       }
@@ -495,6 +497,17 @@ export default function PixelMenu({
                   <Icons.Guides />
                 </PixelIcon>
                 <span>GUIAS</span>
+              </button>
+
+              {/* Cronograma */}
+              <button
+                onClick={() => handleNavClick('schedule', '/board')}
+                className={activeSection === 'schedule' ? activeNavItemClass : navItemClass}
+              >
+                <PixelIcon>
+                  <Icons.Schedule />
+                </PixelIcon>
+                <span>CRONOGRAMA</span>
               </button>
             </>
           ) : (
