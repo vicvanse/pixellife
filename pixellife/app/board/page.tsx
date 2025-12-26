@@ -2574,6 +2574,13 @@ function BoardPageInner() {
                   </div>
                 </section>
               )}
+              {activeBoardSection === 'schedule' && (
+                <section id="schedule" className="scroll-mt-8 mb-8">
+                  <div className="section-box">
+                    <ScheduleSection />
+                  </div>
+                </section>
+              )}
               {activeBoardSection === 'biography' && isModuleActive('biography') && (
                 <section id="biography" className="scroll-mt-8 mb-8">
                   <div className="section-box">
