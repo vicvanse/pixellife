@@ -178,7 +178,7 @@ export function useSchedule() {
 
       return {
         date,
-        mood: journalEntry?.mood,
+        mood: journalEntry?.mood ?? undefined,
         journalEntry: !!journalEntry,
         habitsCompleted: habitsForDay.length,
         totalHabits: habits.length,
