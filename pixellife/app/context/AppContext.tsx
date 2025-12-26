@@ -15,6 +15,7 @@ interface AppContextType {
   setHabits: (habits: Habit[] | ((prev: Habit[]) => Habit[])) => void;
   journal: JournalData;
   setJournal: (journal: JournalData | ((prev: JournalData) => JournalData)) => void;
+  saveJournalImmediately: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -234,6 +235,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [habits, user?.id, showToast]); // showToast é estável, mas adicionar para evitar warnings
 
+  // Função para salvar journal imediatamente (sem debounce)
+  const saveJournalImmediately = useCallback(async () => {
+    if (!user?.id || !hasLoadedFromSupabaseRef.current) return;
+    
+    const journalKeys = Object.keys(journal);
+    console.log("💾 AppContext: Salvando journal no Supabase (imediato)...", { userId: user.id, journalEntries: journalKeys.length });
+    try {
+      await withRetry(
+        async () => {
+          const { error } = await saveToSupabase(user.id, "journal", journal);
+          if (error) throw error;
+        },
+        {
+          maxRetries: 3,
+          initialDelay: 1000,
+          onRetry: (attempt) => {
+            console.warn(`⚠️ Tentativa ${attempt} de salvar journal falhou, tentando novamente...`);
+          },
+        }
+      );
+      console.log("✅ AppContext: Journal salvo com sucesso!");
+    } catch (err) {
+      console.error("❌ AppContext: Erro ao salvar journal após múltiplas tentativas:", err);
+      showToast("Erro ao salvar diário. Verifique sua conexão.", "error");
+    }
+  }, [journal, user?.id, showToast]);
+
   useEffect(() => {
     if (!user?.id) {
       console.log("🔍 AppContext: Usuário não logado - não salvando journal");
@@ -249,30 +277,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       clearTimeout(saveTimeoutRef.current.journal);
     }
 
-    // Aguardar 800ms antes de salvar (debounce reduzido para salvar mais rapidamente)
-    saveTimeoutRef.current.journal = setTimeout(async () => {
-      const journalKeys = Object.keys(journal);
-      console.log("💾 AppContext: Salvando journal no Supabase...", { userId: user.id, journalEntries: journalKeys.length });
-      try {
-        await withRetry(
-          async () => {
-            const { error } = await saveToSupabase(user.id, "journal", journal);
-            if (error) throw error;
-          },
-          {
-            maxRetries: 3,
-            initialDelay: 1000,
-            onRetry: (attempt) => {
-              console.warn(`⚠️ Tentativa ${attempt} de salvar journal falhou, tentando novamente...`);
-            },
-          }
-        );
-        console.log("✅ AppContext: Journal salvo com sucesso!");
-      } catch (err) {
-        console.error("❌ AppContext: Erro ao salvar journal após múltiplas tentativas:", err);
-        showToast("Erro ao salvar diário. Verifique sua conexão.", "error");
-      }
-    }, 2000);
+    // Debounce apenas para texto (800ms) - mudanças em mood/quick notes salvam imediatamente
+    saveTimeoutRef.current.journal = setTimeout(() => {
+      saveJournalImmediately();
+    }, 800);
 
     return () => {
       if (saveTimeoutRef.current.journal) {
@@ -280,10 +288,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journal, user?.id, showToast]); // showToast é estável, mas adicionar para evitar warnings
+  }, [journal, user?.id, saveJournalImmediately]);
+
+  // Forçar salvamento no beforeunload
+  useEffect(() => {
+    if (!user?.id || !hasLoadedFromSupabaseRef.current) return;
+    
+    const handleBeforeUnload = () => {
+      // Forçar salvamento síncrono no localStorage (já feito pelo usePersistentState)
+      // Tentar salvar no Supabase também (pode não completar, mas tenta)
+      saveJournalImmediately();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handleBeforeUnload);
+    };
+  }, [user?.id, saveJournalImmediately]);
 
   return (
-    <AppContext.Provider value={{ habits: habits, setHabits: setHabitsLocal, journal: journal, setJournal: setJournalLocal }}>
+    <AppContext.Provider value={{ habits: habits, setHabits: setHabitsLocal, journal: journal, setJournal: setJournalLocal, saveJournalImmediately }}>
       {children}
     </AppContext.Provider>
   );

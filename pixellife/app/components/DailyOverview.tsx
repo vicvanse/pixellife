@@ -12,7 +12,7 @@ import { MoodSelector } from './journal/MoodSelector';
 export function DailyOverview() {
   const { t, tString, language } = useLanguage();
   const { getTodayDate, getEntry, updateJournalEntry, addQuickNote, removeQuickNote, getAllDates, journal, updateQuickNote } = useJournal();
-  const { setJournal } = useApp();
+  const { setJournal, saveJournalImmediately } = useApp();
   const { habits, toggleCheck, addHabit, updateHabit, deleteHabit } = useHabits();
   const [selectedDate, setSelectedDate] = useState('');
   const [mood, setMood] = useState<Mood | null>(null);
@@ -187,6 +187,8 @@ export function DailyOverview() {
           text
           // quickNotes já estão no journal, não precisamos passar
         });
+        // Forçar salvamento imediato no beforeunload
+        saveJournalImmediately();
       }
     };
 
@@ -267,6 +269,8 @@ export function DailyOverview() {
         quickNotes: existingQuickNotes
       });
       setJournalDates(getAllDates());
+      // Salvar imediatamente quando mood muda
+      saveJournalImmediately();
     }
   };
 
@@ -304,6 +308,8 @@ export function DailyOverview() {
         quickNotes: existingQuickNotes
       });
       setJournalDates(getAllDates());
+      // Salvar imediatamente quando número do mood muda
+      saveJournalImmediately();
     }
   };
 
@@ -314,6 +320,8 @@ export function DailyOverview() {
       setNewQuickNote('');
       setIsAddingQuickNote(false);
       setJournalDates(getAllDates());
+      // Salvar imediatamente quando adiciona quick note
+      saveJournalImmediately();
     }
   };
 
@@ -339,6 +347,9 @@ export function DailyOverview() {
     // Adicionar o quick note diretamente no journal
     addQuickNote(dateStr, textToAdd);
     
+    // Salvar imediatamente quando adiciona quick note inline
+    saveJournalImmediately();
+    
     // Limpar o estado após adicionar
     setInlineQuickNoteText('');
     setEditingQuickNoteDate(null);
@@ -355,6 +366,8 @@ export function DailyOverview() {
     if (selectedDate) {
       removeQuickNote(selectedDate, noteId);
       setJournalDates(getAllDates());
+      // Salvar imediatamente quando remove quick note
+      saveJournalImmediately();
     }
   };
 
@@ -399,6 +412,8 @@ export function DailyOverview() {
         // Se estiver vazio, remover
         removeQuickNote(selectedDate, blockId);
       }
+      // Salvar imediatamente quando salva/remove bloco
+      saveJournalImmediately();
     }
     setEditingBlockId(null);
     setEditingBlockText('');
@@ -412,6 +427,8 @@ export function DailyOverview() {
   const handleRemoveBlock = (blockId: string) => {
     if (selectedDate) {
       removeQuickNote(selectedDate, blockId);
+      // Salvar imediatamente quando remove bloco
+      saveJournalImmediately();
     }
     setEditingBlockId(null);
     setEditingBlockText('');
