@@ -50,7 +50,8 @@ export function AddFinancialEntryModal({
         setDescription(editingEntry.description);
         setAmount(Math.abs(editingEntry.amount).toFixed(2).replace('.', ','));
         setCategory(editingEntry.category || "");
-        setStatus(editingEntry.status || "received");
+        // Para gastos, não usar status do editingEntry; para ganhos, usar
+        setStatus(editingEntry.nature === "gasto" ? "received" : (editingEntry.status || "received"));
         
         if (editingEntry.frequency === "pontual") {
           setDate(editingEntry.date || initialDate || new Date().toISOString().substring(0, 10));
@@ -81,7 +82,7 @@ export function AddFinancialEntryModal({
         setPaymentMethod("dinheiro");
         setCategory("");
         setInstallments(null);
-        setStatus("received");
+        setStatus("received"); // Valor padrão, mas só será usado para ganhos
       }
     }
   }, [isOpen, initialDate, editingEntry]);
@@ -105,7 +106,7 @@ export function AddFinancialEntryModal({
       frequency: frequency,
       amount: nature === "gasto" ? -Math.abs(parsedAmount) : Math.abs(parsedAmount),
       category: category.trim() || undefined,
-      status: status, // Usar o status selecionado pelo usuário
+      status: nature === "gasto" ? "received" : status, // Para gastos, sempre "received"; para ganhos, usar o status selecionado
     };
 
     if (frequency === "pontual") {
@@ -113,7 +114,7 @@ export function AddFinancialEntryModal({
       if (nature === "gasto") {
         entry.paymentMethod = paymentMethod;
       }
-      // Status já está sendo definido acima para ambos (gasto e ganho)
+      // Status: para gastos sempre "received", para ganhos usa o selecionado pelo usuário
     } else {
       entry.startDate = startDate;
       entry.endDate = endDate || null;
@@ -121,6 +122,7 @@ export function AddFinancialEntryModal({
       if (nature === "gasto") {
         entry.paymentMethod = paymentMethod;
       }
+      // Status: para gastos sempre "received", para ganhos usa o selecionado pelo usuário
       // Parcelas podem ser usadas tanto para gasto quanto para ganho
       if (installments && installments.total > 1) {
         entry.installments = installments;
@@ -348,7 +350,6 @@ export function AddFinancialEntryModal({
                     }}
                   >
                     <option value="received">Recebido</option>
-                    <option value="pending">Pendente</option>
                     <option value="expected">Esperado</option>
                     <option value="canceled">Cancelado</option>
                   </select>
@@ -460,7 +461,6 @@ export function AddFinancialEntryModal({
                     }}
                   >
                     <option value="received">Recebido</option>
-                    <option value="pending">Pendente</option>
                     <option value="expected">Esperado</option>
                     <option value="canceled">Cancelado</option>
                   </select>
