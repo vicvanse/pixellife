@@ -539,24 +539,29 @@ export function DailyOverview() {
       isDeletingRef.current = true;
       
       // Remover do estado local imediatamente para feedback visual
-      setQuickNotes(prev => prev.filter(n => n.id !== noteId));
+      setQuickNotes(prev => {
+        const updated = prev.filter(n => n.id !== noteId);
+        // Atualizar a referência de sincronização com o estado esperado
+        const expectedState = updated.map(n => `${n.id}:${n.text}`).sort().join('|');
+        lastSyncedJournalRef.current = expectedState;
+        return updated;
+      });
       
       // Remover do journal
       removeQuickNote(selectedDate, noteId);
       setJournalDates(getAllDates());
       
-      // Atualizar a referência de sincronização
-      const entry = getEntry(selectedDate);
-      if (entry && entry.quickNotes) {
-        lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
-      } else {
-        lastSyncedJournalRef.current = '';
-      }
-      
-      // Resetar a flag após um delay para permitir sincronização futura
+      // Atualizar a referência de sincronização após um delay para garantir que o journal atualizou
       setTimeout(() => {
+        const entry = getEntry(selectedDate);
+        if (entry && entry.quickNotes) {
+          lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
+        } else {
+          lastSyncedJournalRef.current = '';
+        }
+        // Resetar a flag após atualizar a referência
         isDeletingRef.current = false;
-      }, 300);
+      }, 200);
     }
   };
 
@@ -1280,27 +1285,31 @@ export function DailyOverview() {
                               // Marcar que estamos editando
                               isEditingRef.current = true;
                               
+                              // Atualizar estado local imediatamente
+                              setQuickNotes(prev => {
+                                const updated = prev.map(n => 
+                                  n.id === note.id ? { ...n, text: editingQuickNoteText.trim() } : n
+                                );
+                                // Atualizar a referência de sincronização com o estado esperado
+                                const expectedState = updated.map(n => `${n.id}:${n.text}`).sort().join('|');
+                                lastSyncedJournalRef.current = expectedState;
+                                return updated;
+                              });
+                              
                               // Atualizar no journal
                               updateQuickNote(selectedDate, note.id, editingQuickNoteText.trim());
-                              
-                              // Atualizar estado local imediatamente
-                              setQuickNotes(prev => prev.map(n => 
-                                n.id === note.id ? { ...n, text: editingQuickNoteText.trim() } : n
-                              ));
-                              
-                              // Atualizar referência de sincronização
-                              const entry = getEntry(selectedDate);
-                              if (entry && entry.quickNotes) {
-                                lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
-                              }
                               
                               setEditingQuickNote(null);
                               setEditingQuickNoteText('');
                               
-                              // Resetar flag após delay
+                              // Atualizar referência de sincronização após delay e resetar flag
                               setTimeout(() => {
+                                const entry = getEntry(selectedDate);
+                                if (entry && entry.quickNotes) {
+                                  lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
+                                }
                                 isEditingRef.current = false;
-                              }, 300);
+                              }, 200);
                             }
                           } else if (e.key === 'Escape') {
                             setEditingQuickNote(null);
@@ -1313,27 +1322,31 @@ export function DailyOverview() {
                             // Marcar que estamos editando
                             isEditingRef.current = true;
                             
+                            // Atualizar estado local imediatamente
+                            setQuickNotes(prev => {
+                              const updated = prev.map(n => 
+                                n.id === note.id ? { ...n, text: editingQuickNoteText.trim() } : n
+                              );
+                              // Atualizar a referência de sincronização com o estado esperado
+                              const expectedState = updated.map(n => `${n.id}:${n.text}`).sort().join('|');
+                              lastSyncedJournalRef.current = expectedState;
+                              return updated;
+                            });
+                            
                             // Atualizar no journal
                             updateQuickNote(selectedDate, note.id, editingQuickNoteText.trim());
                             
-                            // Atualizar estado local imediatamente
-                            setQuickNotes(prev => prev.map(n => 
-                              n.id === note.id ? { ...n, text: editingQuickNoteText.trim() } : n
-                            ));
+                            setEditingQuickNote(null);
+                            setEditingQuickNoteText('');
                             
-                            // Atualizar referência de sincronização
-                            const entry = getEntry(selectedDate);
-                            if (entry && entry.quickNotes) {
-                              lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
-                            }
-                            
-                          setEditingQuickNote(null);
-                          setEditingQuickNoteText('');
-                            
-                            // Resetar flag após delay
+                            // Atualizar referência de sincronização após delay e resetar flag
                             setTimeout(() => {
+                              const entry = getEntry(selectedDate);
+                              if (entry && entry.quickNotes) {
+                                lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
+                              }
                               isEditingRef.current = false;
-                            }, 300);
+                            }, 200);
                           } else {
                             setEditingQuickNote(null);
                             setEditingQuickNoteText('');
@@ -1706,34 +1719,38 @@ export function DailyOverview() {
                                                   isHistoryOperationRef.current = true;
                                                 }
                                                 
+                                                // Se for a data selecionada, atualizar estado local imediatamente
+                                                if (isHistoryOp) {
+                                                  setQuickNotes(prev => {
+                                                    const updated = prev.map(n => 
+                                                      n.id === note.id ? { ...n, text: editingQuickNoteText.trim() } : n
+                                                    );
+                                                    // Atualizar a referência de sincronização com o estado esperado
+                                                    const expectedState = updated.map(n => `${n.id}:${n.text}`).sort().join('|');
+                                                    lastSyncedJournalRef.current = expectedState;
+                                                    return updated;
+                                                  });
+                                                }
+                                                
                                                 // Atualizar no journal
                                                 updateQuickNote(dateStr, note.id, editingQuickNoteText.trim());
-                                                
-                                                // Se for a data selecionada, atualizar estado local
-                                                if (isHistoryOp) {
-                                                  setQuickNotes(prev => prev.map(n => 
-                                                    n.id === note.id ? { ...n, text: editingQuickNoteText.trim() } : n
-                                                  ));
-                                                  
-                                                  // Atualizar referência de sincronização imediatamente após um pequeno delay
-                                                  setTimeout(() => {
-                                                    const entry = getEntry(dateStr);
-                                                    if (entry && entry.quickNotes) {
-                                                      lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
-                                                    }
-                                                  }, 50);
-                                                }
                                                 
                 setEditingQuickNote(null);
                 setEditingQuickNoteText('');
                                                 
-                                                // Resetar flags após delay
+                                                // Resetar flags após delay e sincronizar referência
                                                 setTimeout(() => {
+                                                  if (isHistoryOp) {
+                                                    const entry = getEntry(dateStr);
+                                                    if (entry && entry.quickNotes) {
+                                                      lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
+                                                    }
+                                                  }
                                                   isEditingRef.current = false;
                                                   if (isHistoryOp) {
                                                     isHistoryOperationRef.current = false;
                                                   }
-                                                }, 500);
+                                                }, 200);
                                               }
                                             } else if (e.key === 'Escape') {
                 setEditingQuickNote(null);
@@ -1753,34 +1770,38 @@ export function DailyOverview() {
                                                 isHistoryOperationRef.current = true;
                                               }
                                               
+                                              // Se for a data selecionada, atualizar estado local imediatamente
+                                              if (isHistoryOp) {
+                                                setQuickNotes(prev => {
+                                                  const updated = prev.map(n => 
+                                                    n.id === note.id ? { ...n, text: editingQuickNoteText.trim() } : n
+                                                  );
+                                                  // Atualizar a referência de sincronização com o estado esperado
+                                                  const expectedState = updated.map(n => `${n.id}:${n.text}`).sort().join('|');
+                                                  lastSyncedJournalRef.current = expectedState;
+                                                  return updated;
+                                                });
+                                              }
+                                              
                                               // Atualizar no journal
                                               updateQuickNote(dateStr, note.id, editingQuickNoteText.trim());
-                                              
-                                              // Se for a data selecionada, atualizar estado local
-                                              if (isHistoryOp) {
-                                                setQuickNotes(prev => prev.map(n => 
-                                                  n.id === note.id ? { ...n, text: editingQuickNoteText.trim() } : n
-                                                ));
-                                                
-                                                // Atualizar referência de sincronização imediatamente após um pequeno delay
-                                                setTimeout(() => {
-                                                  const entry = getEntry(dateStr);
-                                                  if (entry && entry.quickNotes) {
-                                                    lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
-                                                  }
-                                                }, 50);
-                                              }
                                               
               setEditingQuickNote(null);
               setEditingQuickNoteText('');
                                               
-                                              // Resetar flags após delay
+                                              // Resetar flags após delay e sincronizar referência
                                               setTimeout(() => {
+                                                if (isHistoryOp) {
+                                                  const entry = getEntry(dateStr);
+                                                  if (entry && entry.quickNotes) {
+                                                    lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
+                                                  }
+                                                }
                                                 isEditingRef.current = false;
                                                 if (isHistoryOp) {
                                                   isHistoryOperationRef.current = false;
                                                 }
-                                              }, 500);
+                                              }, 200);
                                             } else {
                                               setEditingQuickNote(null);
                                               setEditingQuickNoteText('');
@@ -1836,30 +1857,34 @@ export function DailyOverview() {
                                           
                                           // Se for a data selecionada, atualizar estado local imediatamente
                                           if (isHistoryOp) {
-                                            setQuickNotes(prev => prev.filter(n => n.id !== note.id));
+                                            setQuickNotes(prev => {
+                                              const updated = prev.filter(n => n.id !== note.id);
+                                              // Atualizar a referência de sincronização com o estado esperado
+                                              const expectedState = updated.map(n => `${n.id}:${n.text}`).sort().join('|');
+                                              lastSyncedJournalRef.current = expectedState;
+                                              return updated;
+                                            });
                                           }
                                           
                                           // Remover o pensamento rápido usando a função do hook
                                           removeQuickNote(dateStr, note.id);
                                           setJournalDates(getAllDates());
                                           
-                                          // Atualizar a referência de sincronização após um pequeno delay
+                                          // Atualizar a referência de sincronização após um delay e resetar flags
                                           setTimeout(() => {
-                                            const entry = getEntry(dateStr);
-                                            if (entry && entry.quickNotes) {
-                                              lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
-                                            } else {
-                                              lastSyncedJournalRef.current = '';
+                                            if (isHistoryOp) {
+                                              const entry = getEntry(dateStr);
+                                              if (entry && entry.quickNotes) {
+                                                lastSyncedJournalRef.current = entry.quickNotes.map(n => `${n.id}:${n.text}`).sort().join('|');
+                                              } else {
+                                                lastSyncedJournalRef.current = '';
+                                              }
                                             }
-                                          }, 50);
-                                          
-                                          // Resetar as flags após um delay para permitir sincronização futura
-                                          setTimeout(() => {
                                             isDeletingRef.current = false;
                                             if (isHistoryOp) {
                                               isHistoryOperationRef.current = false;
                                             }
-                                          }, 500);
+                                          }, 200);
                                         }}
                                         className="absolute top-0 right-0 w-5 h-5 flex items-center justify-center rounded-full bg-red-400 hover:bg-red-500 text-white text-xs font-bold transition-opacity z-50"
                                         style={{ 

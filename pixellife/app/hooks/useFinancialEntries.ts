@@ -488,42 +488,42 @@ export function useFinancialEntries() {
             let count = 0;
             const startDay = entryStart.getDate();
             
-            // Começar do primeiro mês que pode ter ocorrência no período
-            let currentYear = entryStart.getFullYear();
-            let currentMonth = entryStart.getMonth();
+            // Determinar data final para parar
+            let maxDate: Date;
+            if (periodEnd) {
+              maxDate = new Date(periodEnd + "T23:59:59");
+            } else if (entryEnd) {
+              maxDate = new Date(entryEnd + "T23:59:59");
+            } else {
+              // Limite de segurança: 2 anos no futuro
+              maxDate = new Date();
+              maxDate.setFullYear(maxDate.getFullYear() + 2);
+            }
             
-            // Se o período começa depois da entrada, avançar para o início do período
+            // Começar do primeiro mês possível
+            let year = entryStart.getFullYear();
+            let month = entryStart.getMonth();
+            
+            // Se o período começa depois, ajustar para o início do período
             if (periodStart) {
               const periodStartDate = new Date(periodStart + "T00:00:00");
               if (periodStartDate > entryStart) {
-                // Encontrar o primeiro mês válido após ou igual ao período de início
-                currentYear = periodStartDate.getFullYear();
-                currentMonth = periodStartDate.getMonth();
-                
-                // Se o dia da entrada ainda não passou neste mês, usar este mês
-                // Caso contrário, avançar para o próximo
-                const daysInThisMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-                const dayToCheck = Math.min(startDay, daysInThisMonth);
-                const dateThisMonth = new Date(currentYear, currentMonth, dayToCheck);
-                
-                if (dateThisMonth < periodStartDate) {
-                  // A data deste mês já passou, avançar para o próximo
-                  currentMonth++;
-                  if (currentMonth > 11) {
-                    currentMonth = 0;
-                    currentYear++;
-                  }
-                }
+                year = periodStartDate.getFullYear();
+                month = periodStartDate.getMonth();
               }
             }
             
-            const maxDate = periodEnd ? new Date(periodEnd + "T23:59:59") : new Date();
+            // Limite de segurança para evitar loops infinitos
+            let iterations = 0;
+            const maxIterations = 2400; // 200 anos * 12 meses
             
-            while (true) {
+            while (iterations < maxIterations) {
+              iterations++;
+              
               // Criar data para este mês
-              const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+              const daysInMonth = new Date(year, month + 1, 0).getDate();
               const dayToUse = Math.min(startDay, daysInMonth);
-              const currentDate = new Date(currentYear, currentMonth, dayToUse);
+              const currentDate = new Date(year, month, dayToUse);
               
               // Se passou do máximo, parar
               if (currentDate > maxDate) break;
@@ -538,10 +538,10 @@ export function useFinancialEntries() {
               }
               
               // Avançar para o próximo mês
-              currentMonth++;
-              if (currentMonth > 11) {
-                currentMonth = 0;
-                currentYear++;
+              month++;
+              if (month > 11) {
+                month = 0;
+                year++;
               }
             }
             
