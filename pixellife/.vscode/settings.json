@@ -1,0 +1,33 @@
+{
+  "files.associations": {
+    ".env.local": "dotenv",
+    ".env": "dotenv",
+    ".env.*": "dotenv"
+  },
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/node_modules": true,
+    "**/.next": true
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

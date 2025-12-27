@@ -1,0 +1,56 @@
+{
+  "name": "Pixel Life - Life Management",
+  "short_name": "Pixel Life",
+  "description": "Aplicação de gerenciamento de vida com estética pixel-art",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/Icon3.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Icon3.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Icon3.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["productivity", "lifestyle", "finance"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Display",
+      "short_name": "Display",
+      "description": "Ir para a página principal",
+      "url": "/display",
+      "icons": [{ "src": "/icon1.gif", "sizes": "192x192" }]
+    },
+    {
+      "name": "Habits",
+      "short_name": "Habits",
+      "description": "Gerenciar hábitos",
+      "url": "/habits",
+      "icons": [{ "src": "/icon1.gif", "sizes": "192x192" }]
+    },
+    {
+      "name": "Expenses",
+      "short_name": "Expenses",
+      "description": "Gerenciar finanças",
+      "url": "/expenses",
+      "icons": [{ "src": "/icon1.gif", "sizes": "192x192" }]
+    }
+  ]
+}
+

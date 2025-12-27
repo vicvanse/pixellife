@@ -1,0 +1,51 @@
+{
+  "name": "pixel-life",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "type-check": "tsc --noEmit",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "analyze:code": "tsx scripts/gemini-code-analyzer.ts",
+    "analyze:deep": "tsx scripts/gemini-code-analyzer.ts --deep",
+    "seed:data": "tsx scripts/seed-data.ts",
+    "gemini:models": "tsx scripts/list-gemini-models.ts"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^7.1.0",
+    "@fortawesome/free-solid-svg-icons": "^7.1.0",
+    "@fortawesome/react-fontawesome": "^3.1.1",
+    "@google/generative-ai": "^0.24.1",
+    "@supabase/supabase-js": "^2.84.0",
+    "@types/papaparse": "^5.5.2",
+    "next": "16.0.7",
+    "papaparse": "^5.5.3",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@types/glob": "^8.1.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.0.15",
+    "@vitest/ui": "^4.0.15",
+    "dotenv": "^17.2.3",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.7",
+    "glob": "^13.0.0",
+    "jsdom": "^27.3.0",
+    "tailwindcss": "^4",
+    "tsx": "^4.21.0",
+    "typescript": "^5",
+    "vitest": "^4.0.15"
+  }
+}

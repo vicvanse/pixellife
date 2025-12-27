@@ -1,8 +1,7 @@
 {
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
-  "framework": "nextjs",
-  "outputDirectory": ".next"
+  "buildCommand": "cd pixellife && npm install && npm run build",
+  "devCommand": "cd pixellife && npm run dev",
+  "installCommand": "cd pixellife && npm install",
+  "framework": "nextjs"
 }
 
