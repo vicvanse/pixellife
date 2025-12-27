@@ -13,6 +13,41 @@ interface HudBit {
   delay: number;
 }
 
+type AuthLanguage = "PT" | "EN" | "JP" | "ES" | "FR" | "DE" | "IT" | "RU" | "ZH" | "KO";
+
+const validLanguages: AuthLanguage[] = ["PT", "EN", "JP", "ES", "FR", "DE", "IT", "RU", "ZH", "KO"];
+
+// Helper function to detect browser language and map to auth language codes
+function getDefaultLanguage(): AuthLanguage {
+  if (typeof window === 'undefined') return 'EN';
+  
+  // Check localStorage first
+  const saved = localStorage.getItem('authLanguage') as AuthLanguage;
+  if (saved && validLanguages.includes(saved)) {
+    return saved;
+  }
+  
+  // Detect browser language
+  const browserLang = navigator.language || (navigator as any).userLanguage || 'en';
+  const langCode = browserLang.toLowerCase().split('-')[0];
+  
+  // Map browser language codes to auth language codes
+  const langMap: Record<string, AuthLanguage> = {
+    'pt': 'PT',
+    'en': 'EN',
+    'ja': 'JP',
+    'es': 'ES',
+    'fr': 'FR',
+    'de': 'DE',
+    'it': 'IT',
+    'ru': 'RU',
+    'zh': 'ZH',
+    'ko': 'KO',
+  };
+  
+  return langMap[langCode] || 'EN';
+}
+
 // Translations
 const translations = {
   PT: {
@@ -279,10 +314,33 @@ export function RegisterPageContent() {
   const [bootStage, setBootStage] = useState<BootStage>(0);
   const [rememberMe, setRememberMe] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState<"google" | "apple" | null>(null);
-  const [language, setLanguage] = useState<"PT" | "EN" | "JP" | "ES" | "FR" | "DE" | "IT" | "RU" | "ZH" | "KO">("PT");
+  const [language, setLanguage] = useState<AuthLanguage>(() => {
+    if (typeof window !== 'undefined') {
+      return getDefaultLanguage();
+    }
+    return 'EN';
+  });
   const [passwordFocused, setPasswordFocused] = useState(false);
 
   const t = translations[language];
+
+  // Load language from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('authLanguage') as AuthLanguage;
+    if (saved && validLanguages.includes(saved)) {
+      setLanguage(saved);
+    } else {
+      const defaultLang = getDefaultLanguage();
+      setLanguage(defaultLang);
+      localStorage.setItem('authLanguage', defaultLang);
+    }
+  }, []);
+
+  // Handle language change and persist to localStorage
+  const handleLanguageChange = (lang: AuthLanguage) => {
+    setLanguage(lang);
+    localStorage.setItem('authLanguage', lang);
+  };
 
   // Boot sequence - elementos aparecendo progressivamente
   useEffect(() => {
@@ -723,7 +781,7 @@ export function RegisterPageContent() {
                 <span key={lang}>
                   <button
                     type="button"
-                    onClick={() => setLanguage(lang)}
+                    onClick={() => handleLanguageChange(lang)}
                     className={`tracking-widest transition-colors ${
                       language === lang ? "text-white/90" : "text-white/40 hover:text-white/60"
                     }`}

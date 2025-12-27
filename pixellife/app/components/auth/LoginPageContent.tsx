@@ -13,6 +13,41 @@ interface HudBit {
   delay: number;
 }
 
+type AuthLanguage = "PT" | "EN" | "JP" | "ES" | "FR" | "DE" | "IT" | "RU" | "ZH" | "KO";
+
+const validLanguages: AuthLanguage[] = ["PT", "EN", "JP", "ES", "FR", "DE", "IT", "RU", "ZH", "KO"];
+
+// Helper function to detect browser language and map to auth language codes
+function getDefaultLanguage(): AuthLanguage {
+  if (typeof window === 'undefined') return 'EN';
+  
+  // Check localStorage first
+  const saved = localStorage.getItem('authLanguage') as AuthLanguage;
+  if (saved && validLanguages.includes(saved)) {
+    return saved;
+  }
+  
+  // Detect browser language
+  const browserLang = navigator.language || (navigator as any).userLanguage || 'en';
+  const langCode = browserLang.toLowerCase().split('-')[0];
+  
+  // Map browser language codes to auth language codes
+  const langMap: Record<string, AuthLanguage> = {
+    'pt': 'PT',
+    'en': 'EN',
+    'ja': 'JP',
+    'es': 'ES',
+    'fr': 'FR',
+    'de': 'DE',
+    'it': 'IT',
+    'ru': 'RU',
+    'zh': 'ZH',
+    'ko': 'KO',
+  };
+  
+  return langMap[langCode] || 'EN';
+}
+
 // Translations
 const translations = {
   PT: {
@@ -258,9 +293,32 @@ export function LoginPageContent() {
   const [bootStage, setBootStage] = useState<BootStage>(0);
   const [rememberMe, setRememberMe] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState<"google" | "apple" | "magic" | null>(null);
-  const [language, setLanguage] = useState<"PT" | "EN" | "JP" | "ES" | "FR" | "DE" | "IT" | "RU" | "ZH" | "KO">("PT");
+  const [language, setLanguage] = useState<AuthLanguage>(() => {
+    if (typeof window !== 'undefined') {
+      return getDefaultLanguage();
+    }
+    return 'EN';
+  });
 
   const t = translations[language];
+
+  // Load language from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('authLanguage') as AuthLanguage;
+    if (saved && validLanguages.includes(saved)) {
+      setLanguage(saved);
+    } else {
+      const defaultLang = getDefaultLanguage();
+      setLanguage(defaultLang);
+      localStorage.setItem('authLanguage', defaultLang);
+    }
+  }, []);
+
+  // Handle language change and persist to localStorage
+  const handleLanguageChange = (lang: AuthLanguage) => {
+    setLanguage(lang);
+    localStorage.setItem('authLanguage', lang);
+  };
 
   // Boot sequence - elementos aparecendo progressivamente
   useEffect(() => {
@@ -496,9 +554,9 @@ export function LoginPageContent() {
                   />
                 </div>
 
-              {/* Remember Me Toggle */}
+              {/* Remember Me Toggle and Create Account Link */}
               <div
-                className="mb-3 flex items-center gap-2 transition-opacity duration-700"
+                className="mb-3 flex items-center justify-between transition-opacity duration-700"
                 style={{ opacity: bootStage >= 2 ? 1 : 0 }}
               >
                 <button
@@ -545,6 +603,20 @@ export function LoginPageContent() {
                   </svg>
                   <span>{t.rememberMe}</span>
                 </button>
+                <a
+                  href="/auth/register"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    router.push("/auth/register");
+                  }}
+                  className="text-[10px] sm:text-xs tracking-widest text-white/55 hover:text-white/75 transition-colors underline"
+                  style={{
+                    fontSize: "13px",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  {t.createAccount}
+                </a>
               </div>
 
               {/* Error message */}
@@ -571,27 +643,6 @@ export function LoginPageContent() {
               >
                 {isLoading ? t.creating : t.enter}
               </button>
-
-              {/* Create Account Link */}
-              <div
-                className="mt-3 text-center transition-opacity duration-700"
-                style={{ opacity: bootStage >= 3 ? 1 : 0 }}
-              >
-                <a
-                  href="/auth/register"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    router.push("/auth/register");
-                  }}
-                  className="text-sm tracking-[0.06em] text-white/55 hover:text-white/75 transition-colors underline"
-                  style={{
-                    fontSize: "13px",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  {t.createAccount}
-                </a>
-              </div>
 
               {/* Alternative divider */}
               <div
@@ -704,7 +755,7 @@ export function LoginPageContent() {
                 <span key={lang}>
                   <button
                     type="button"
-                    onClick={() => setLanguage(lang)}
+                    onClick={() => handleLanguageChange(lang)}
                     className={`tracking-widest transition-colors ${
                       language === lang ? "text-white/90" : "text-white/40 hover:text-white/60"
                     }`}
