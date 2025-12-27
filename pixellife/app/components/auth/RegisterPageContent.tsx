@@ -691,28 +691,6 @@ export function RegisterPageContent() {
                 </button>
               </div>
 
-              {/* Links - SOBRE | PRIVACIDADE | TERMOS | COMMUNITY */}
-              <div
-                className="mt-4 flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm text-white/55 transition-opacity duration-700"
-                style={{ opacity: bootStage >= 3 ? 1 : 0 }}
-              >
-                <a className="hover:text-white/80 hover:underline" href="/about">
-                  {t.sobre}
-                </a>
-                <span className="text-white/25">|</span>
-                <a className="hover:text-white/80 hover:underline" href="/privacy">
-                  {t.privacidade}
-                </a>
-                <span className="text-white/25">|</span>
-                <a className="hover:text-white/80 hover:underline" href="/terms">
-                  {t.termos}
-                </a>
-                <span className="text-white/25">|</span>
-                <a className="hover:text-white/80 hover:underline" href="/community">
-                  {t.community}
-                </a>
-              </div>
-
               {/* Footer */}
               <div
                 className="mt-4 flex items-center justify-center transition-opacity duration-700"
@@ -736,9 +714,9 @@ export function RegisterPageContent() {
               </div>
             </form>
 
-            {/* Language Selector - All languages */}
+            {/* Language Selector - All languages (moved up, between build and hood) */}
             <div
-              className="mt-6 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-white/55 transition-opacity duration-700 flex-wrap"
+              className="mt-1 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-white/55 transition-opacity duration-700 flex-wrap"
               style={{ opacity: bootStage >= 3 ? 1 : 0 }}
             >
               {(["PT", "EN", "JP", "ES", "FR", "DE", "IT", "RU", "ZH", "KO"] as const).map((lang, index) => (
@@ -756,6 +734,28 @@ export function RegisterPageContent() {
                   {index < 9 && <span className="text-white/25 mx-1">|</span>}
                 </span>
               ))}
+            </div>
+
+            {/* Hood cinza - SOBRE | PRIVACIDADE | TERMOS | COMMUNITY */}
+            <div
+              className="mt-3 flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm transition-opacity duration-700"
+              style={{ opacity: bootStage >= 3 ? 1 : 0 }}
+            >
+              <a className="hover:underline" href="/about" style={{ color: "#000000" }}>
+                {t.sobre}
+              </a>
+              <span style={{ color: "#000000" }}>|</span>
+              <a className="hover:underline" href="/privacy" style={{ color: "#000000" }}>
+                {t.privacidade}
+              </a>
+              <span style={{ color: "#000000" }}>|</span>
+              <a className="hover:underline" href="/terms" style={{ color: "#000000" }}>
+                {t.termos}
+              </a>
+              <span style={{ color: "#000000" }}>|</span>
+              <a className="hover:underline" href="/community" style={{ color: "#000000" }}>
+                {t.community}
+              </a>
             </div>
           </div>
         </div>
