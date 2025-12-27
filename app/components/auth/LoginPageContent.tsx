@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 
-type LoginMethod = "email" | "password";
 type BootStage = 0 | 1 | 2 | 3;
 
 interface HudBit {
@@ -20,12 +19,12 @@ export function LoginPageContent() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [method, setMethod] = useState<LoginMethod>("email");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bootStage, setBootStage] = useState<BootStage>(0);
   const [rememberMe, setRememberMe] = useState(false);
-  const [isOAuthLoading, setIsOAuthLoading] = useState<"google" | "apple" | null>(null);
+  const [isOAuthLoading, setIsOAuthLoading] = useState<"google" | "apple" | "magic" | null>(null);
+  const [language, setLanguage] = useState<"PT" | "EN" | "JP">("PT");
 
   // Boot sequence - elementos aparecendo progressivamente
   useEffect(() => {
@@ -61,36 +60,19 @@ export function LoginPageContent() {
     e.preventDefault();
     setError(null);
 
-    if (method === "email") {
-      if (!email.trim()) {
-        setError("Por favor, insira seu email");
-        return;
-      }
-
-      setIsLoading(true);
-      const { error: authError } = await loginEmail(email.trim(), rememberMe);
-      setIsLoading(false);
-
-      if (authError) {
-        setError(authError.message || "Erro ao enviar link de acesso");
-      } else {
-        router.push("/auth/verify-email");
-      }
-    } else {
-      if (!email.trim() || !password.trim()) {
-        setError("Por favor, preencha email e senha");
-        return;
-      }
-
-      setIsLoading(true);
-      const { error: authError } = await loginPassword(email.trim(), password, rememberMe);
-      setIsLoading(false);
-
-      if (authError) {
-        setError(authError.message || "Email ou senha incorretos");
-      }
-      // loginPassword já faz redirecionamento automático se bem-sucedido
+    if (!email.trim() || !password.trim()) {
+      setError("Por favor, preencha email e senha");
+      return;
     }
+
+    setIsLoading(true);
+    const { error: authError } = await loginPassword(email.trim(), password, rememberMe);
+    setIsLoading(false);
+
+    if (authError) {
+      setError(authError.message || "Email ou senha incorretos");
+    }
+    // loginPassword já faz redirecionamento automático se bem-sucedido
   };
 
   const handleOAuthLogin = async (provider: "google" | "apple") => {
@@ -102,6 +84,26 @@ export function LoginPageContent() {
         : await loginApple(rememberMe);
       if (authError) {
         setError(authError.message || `Erro ao fazer login com ${provider === "google" ? "Google" : "Apple"}`);
+      }
+    } finally {
+      setIsOAuthLoading(null);
+    }
+  };
+
+  const handleMagicLink = async () => {
+    setError(null);
+    if (!email.trim()) {
+      setError("Por favor, insira seu email");
+      return;
+    }
+
+    setIsOAuthLoading("magic");
+    try {
+      const { error: authError } = await loginEmail(email.trim(), rememberMe);
+      if (authError) {
+        setError(authError.message || "Erro ao enviar link de acesso");
+      } else {
+        router.push("/auth/verify-email");
       }
     } finally {
       setIsOAuthLoading(null);
@@ -172,7 +174,7 @@ export function LoginPageContent() {
             {/* Center "Dollars" composition */}
             <div
               className="relative flex items-center justify-center mb-6"
-              style={{ 
+      style={{
                 width: 420, 
                 height: 420, 
                 maxWidth: "min(92vw, 420px)", 
@@ -203,50 +205,13 @@ export function LoginPageContent() {
               >
                 <DottedWordmark text="PIXEL LIFE" />
                 <div className="mt-3 text-[10px] sm:text-xs tracking-[0.34em] text-[#F1F1F1]/70">
-                  AUTH NODE • SESSION GATE
+                  LIFE MANAGEMENT - SESSION GATE
                 </div>
               </div>
             </div>
 
             {/* Login controls */}
             <form onSubmit={handleSubmit} className="w-full max-w-sm">
-              {/* Method selector */}
-              <div
-                className="mb-4 flex gap-2 transition-opacity duration-700"
-                style={{ opacity: bootStage >= 2 ? 1 : 0 }}
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMethod("email");
-                    setError(null);
-                  }}
-                  className={`flex-1 py-2.5 sm:py-2 text-[10px] sm:text-xs tracking-widest transition-colors ${
-                    method === "email"
-                      ? "border border-white/30 bg-white/10 text-white/90"
-                      : "border border-white/10 bg-transparent text-white/50 hover:text-white/70"
-                  }`}
-                  style={{ borderRadius: "999px" }}
-                >
-                  MAGIC LINK
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMethod("password");
-                    setError(null);
-                  }}
-                  className={`flex-1 py-2.5 sm:py-2 text-[10px] sm:text-xs tracking-widest transition-colors ${
-                    method === "password"
-                      ? "border border-white/30 bg-white/10 text-white/90"
-                      : "border border-white/10 bg-transparent text-white/50 hover:text-white/70"
-                  }`}
-                  style={{ borderRadius: "999px" }}
-                >
-                  SENHA
-                </button>
-              </div>
-
               {/* Email input */}
               <div
                 className="mb-3 transition-opacity duration-700"
@@ -271,31 +236,29 @@ export function LoginPageContent() {
                 />
               </div>
 
-              {/* Password input (only for password method) */}
-              {method === "password" && (
-                <div
-                  className="mb-3 transition-opacity duration-700"
-                  style={{ opacity: bootStage >= 2 ? 1 : 0 }}
-                >
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      setError(null);
-                    }}
-                    placeholder="Senha"
-                    required
-                    className="w-full bg-transparent px-4 py-3.5 sm:py-3 outline-none text-sm tracking-[0.06em] text-white placeholder:text-white/35"
-                    style={{
-                      border: "1px solid rgba(241,241,241,0.22)",
-                      borderRadius: "999px",
-                      boxShadow: "0 0 0 1px rgba(0,0,0,0.5) inset",
-                      minHeight: "44px",
-                    }}
-                  />
-                </div>
-              )}
+              {/* Password input */}
+              <div
+                className="mb-3 transition-opacity duration-700"
+                style={{ opacity: bootStage >= 2 ? 1 : 0 }}
+              >
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError(null);
+                  }}
+                  placeholder="Senha"
+                  required
+                  className="w-full bg-transparent px-4 py-3.5 sm:py-3 outline-none text-sm tracking-[0.06em] text-white placeholder:text-white/35"
+        style={{
+                    border: "1px solid rgba(241,241,241,0.22)",
+                    borderRadius: "999px",
+                    boxShadow: "0 0 0 1px rgba(0,0,0,0.5) inset",
+                    minHeight: "44px",
+                  }}
+                />
+              </div>
 
               {/* Remember Me Toggle */}
               <div
@@ -373,6 +336,25 @@ export function LoginPageContent() {
                 {isLoading ? "PROCESSING..." : "ENTER"}
               </button>
 
+              {/* Create Account Button */}
+              <button
+                type="button"
+                onClick={() => router.push("/auth/register")}
+                disabled={bootStage < 3}
+                className="w-full mt-3 py-3.5 sm:py-3 text-sm tracking-[0.18em] font-semibold transition active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  border: "1px solid rgba(241,241,241,0.30)",
+                  borderRadius: "999px",
+                  background: "rgba(255,255,255,0.06)",
+                  color: "#F1F1F1",
+                  opacity: bootStage >= 3 ? 1 : 0,
+                  transition: "opacity 700ms",
+                  minHeight: "44px",
+                }}
+              >
+                CRIAR CONTA
+              </button>
+
               {/* Alternative divider */}
               <div
                 className="mt-6 mb-4 flex items-center gap-3 transition-opacity duration-700"
@@ -383,18 +365,18 @@ export function LoginPageContent() {
                 <div className="flex-1 h-px bg-white/10" />
               </div>
 
-              {/* OAuth Buttons */}
+              {/* OAuth Buttons - Google and Apple side by side */}
               <div
-                className="mb-4 space-y-2.5 transition-opacity duration-700"
+                className="mb-2.5 flex gap-2 transition-opacity duration-700"
                 style={{ opacity: bootStage >= 3 ? 1 : 0 }}
               >
-                {/* Google Button */}
+                {/* Google Button - 50% */}
                 <button
                   type="button"
                   onClick={() => handleOAuthLogin("google")}
                   disabled={isOAuthLoading !== null || bootStage < 3}
-                  className="w-full py-2.5 sm:py-2 text-[10px] sm:text-xs tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 oauthButton"
-                  style={{
+                  className="flex-1 py-2.5 sm:py-2 text-[10px] sm:text-xs tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 oauthButton"
+        style={{ 
                     border: "1px solid rgba(241,241,241,0.20)",
                     borderRadius: "999px",
                     background: "rgba(255,255,255,0.04)",
@@ -404,16 +386,17 @@ export function LoginPageContent() {
                   }}
                 >
                   <GoogleIcon />
-                  <span>{isOAuthLoading === "google" ? "PROCESSING..." : "Continuar com Google"}</span>
+                  <span className="hidden sm:inline">{isOAuthLoading === "google" ? "PROCESSING..." : "Google"}</span>
+                  <span className="sm:hidden">{isOAuthLoading === "google" ? "..." : "G"}</span>
                 </button>
 
-                {/* Apple Button */}
+                {/* Apple Button - 50% */}
                 <button
                   type="button"
                   onClick={() => handleOAuthLogin("apple")}
                   disabled={isOAuthLoading !== null || bootStage < 3}
-                  className="w-full py-2.5 sm:py-2 text-[10px] sm:text-xs tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 oauthButton"
-                  style={{
+                  className="flex-1 py-2.5 sm:py-2 text-[10px] sm:text-xs tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 oauthButton"
+            style={{
                     border: "1px solid rgba(241,241,241,0.20)",
                     borderRadius: "999px",
                     background: "rgba(255,255,255,0.04)",
@@ -423,68 +406,114 @@ export function LoginPageContent() {
                   }}
                 >
                   <AppleIcon />
-                  <span>{isOAuthLoading === "apple" ? "PROCESSING..." : "Continuar com Apple"}</span>
+                  <span className="hidden sm:inline">{isOAuthLoading === "apple" ? "PROCESSING..." : "Apple"}</span>
+                  <span className="sm:hidden">{isOAuthLoading === "apple" ? "..." : "A"}</span>
                 </button>
               </div>
 
-              {/* Create Account Link */}
+              {/* Magic Link Button - 50% centered */}
               <div
-                className="mb-4 text-center transition-opacity duration-700"
+                className="mb-4 flex justify-center transition-opacity duration-700"
                 style={{ opacity: bootStage >= 3 ? 1 : 0 }}
               >
-                <a
-                  href="/auth/register"
-                  className="text-xs tracking-widest text-white/50 hover:text-white/70 hover:underline transition-colors"
+                <button
+                  type="button"
+                  onClick={handleMagicLink}
+                  disabled={isOAuthLoading !== null || bootStage < 3}
+                  className="w-1/2 py-2.5 sm:py-2 text-[10px] sm:text-xs tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 oauthButton"
+            style={{
+                    border: "1px solid rgba(241,241,241,0.20)",
+                    borderRadius: "999px",
+                    background: "rgba(255,255,255,0.04)",
+                    color: "#F1F1F1",
+                    backdropFilter: "blur(2px)",
+                    minHeight: "40px",
+                  }}
                 >
-                  Novo por aqui? Criar conta
-                </a>
+                  <span>{isOAuthLoading === "magic" ? "PROCESSING..." : "MAGIC LINK"}</span>
+                </button>
               </div>
 
-              {/* Links */}
+              {/* Language Selector */}
               <div
-                className="mt-4 flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm text-white/55 transition-opacity duration-700"
+                className="mt-4 flex items-center justify-center gap-2 transition-opacity duration-700"
                 style={{ opacity: bootStage >= 3 ? 1 : 0 }}
               >
-                <a className="hover:text-white/80 hover:underline" href="/privacy">
-                  Settings
-                </a>
-                <span className="text-white/25">•</span>
-                <a className="hover:text-white/80 hover:underline" href="/about">
-                  FAQ
-                </a>
-                <span className="text-white/25">•</span>
-                <a className="hover:text-white/80 hover:underline" href="/terms">
-                  Rules
-                </a>
-                <span className="text-white/25">•</span>
-                <a className="hover:text-white/80 hover:underline" href="/auth/register">
-                  Criar conta
-                </a>
+                <button
+                  type="button"
+                  onClick={() => setLanguage("PT")}
+                  className={`text-xs tracking-widest transition-colors ${
+                    language === "PT" ? "text-white/90" : "text-white/40 hover:text-white/60"
+                  }`}
+                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
+                >
+                  PT
+                </button>
+                <span className="text-white/25">|</span>
+                <button
+                  type="button"
+                  onClick={() => setLanguage("EN")}
+                  className={`text-xs tracking-widest transition-colors ${
+                    language === "EN" ? "text-white/90" : "text-white/40 hover:text-white/60"
+                  }`}
+                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
+                >
+                  EN
+                </button>
+                <span className="text-white/25">|</span>
+                <button
+                  type="button"
+                  onClick={() => setLanguage("JP")}
+                  className={`text-xs tracking-widest transition-colors ${
+                    language === "JP" ? "text-white/90" : "text-white/40 hover:text-white/60"
+                  }`}
+                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
+                >
+                  JP
+                </button>
               </div>
 
               {/* Footer */}
               <div
-                className="mt-6 flex items-center justify-center transition-opacity duration-700"
+                className="mt-4 flex items-center justify-center transition-opacity duration-700"
                 style={{ opacity: bootStage >= 3 ? 1 : 0 }}
               >
                 <div
                   className="px-3 py-1.5 text-xs tracking-[0.18em] text-white/70"
-                  style={{
+            style={{
                     border: "1px solid rgba(241,241,241,0.15)",
                     borderRadius: "6px",
                     background: "rgba(0,0,0,0.40)",
-                  }}
-                >
+            }}
+          >
                   PROJECT PIXEL LIFE
                 </div>
-              </div>
+        </div>
 
               {/* Build ID */}
-              <div className="mt-6 text-center text-[11px] tracking-[0.12em] text-white/25">
+              <div className="mt-2 text-center text-[11px] tracking-[0.12em] text-white/25">
                 build: {stablePseudoId()}
               </div>
             </form>
-          </div>
+
+            {/* Hood cinza - SOBRE | FAQ | COMMUNITY */}
+            <div
+              className="mt-6 flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm text-white/55 transition-opacity duration-700"
+              style={{ opacity: bootStage >= 3 ? 1 : 0 }}
+            >
+              <a className="hover:text-white/80 hover:underline" href="/about">
+                SOBRE
+              </a>
+              <span className="text-white/25">|</span>
+              <a className="hover:text-white/80 hover:underline" href="/faq">
+                FAQ
+              </a>
+              <span className="text-white/25">|</span>
+              <a className="hover:text-white/80 hover:underline" href="/community">
+                COMMUNITY
+              </a>
+            </div>
+        </div>
         </div>
       </div>
 
