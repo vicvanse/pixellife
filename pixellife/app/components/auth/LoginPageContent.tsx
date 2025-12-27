@@ -13,6 +13,79 @@ interface HudBit {
   delay: number;
 }
 
+// Translations
+const translations = {
+  PT: {
+    email: "Email",
+    password: "Senha",
+    rememberMe: "Manter sessão",
+    enter: "ENTER",
+    creating: "PROCESSING...",
+    createAccount: "Criar conta",
+    alternative: "Alternativo",
+    magicLink: "MAGIC LINK",
+    google: "Google",
+    apple: "Apple",
+    sobre: "SOBRE",
+    privacidade: "PRIVACIDADE",
+    termos: "TERMOS",
+    community: "COMMUNITY",
+    fillEmailPassword: "Por favor, preencha email e senha",
+    fillEmail: "Por favor, insira seu email",
+    emailPasswordError: "Email ou senha incorretos",
+    magicLinkError: "Erro ao enviar link de acesso",
+    googleError: "Erro ao fazer login com Google",
+    appleError: "Erro ao fazer login com Apple",
+    lifeManagement: "LIFE MANAGEMENT • SESSION GATE",
+  },
+  EN: {
+    email: "Email",
+    password: "Password",
+    rememberMe: "Remember me",
+    enter: "ENTER",
+    creating: "PROCESSING...",
+    createAccount: "Create account",
+    alternative: "Alternative",
+    magicLink: "MAGIC LINK",
+    google: "Google",
+    apple: "Apple",
+    sobre: "ABOUT",
+    privacidade: "PRIVACY",
+    termos: "TERMS",
+    community: "COMMUNITY",
+    fillEmailPassword: "Please fill in email and password",
+    fillEmail: "Please enter your email",
+    emailPasswordError: "Incorrect email or password",
+    magicLinkError: "Error sending access link",
+    googleError: "Error signing in with Google",
+    appleError: "Error signing in with Apple",
+    lifeManagement: "LIFE MANAGEMENT • SESSION GATE",
+  },
+  JP: {
+    email: "メール",
+    password: "パスワード",
+    rememberMe: "ログイン状態を保持",
+    enter: "ENTER",
+    creating: "処理中...",
+    createAccount: "アカウント作成",
+    alternative: "代替",
+    magicLink: "マジックリンク",
+    google: "Google",
+    apple: "Apple",
+    sobre: "について",
+    privacidade: "プライバシー",
+    termos: "利用規約",
+    community: "コミュニティ",
+    fillEmailPassword: "メールとパスワードを入力してください",
+    fillEmail: "メールアドレスを入力してください",
+    emailPasswordError: "メールまたはパスワードが正しくありません",
+    magicLinkError: "アクセスリンクの送信エラー",
+    googleError: "Googleでのサインインエラー",
+    appleError: "Appleでのサインインエラー",
+    lifeManagement: "ライフマネジメント • セッションゲート",
+  },
+};
+
 export function LoginPageContent() {
   const { user, loading: authLoading, loginEmail, loginPassword, loginGoogle, loginApple } = useAuth();
   const router = useRouter();
@@ -25,6 +98,8 @@ export function LoginPageContent() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState<"google" | "apple" | "magic" | null>(null);
   const [language, setLanguage] = useState<"PT" | "EN" | "JP">("PT");
+
+  const t = translations[language];
 
   // Boot sequence - elementos aparecendo progressivamente
   useEffect(() => {
@@ -60,19 +135,19 @@ export function LoginPageContent() {
     e.preventDefault();
     setError(null);
 
-    if (!email.trim() || !password.trim()) {
-      setError("Por favor, preencha email e senha");
-      return;
-    }
+      if (!email.trim() || !password.trim()) {
+      setError(t.fillEmailPassword);
+        return;
+      }
 
-    setIsLoading(true);
-    const { error: authError } = await loginPassword(email.trim(), password, rememberMe);
-    setIsLoading(false);
+      setIsLoading(true);
+      const { error: authError } = await loginPassword(email.trim(), password, rememberMe);
+      setIsLoading(false);
 
-    if (authError) {
-      setError(authError.message || "Email ou senha incorretos");
-    }
-    // loginPassword já faz redirecionamento automático se bem-sucedido
+      if (authError) {
+      setError(authError.message || t.emailPasswordError);
+      }
+      // loginPassword já faz redirecionamento automático se bem-sucedido
   };
 
   const handleOAuthLogin = async (provider: "google" | "apple") => {
@@ -83,7 +158,7 @@ export function LoginPageContent() {
         ? await loginGoogle(rememberMe)
         : await loginApple(rememberMe);
       if (authError) {
-        setError(authError.message || `Erro ao fazer login com ${provider === "google" ? "Google" : "Apple"}`);
+        setError(authError.message || (provider === "google" ? t.googleError : t.appleError));
       }
     } finally {
       setIsOAuthLoading(null);
@@ -93,7 +168,7 @@ export function LoginPageContent() {
   const handleMagicLink = async () => {
     setError(null);
     if (!email.trim()) {
-      setError("Por favor, insira seu email");
+      setError(t.fillEmail);
       return;
     }
 
@@ -101,7 +176,7 @@ export function LoginPageContent() {
     try {
       const { error: authError } = await loginEmail(email.trim(), rememberMe);
       if (authError) {
-        setError(authError.message || "Erro ao enviar link de acesso");
+        setError(authError.message || t.magicLinkError);
       } else {
         router.push("/auth/verify-email");
       }
@@ -205,7 +280,7 @@ export function LoginPageContent() {
               >
                 <DottedWordmark text="PIXEL LIFE" />
                 <div className="mt-3 text-[10px] sm:text-xs tracking-[0.34em] text-[#F1F1F1]/70">
-                  LIFE MANAGEMENT - SESSION GATE
+                  {t.lifeManagement}
                 </div>
               </div>
             </div>
@@ -224,7 +299,7 @@ export function LoginPageContent() {
                     setEmail(e.target.value);
                     setError(null);
                   }}
-                  placeholder="Email"
+                  placeholder={t.email}
                   required
                   className="w-full bg-transparent px-4 py-3.5 sm:py-3 outline-none text-sm tracking-[0.06em] text-white placeholder:text-white/35"
                   style={{
@@ -237,28 +312,28 @@ export function LoginPageContent() {
               </div>
 
               {/* Password input */}
-              <div
-                className="mb-3 transition-opacity duration-700"
-                style={{ opacity: bootStage >= 2 ? 1 : 0 }}
-              >
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setError(null);
-                  }}
-                  placeholder="Senha"
-                  required
-                  className="w-full bg-transparent px-4 py-3.5 sm:py-3 outline-none text-sm tracking-[0.06em] text-white placeholder:text-white/35"
-                  style={{
-                    border: "1px solid rgba(241,241,241,0.22)",
-                    borderRadius: "999px",
-                    boxShadow: "0 0 0 1px rgba(0,0,0,0.5) inset",
-                    minHeight: "44px",
-                  }}
-                />
-              </div>
+                <div
+                  className="mb-3 transition-opacity duration-700"
+                  style={{ opacity: bootStage >= 2 ? 1 : 0 }}
+                >
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setError(null);
+                    }}
+                  placeholder={t.password}
+                    required
+                    className="w-full bg-transparent px-4 py-3.5 sm:py-3 outline-none text-sm tracking-[0.06em] text-white placeholder:text-white/35"
+                    style={{
+                      border: "1px solid rgba(241,241,241,0.22)",
+                      borderRadius: "999px",
+                      boxShadow: "0 0 0 1px rgba(0,0,0,0.5) inset",
+                      minHeight: "44px",
+                    }}
+                  />
+                </div>
 
               {/* Remember Me Toggle */}
               <div
@@ -307,7 +382,7 @@ export function LoginPageContent() {
                       />
                     )}
                   </svg>
-                  <span>Manter sessão</span>
+                  <span>{t.rememberMe}</span>
                 </button>
               </div>
 
@@ -333,27 +408,29 @@ export function LoginPageContent() {
                   minHeight: "44px",
                 }}
               >
-                {isLoading ? "PROCESSING..." : "ENTER"}
+                {isLoading ? t.creating : t.enter}
               </button>
 
-              {/* Create Account Button */}
-              <button
-                type="button"
-                onClick={() => router.push("/auth/register")}
-                disabled={bootStage < 3}
-                className="w-full mt-3 py-3.5 sm:py-3 text-sm tracking-[0.18em] font-semibold transition active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                  border: "1px solid rgba(241,241,241,0.30)",
-                  borderRadius: "999px",
-                  background: "rgba(255,255,255,0.06)",
-                  color: "#F1F1F1",
-                  opacity: bootStage >= 3 ? 1 : 0,
-                  transition: "opacity 700ms",
-                  minHeight: "44px",
-                }}
+              {/* Create Account Link */}
+              <div
+                className="mt-3 text-center transition-opacity duration-700"
+                style={{ opacity: bootStage >= 3 ? 1 : 0 }}
               >
-                CRIAR CONTA
-              </button>
+                <a
+                  href="/auth/register"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    router.push("/auth/register");
+                  }}
+                  className="text-sm tracking-[0.06em] text-white/55 hover:text-white/75 transition-colors underline"
+                  style={{
+                    fontSize: "13px",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  {t.createAccount}
+                </a>
+              </div>
 
               {/* Alternative divider */}
               <div
@@ -361,7 +438,7 @@ export function LoginPageContent() {
                 style={{ opacity: bootStage >= 3 ? 1 : 0 }}
               >
                 <div className="flex-1 h-px bg-white/10" />
-                <span className="text-[10px] tracking-widest text-white/30 uppercase">Alternativo</span>
+                <span className="text-[10px] tracking-widest text-white/30 uppercase">{t.alternative}</span>
                 <div className="flex-1 h-px bg-white/10" />
               </div>
 
@@ -386,7 +463,7 @@ export function LoginPageContent() {
                   }}
                 >
                   <GoogleIcon />
-                  <span className="hidden sm:inline">{isOAuthLoading === "google" ? "PROCESSING..." : "Google"}</span>
+                  <span className="hidden sm:inline">{isOAuthLoading === "google" ? t.creating : t.google}</span>
                   <span className="sm:hidden">{isOAuthLoading === "google" ? "..." : "G"}</span>
                 </button>
 
@@ -406,7 +483,7 @@ export function LoginPageContent() {
                   }}
                 >
                   <AppleIcon />
-                  <span className="hidden sm:inline">{isOAuthLoading === "apple" ? "PROCESSING..." : "Apple"}</span>
+                  <span className="hidden sm:inline">{isOAuthLoading === "apple" ? t.creating : t.apple}</span>
                   <span className="sm:hidden">{isOAuthLoading === "apple" ? "..." : "A"}</span>
                 </button>
               </div>
@@ -430,7 +507,7 @@ export function LoginPageContent() {
                     minHeight: "40px",
                   }}
                 >
-                  <span>{isOAuthLoading === "magic" ? "PROCESSING..." : "MAGIC LINK"}</span>
+                  <span>{isOAuthLoading === "magic" ? t.creating : t.magicLink}</span>
                 </button>
               </div>
 
@@ -496,21 +573,25 @@ export function LoginPageContent() {
               </div>
             </form>
 
-            {/* Hood cinza - SOBRE | FAQ | COMMUNITY */}
+            {/* Hood cinza - SOBRE | PRIVACIDADE | TERMOS | COMMUNITY */}
             <div
               className="mt-6 flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm text-white/55 transition-opacity duration-700"
               style={{ opacity: bootStage >= 3 ? 1 : 0 }}
             >
               <a className="hover:text-white/80 hover:underline" href="/about">
-                SOBRE
+                {t.sobre}
               </a>
               <span className="text-white/25">|</span>
-              <a className="hover:text-white/80 hover:underline" href="/faq">
-                FAQ
+              <a className="hover:text-white/80 hover:underline" href="/privacy">
+                {t.privacidade}
+              </a>
+              <span className="text-white/25">|</span>
+              <a className="hover:text-white/80 hover:underline" href="/terms">
+                {t.termos}
               </a>
               <span className="text-white/25">|</span>
               <a className="hover:text-white/80 hover:underline" href="/community">
-                COMMUNITY
+                {t.community}
               </a>
             </div>
           </div>
