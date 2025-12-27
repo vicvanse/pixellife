@@ -90,6 +90,181 @@ const translations = {
     appleError: "Appleでのサインインエラー",
     accountGate: "ライフマネジメント • アカウントゲート",
   },
+  ES: {
+    email: "Correo",
+    password: "Contraseña",
+    confirmPassword: "Confirmar contraseña",
+    rememberMe: "Recordarme",
+    createAccount: "CREAR CUENTA",
+    creating: "PROCESANDO...",
+    alreadyHaveAccount: "¿Ya tienes cuenta?",
+    login: "Entrar",
+    alternative: "Alternativo",
+    google: "Google",
+    apple: "Apple",
+    sobre: "ACERCA DE",
+    privacidade: "PRIVACIDAD",
+    termos: "TÉRMINOS",
+    community: "COMUNIDAD",
+    fillEmailPassword: "Por favor, complete correo y contraseña",
+    passwordsNotMatch: "Las contraseñas no coinciden",
+    passwordMinLength: "La contraseña debe tener al menos 6 caracteres",
+    passwordMinLengthHelper: "Mínimo 6 caracteres",
+    registerError: "Error al crear cuenta",
+    googleError: "Error al iniciar sesión con Google",
+    appleError: "Error al iniciar sesión con Apple",
+    accountGate: "GESTIÓN DE VIDA • PUERTA DE CUENTA",
+  },
+  FR: {
+    email: "Email",
+    password: "Mot de passe",
+    confirmPassword: "Confirmer le mot de passe",
+    rememberMe: "Se souvenir de moi",
+    createAccount: "CRÉER UN COMPTE",
+    creating: "TRAITEMENT...",
+    alreadyHaveAccount: "Vous avez déjà un compte ?",
+    login: "Connexion",
+    alternative: "Alternatif",
+    google: "Google",
+    apple: "Apple",
+    sobre: "À PROPOS",
+    privacidade: "CONFIDENTIALITÉ",
+    termos: "TERMES",
+    community: "COMMUNAUTÉ",
+    fillEmailPassword: "Veuillez remplir l'email et le mot de passe",
+    passwordsNotMatch: "Les mots de passe ne correspondent pas",
+    passwordMinLength: "Le mot de passe doit contenir au moins 6 caractères",
+    passwordMinLengthHelper: "Minimum 6 caractères",
+    registerError: "Erreur lors de la création du compte",
+    googleError: "Erreur de connexion avec Google",
+    appleError: "Erreur de connexion avec Apple",
+    accountGate: "GESTION DE VIE • PORTE DE COMPTE",
+  },
+  DE: {
+    email: "E-Mail",
+    password: "Passwort",
+    confirmPassword: "Passwort bestätigen",
+    rememberMe: "Angemeldet bleiben",
+    createAccount: "KONTO ERSTELLEN",
+    creating: "VERARBEITUNG...",
+    alreadyHaveAccount: "Haben Sie bereits ein Konto?",
+    login: "Anmelden",
+    alternative: "Alternativ",
+    google: "Google",
+    apple: "Apple",
+    sobre: "ÜBER",
+    privacidade: "DATENSCHUTZ",
+    termos: "BEDINGUNGEN",
+    community: "GEMEINSCHAFT",
+    fillEmailPassword: "Bitte E-Mail und Passwort ausfüllen",
+    passwordsNotMatch: "Die Passwörter stimmen nicht überein",
+    passwordMinLength: "Das Passwort muss mindestens 6 Zeichen lang sein",
+    passwordMinLengthHelper: "Mindestens 6 Zeichen",
+    registerError: "Fehler beim Erstellen des Kontos",
+    googleError: "Fehler bei der Anmeldung mit Google",
+    appleError: "Fehler bei der Anmeldung mit Apple",
+    accountGate: "LEBENSVERWALTUNG • KONTOTOR",
+  },
+  IT: {
+    email: "Email",
+    password: "Password",
+    confirmPassword: "Conferma password",
+    rememberMe: "Ricordami",
+    createAccount: "CREA ACCOUNT",
+    creating: "ELABORAZIONE...",
+    alreadyHaveAccount: "Hai già un account?",
+    login: "Accedi",
+    alternative: "Alternativo",
+    google: "Google",
+    apple: "Apple",
+    sobre: "CHI SIAMO",
+    privacidade: "PRIVACY",
+    termos: "TERMINI",
+    community: "COMUNITÀ",
+    fillEmailPassword: "Si prega di compilare email e password",
+    passwordsNotMatch: "Le password non corrispondono",
+    passwordMinLength: "La password deve contenere almeno 6 caratteri",
+    passwordMinLengthHelper: "Minimo 6 caratteri",
+    registerError: "Errore nella creazione dell'account",
+    googleError: "Errore nell'accesso con Google",
+    appleError: "Errore nell'accesso con Apple",
+    accountGate: "GESTIONE VITA • PORTA ACCOUNT",
+  },
+  RU: {
+    email: "Эл. почта",
+    password: "Пароль",
+    confirmPassword: "Подтвердить пароль",
+    rememberMe: "Запомнить меня",
+    createAccount: "СОЗДАТЬ АККАУНТ",
+    creating: "ОБРАБОТКА...",
+    alreadyHaveAccount: "Уже есть аккаунт?",
+    login: "Войти",
+    alternative: "Альтернатива",
+    google: "Google",
+    apple: "Apple",
+    sobre: "О НАС",
+    privacidade: "КОНФИДЕНЦИАЛЬНОСТЬ",
+    termos: "УСЛОВИЯ",
+    community: "СООБЩЕСТВО",
+    fillEmailPassword: "Пожалуйста, заполните email и пароль",
+    passwordsNotMatch: "Пароли не совпадают",
+    passwordMinLength: "Пароль должен содержать не менее 6 символов",
+    passwordMinLengthHelper: "Минимум 6 символов",
+    registerError: "Ошибка создания аккаунта",
+    googleError: "Ошибка входа через Google",
+    appleError: "Ошибка входа через Apple",
+    accountGate: "УПРАВЛЕНИЕ ЖИЗНЬЮ • АККАУНТ ШЛЮЗ",
+  },
+  ZH: {
+    email: "电子邮件",
+    password: "密码",
+    confirmPassword: "确认密码",
+    rememberMe: "记住我",
+    createAccount: "创建账户",
+    creating: "处理中...",
+    alreadyHaveAccount: "已有账户？",
+    login: "登录",
+    alternative: "替代",
+    google: "Google",
+    apple: "Apple",
+    sobre: "关于",
+    privacidade: "隐私",
+    termos: "条款",
+    community: "社区",
+    fillEmailPassword: "请填写电子邮件和密码",
+    passwordsNotMatch: "密码不匹配",
+    passwordMinLength: "密码必须至少6个字符",
+    passwordMinLengthHelper: "最少6个字符",
+    registerError: "创建账户错误",
+    googleError: "使用Google登录时出错",
+    appleError: "使用Apple登录时出错",
+    accountGate: "生活管理 • 账户门",
+  },
+  KO: {
+    email: "이메일",
+    password: "비밀번호",
+    confirmPassword: "비밀번호 확인",
+    rememberMe: "로그인 상태 유지",
+    createAccount: "계정 만들기",
+    creating: "처리 중...",
+    alreadyHaveAccount: "이미 계정이 있으신가요?",
+    login: "로그인",
+    alternative: "대안",
+    google: "Google",
+    apple: "Apple",
+    sobre: "정보",
+    privacidade: "개인정보",
+    termos: "약관",
+    community: "커뮤니티",
+    fillEmailPassword: "이메일과 비밀번호를 입력하세요",
+    passwordsNotMatch: "비밀번호가 일치하지 않습니다",
+    passwordMinLength: "비밀번호는 최소 6자 이상이어야 합니다",
+    passwordMinLengthHelper: "최소 6자",
+    registerError: "계정 생성 오류",
+    googleError: "Google 로그인 오류",
+    appleError: "Apple 로그인 오류",
+    accountGate: "생활 관리 • 계정 게이트",
+  },
 };
 
 export function RegisterPageContent() {
@@ -104,7 +279,7 @@ export function RegisterPageContent() {
   const [bootStage, setBootStage] = useState<BootStage>(0);
   const [rememberMe, setRememberMe] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState<"google" | "apple" | null>(null);
-  const [language, setLanguage] = useState<"PT" | "EN" | "JP">("PT");
+  const [language, setLanguage] = useState<"PT" | "EN" | "JP" | "ES" | "FR" | "DE" | "IT" | "RU" | "ZH" | "KO">("PT");
   const [passwordFocused, setPasswordFocused] = useState(false);
 
   const t = translations[language];
@@ -516,43 +691,26 @@ export function RegisterPageContent() {
                 </button>
               </div>
 
-              {/* Language Selector */}
+              {/* Links - SOBRE | PRIVACIDADE | TERMOS | COMMUNITY */}
               <div
-                className="mt-4 flex items-center justify-center gap-2 transition-opacity duration-700"
+                className="mt-4 flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm text-white/55 transition-opacity duration-700"
                 style={{ opacity: bootStage >= 3 ? 1 : 0 }}
               >
-                <button
-                  type="button"
-                  onClick={() => setLanguage("PT")}
-                  className={`text-xs tracking-widest transition-colors ${
-                    language === "PT" ? "text-white/90" : "text-white/40 hover:text-white/60"
-                  }`}
-                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
-                >
-                  PT
-                </button>
+                <a className="hover:text-white/80 hover:underline" href="/about">
+                  {t.sobre}
+                </a>
                 <span className="text-white/25">|</span>
-                <button
-                  type="button"
-                  onClick={() => setLanguage("EN")}
-                  className={`text-xs tracking-widest transition-colors ${
-                    language === "EN" ? "text-white/90" : "text-white/40 hover:text-white/60"
-                  }`}
-                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
-                >
-                  EN
-                </button>
+                <a className="hover:text-white/80 hover:underline" href="/privacy">
+                  {t.privacidade}
+                </a>
                 <span className="text-white/25">|</span>
-                <button
-                  type="button"
-                  onClick={() => setLanguage("JP")}
-                  className={`text-xs tracking-widest transition-colors ${
-                    language === "JP" ? "text-white/90" : "text-white/40 hover:text-white/60"
-                  }`}
-                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
-                >
-                  JP
-                </button>
+                <a className="hover:text-white/80 hover:underline" href="/terms">
+                  {t.termos}
+                </a>
+                <span className="text-white/25">|</span>
+                <a className="hover:text-white/80 hover:underline" href="/community">
+                  {t.community}
+                </a>
               </div>
 
               {/* Footer */}
@@ -578,26 +736,26 @@ export function RegisterPageContent() {
               </div>
             </form>
 
-            {/* Hood cinza - SOBRE | PRIVACIDADE | TERMOS | COMMUNITY */}
+            {/* Language Selector - All languages */}
             <div
-              className="mt-6 flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm text-white/55 transition-opacity duration-700"
+              className="mt-6 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-white/55 transition-opacity duration-700 flex-wrap"
               style={{ opacity: bootStage >= 3 ? 1 : 0 }}
             >
-              <a className="hover:text-white/80 hover:underline" href="/about">
-                {t.sobre}
-              </a>
-              <span className="text-white/25">|</span>
-              <a className="hover:text-white/80 hover:underline" href="/privacy">
-                {t.privacidade}
-              </a>
-              <span className="text-white/25">|</span>
-              <a className="hover:text-white/80 hover:underline" href="/terms">
-                {t.termos}
-              </a>
-              <span className="text-white/25">|</span>
-              <a className="hover:text-white/80 hover:underline" href="/community">
-                {t.community}
-              </a>
+              {(["PT", "EN", "JP", "ES", "FR", "DE", "IT", "RU", "ZH", "KO"] as const).map((lang, index) => (
+                <span key={lang}>
+                  <button
+                    type="button"
+                    onClick={() => setLanguage(lang)}
+                    className={`tracking-widest transition-colors ${
+                      language === lang ? "text-white/90" : "text-white/40 hover:text-white/60"
+                    }`}
+                    style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
+                  >
+                    {lang}
+                  </button>
+                  {index < 9 && <span className="text-white/25 mx-1">|</span>}
+                </span>
+              ))}
             </div>
           </div>
         </div>

@@ -84,6 +84,167 @@ const translations = {
     appleError: "Appleでのサインインエラー",
     lifeManagement: "ライフマネジメント • セッションゲート",
   },
+  ES: {
+    email: "Correo",
+    password: "Contraseña",
+    rememberMe: "Recordarme",
+    enter: "ENTRAR",
+    creating: "PROCESANDO...",
+    createAccount: "Crear cuenta",
+    alternative: "Alternativo",
+    magicLink: "ENLACE MÁGICO",
+    google: "Google",
+    apple: "Apple",
+    sobre: "ACERCA DE",
+    privacidade: "PRIVACIDAD",
+    termos: "TÉRMINOS",
+    community: "COMUNIDAD",
+    fillEmailPassword: "Por favor, complete correo y contraseña",
+    fillEmail: "Por favor, ingrese su correo",
+    emailPasswordError: "Correo o contraseña incorrectos",
+    magicLinkError: "Error al enviar enlace de acceso",
+    googleError: "Error al iniciar sesión con Google",
+    appleError: "Error al iniciar sesión con Apple",
+    lifeManagement: "GESTIÓN DE VIDA • PUERTA DE SESIÓN",
+  },
+  FR: {
+    email: "Email",
+    password: "Mot de passe",
+    rememberMe: "Se souvenir de moi",
+    enter: "ENTRER",
+    creating: "TRAITEMENT...",
+    createAccount: "Créer un compte",
+    alternative: "Alternatif",
+    magicLink: "LIEN MAGIQUE",
+    google: "Google",
+    apple: "Apple",
+    sobre: "À PROPOS",
+    privacidade: "CONFIDENTIALITÉ",
+    termos: "TERMES",
+    community: "COMMUNAUTÉ",
+    fillEmailPassword: "Veuillez remplir l'email et le mot de passe",
+    fillEmail: "Veuillez entrer votre email",
+    emailPasswordError: "Email ou mot de passe incorrect",
+    magicLinkError: "Erreur lors de l'envoi du lien d'accès",
+    googleError: "Erreur de connexion avec Google",
+    appleError: "Erreur de connexion avec Apple",
+    lifeManagement: "GESTION DE VIE • PORTE DE SESSION",
+  },
+  DE: {
+    email: "E-Mail",
+    password: "Passwort",
+    rememberMe: "Angemeldet bleiben",
+    enter: "EINGABE",
+    creating: "VERARBEITUNG...",
+    createAccount: "Konto erstellen",
+    alternative: "Alternativ",
+    magicLink: "MAGISCHER LINK",
+    google: "Google",
+    apple: "Apple",
+    sobre: "ÜBER",
+    privacidade: "DATENSCHUTZ",
+    termos: "BEDINGUNGEN",
+    community: "GEMEINSCHAFT",
+    fillEmailPassword: "Bitte E-Mail und Passwort ausfüllen",
+    fillEmail: "Bitte geben Sie Ihre E-Mail ein",
+    emailPasswordError: "E-Mail oder Passwort falsch",
+    magicLinkError: "Fehler beim Senden des Zugangslinks",
+    googleError: "Fehler bei der Anmeldung mit Google",
+    appleError: "Fehler bei der Anmeldung mit Apple",
+    lifeManagement: "LEBENSVERWALTUNG • SESSIONSTOR",
+  },
+  IT: {
+    email: "Email",
+    password: "Password",
+    rememberMe: "Ricordami",
+    enter: "INVIA",
+    creating: "ELABORAZIONE...",
+    createAccount: "Crea account",
+    alternative: "Alternativo",
+    magicLink: "LINK MAGICO",
+    google: "Google",
+    apple: "Apple",
+    sobre: "CHI SIAMO",
+    privacidade: "PRIVACY",
+    termos: "TERMINI",
+    community: "COMUNITÀ",
+    fillEmailPassword: "Si prega di compilare email e password",
+    fillEmail: "Si prega di inserire la tua email",
+    emailPasswordError: "Email o password errati",
+    magicLinkError: "Errore nell'invio del link di accesso",
+    googleError: "Errore nell'accesso con Google",
+    appleError: "Errore nell'accesso con Apple",
+    lifeManagement: "GESTIONE VITA • PORTA SESSIONE",
+  },
+  RU: {
+    email: "Эл. почта",
+    password: "Пароль",
+    rememberMe: "Запомнить меня",
+    enter: "ВОЙТИ",
+    creating: "ОБРАБОТКА...",
+    createAccount: "Создать аккаунт",
+    alternative: "Альтернатива",
+    magicLink: "МАГИЧЕСКАЯ ССЫЛКА",
+    google: "Google",
+    apple: "Apple",
+    sobre: "О НАС",
+    privacidade: "КОНФИДЕНЦИАЛЬНОСТЬ",
+    termos: "УСЛОВИЯ",
+    community: "СООБЩЕСТВО",
+    fillEmailPassword: "Пожалуйста, заполните email и пароль",
+    fillEmail: "Пожалуйста, введите ваш email",
+    emailPasswordError: "Неверный email или пароль",
+    magicLinkError: "Ошибка отправки ссылки доступа",
+    googleError: "Ошибка входа через Google",
+    appleError: "Ошибка входа через Apple",
+    lifeManagement: "УПРАВЛЕНИЕ ЖИЗНЬЮ • СЕССИОННЫЙ ШЛЮЗ",
+  },
+  ZH: {
+    email: "电子邮件",
+    password: "密码",
+    rememberMe: "记住我",
+    enter: "进入",
+    creating: "处理中...",
+    createAccount: "创建账户",
+    alternative: "替代",
+    magicLink: "魔法链接",
+    google: "Google",
+    apple: "Apple",
+    sobre: "关于",
+    privacidade: "隐私",
+    termos: "条款",
+    community: "社区",
+    fillEmailPassword: "请填写电子邮件和密码",
+    fillEmail: "请输入您的电子邮件",
+    emailPasswordError: "电子邮件或密码错误",
+    magicLinkError: "发送访问链接错误",
+    googleError: "使用Google登录时出错",
+    appleError: "使用Apple登录时出错",
+    lifeManagement: "生活管理 • 会话门",
+  },
+  KO: {
+    email: "이메일",
+    password: "비밀번호",
+    rememberMe: "로그인 상태 유지",
+    enter: "입장",
+    creating: "처리 중...",
+    createAccount: "계정 만들기",
+    alternative: "대안",
+    magicLink: "매직 링크",
+    google: "Google",
+    apple: "Apple",
+    sobre: "정보",
+    privacidade: "개인정보",
+    termos: "약관",
+    community: "커뮤니티",
+    fillEmailPassword: "이메일과 비밀번호를 입력하세요",
+    fillEmail: "이메일을 입력하세요",
+    emailPasswordError: "이메일 또는 비밀번호가 올바르지 않습니다",
+    magicLinkError: "액세스 링크 전송 오류",
+    googleError: "Google 로그인 오류",
+    appleError: "Apple 로그인 오류",
+    lifeManagement: "생활 관리 • 세션 게이트",
+  },
 };
 
 export function LoginPageContent() {
@@ -97,7 +258,7 @@ export function LoginPageContent() {
   const [bootStage, setBootStage] = useState<BootStage>(0);
   const [rememberMe, setRememberMe] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState<"google" | "apple" | "magic" | null>(null);
-  const [language, setLanguage] = useState<"PT" | "EN" | "JP">("PT");
+  const [language, setLanguage] = useState<"PT" | "EN" | "JP" | "ES" | "FR" | "DE" | "IT" | "RU" | "ZH" | "KO">("PT");
 
   const t = translations[language];
 
@@ -511,43 +672,26 @@ export function LoginPageContent() {
                 </button>
               </div>
 
-              {/* Language Selector */}
+              {/* Links - SOBRE | PRIVACIDADE | TERMOS | COMMUNITY */}
               <div
-                className="mt-4 flex items-center justify-center gap-2 transition-opacity duration-700"
+                className="mt-4 flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm text-white/55 transition-opacity duration-700"
                 style={{ opacity: bootStage >= 3 ? 1 : 0 }}
               >
-                <button
-                  type="button"
-                  onClick={() => setLanguage("PT")}
-                  className={`text-xs tracking-widest transition-colors ${
-                    language === "PT" ? "text-white/90" : "text-white/40 hover:text-white/60"
-                  }`}
-                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
-                >
-                  PT
-                </button>
+                <a className="hover:text-white/80 hover:underline" href="/about">
+                  {t.sobre}
+                </a>
                 <span className="text-white/25">|</span>
-                <button
-                  type="button"
-                  onClick={() => setLanguage("EN")}
-                  className={`text-xs tracking-widest transition-colors ${
-                    language === "EN" ? "text-white/90" : "text-white/40 hover:text-white/60"
-                  }`}
-                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
-                >
-                  EN
-                </button>
+                <a className="hover:text-white/80 hover:underline" href="/privacy">
+                  {t.privacidade}
+                </a>
                 <span className="text-white/25">|</span>
-                <button
-                  type="button"
-                  onClick={() => setLanguage("JP")}
-                  className={`text-xs tracking-widest transition-colors ${
-                    language === "JP" ? "text-white/90" : "text-white/40 hover:text-white/60"
-                  }`}
-                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
-                >
-                  JP
-                </button>
+                <a className="hover:text-white/80 hover:underline" href="/terms">
+                  {t.termos}
+                </a>
+                <span className="text-white/25">|</span>
+                <a className="hover:text-white/80 hover:underline" href="/community">
+                  {t.community}
+                </a>
               </div>
 
               {/* Footer */}
@@ -573,26 +717,26 @@ export function LoginPageContent() {
               </div>
             </form>
 
-            {/* Hood cinza - SOBRE | PRIVACIDADE | TERMOS | COMMUNITY */}
+            {/* Language Selector - All languages */}
             <div
-              className="mt-6 flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm text-white/55 transition-opacity duration-700"
+              className="mt-6 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-white/55 transition-opacity duration-700 flex-wrap"
               style={{ opacity: bootStage >= 3 ? 1 : 0 }}
             >
-              <a className="hover:text-white/80 hover:underline" href="/about">
-                {t.sobre}
-              </a>
-              <span className="text-white/25">|</span>
-              <a className="hover:text-white/80 hover:underline" href="/privacy">
-                {t.privacidade}
-              </a>
-              <span className="text-white/25">|</span>
-              <a className="hover:text-white/80 hover:underline" href="/terms">
-                {t.termos}
-              </a>
-              <span className="text-white/25">|</span>
-              <a className="hover:text-white/80 hover:underline" href="/community">
-                {t.community}
-              </a>
+              {(["PT", "EN", "JP", "ES", "FR", "DE", "IT", "RU", "ZH", "KO"] as const).map((lang, index) => (
+                <span key={lang}>
+                  <button
+                    type="button"
+                    onClick={() => setLanguage(lang)}
+                    className={`tracking-widest transition-colors ${
+                      language === lang ? "text-white/90" : "text-white/40 hover:text-white/60"
+                    }`}
+                    style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
+                  >
+                    {lang}
+                  </button>
+                  {index < 9 && <span className="text-white/25 mx-1">|</span>}
+                </span>
+              ))}
             </div>
           </div>
         </div>
