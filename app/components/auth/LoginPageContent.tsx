@@ -15,7 +15,7 @@ interface HudBit {
 }
 
 export function LoginPageContent() {
-  const { user, loading: authLoading, loginEmail, loginPassword } = useAuth();
+  const { user, loading: authLoading, loginEmail, loginPassword, loginGoogle, loginApple } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -24,6 +24,8 @@ export function LoginPageContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bootStage, setBootStage] = useState<BootStage>(0);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [isOAuthLoading, setIsOAuthLoading] = useState<"google" | "apple" | null>(null);
 
   // Boot sequence - elementos aparecendo progressivamente
   useEffect(() => {
@@ -44,15 +46,15 @@ export function LoginPageContent() {
     }
   }, [user, authLoading, router]);
 
-  // HUD elements nos cantos
+  // HUD elements nos cantos (atualizar label se rememberMe estiver ativo)
   const hudBits: HudBit[] = useMemo(
     () => [
-      { id: "hud-1", label: "AUTH / HANDSHAKE", side: "tl", delay: 0.55 },
+      { id: "hud-1", label: rememberMe ? "AUTH / PERSIST" : "AUTH / HANDSHAKE", side: "tl", delay: 0.55 },
       { id: "hud-2", label: "SYNC / STANDBY", side: "br", delay: 1.05 },
       { id: "hud-3", label: "ENCRYPT / OK", side: "tr", delay: 1.45 },
-      { id: "hud-4", label: "CACHE / READY", side: "bl", delay: 1.85 },
+      { id: "hud-4", label: rememberMe ? "SESSION / PERSIST" : "CACHE / READY", side: "bl", delay: 1.85 },
     ],
-    []
+    [rememberMe]
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,7 +68,7 @@ export function LoginPageContent() {
       }
 
       setIsLoading(true);
-      const { error: authError } = await loginEmail(email.trim(), false);
+      const { error: authError } = await loginEmail(email.trim(), rememberMe);
       setIsLoading(false);
 
       if (authError) {
@@ -81,13 +83,28 @@ export function LoginPageContent() {
       }
 
       setIsLoading(true);
-      const { error: authError } = await loginPassword(email.trim(), password, false);
+      const { error: authError } = await loginPassword(email.trim(), password, rememberMe);
       setIsLoading(false);
 
       if (authError) {
         setError(authError.message || "Email ou senha incorretos");
       }
       // loginPassword já faz redirecionamento automático se bem-sucedido
+    }
+  };
+
+  const handleOAuthLogin = async (provider: "google" | "apple") => {
+    setError(null);
+    setIsOAuthLoading(provider);
+    try {
+      const { error: authError } = provider === "google" 
+        ? await loginGoogle(rememberMe)
+        : await loginApple(rememberMe);
+      if (authError) {
+        setError(authError.message || `Erro ao fazer login com ${provider === "google" ? "Google" : "Apple"}`);
+      }
+    } finally {
+      setIsOAuthLoading(null);
     }
   };
 
@@ -161,7 +178,8 @@ export function LoginPageContent() {
                 maxWidth: "min(92vw, 420px)", 
                 maxHeight: "min(92vw, 420px)",
                 minWidth: "280px",
-                minHeight: "280px"
+                minHeight: "280px",
+                marginTop: "clamp(5vh, 10vh, 80px)"
               }}
             >
               {/* Outer ring */}
@@ -279,6 +297,57 @@ export function LoginPageContent() {
                 </div>
               )}
 
+              {/* Remember Me Toggle */}
+              <div
+                className="mb-3 flex items-center gap-2 transition-opacity duration-700"
+                style={{ opacity: bootStage >= 2 ? 1 : 0 }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setRememberMe(!rememberMe)}
+                  className="flex items-center gap-2 text-[10px] sm:text-xs tracking-widest text-white/60 hover:text-white/80 transition-colors"
+                  style={{ 
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0
+                  }}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    className="transition-colors flex-shrink-0"
+                    style={{ 
+                      opacity: rememberMe ? 0.9 : 0.4,
+                      color: rememberMe ? "#F1F1F1" : "rgba(241,241,241,0.4)"
+                    }}
+                  >
+                    {rememberMe ? (
+                      <path
+                        d="M8 1C4.7 1 2 3.7 2 7c0 3.3 2.7 6 6 6s6-2.7 6-6c0-3.3-2.7-6-6-6zm0 10c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm-2-4l1.5 1.5 3-3"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    ) : (
+                      <circle
+                        cx="8"
+                        cy="8"
+                        r="3"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        fill="none"
+                      />
+                    )}
+                  </svg>
+                  <span>Manter sessão</span>
+                </button>
+              </div>
+
               {/* Error message */}
               {error && (
                 <div className="mb-3 text-xs tracking-widest text-[#F1F1F1]/70 text-center">
@@ -304,6 +373,73 @@ export function LoginPageContent() {
                 {isLoading ? "PROCESSING..." : "ENTER"}
               </button>
 
+              {/* Alternative divider */}
+              <div
+                className="mt-6 mb-4 flex items-center gap-3 transition-opacity duration-700"
+                style={{ opacity: bootStage >= 3 ? 1 : 0 }}
+              >
+                <div className="flex-1 h-px bg-white/10" />
+                <span className="text-[10px] tracking-widest text-white/30 uppercase">Alternativo</span>
+                <div className="flex-1 h-px bg-white/10" />
+              </div>
+
+              {/* OAuth Buttons */}
+              <div
+                className="mb-4 space-y-2.5 transition-opacity duration-700"
+                style={{ opacity: bootStage >= 3 ? 1 : 0 }}
+              >
+                {/* Google Button */}
+                <button
+                  type="button"
+                  onClick={() => handleOAuthLogin("google")}
+                  disabled={isOAuthLoading !== null || bootStage < 3}
+                  className="w-full py-2.5 sm:py-2 text-[10px] sm:text-xs tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 oauthButton"
+                  style={{
+                    border: "1px solid rgba(241,241,241,0.20)",
+                    borderRadius: "999px",
+                    background: "rgba(255,255,255,0.04)",
+                    color: "#F1F1F1",
+                    backdropFilter: "blur(2px)",
+                    minHeight: "40px",
+                  }}
+                >
+                  <GoogleIcon />
+                  <span>{isOAuthLoading === "google" ? "PROCESSING..." : "Continuar com Google"}</span>
+                </button>
+
+                {/* Apple Button */}
+                <button
+                  type="button"
+                  onClick={() => handleOAuthLogin("apple")}
+                  disabled={isOAuthLoading !== null || bootStage < 3}
+                  className="w-full py-2.5 sm:py-2 text-[10px] sm:text-xs tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 oauthButton"
+                  style={{
+                    border: "1px solid rgba(241,241,241,0.20)",
+                    borderRadius: "999px",
+                    background: "rgba(255,255,255,0.04)",
+                    color: "#F1F1F1",
+                    backdropFilter: "blur(2px)",
+                    minHeight: "40px",
+                  }}
+                >
+                  <AppleIcon />
+                  <span>{isOAuthLoading === "apple" ? "PROCESSING..." : "Continuar com Apple"}</span>
+                </button>
+              </div>
+
+              {/* Create Account Link */}
+              <div
+                className="mb-4 text-center transition-opacity duration-700"
+                style={{ opacity: bootStage >= 3 ? 1 : 0 }}
+              >
+                <a
+                  href="/auth/register"
+                  className="text-xs tracking-widest text-white/50 hover:text-white/70 hover:underline transition-colors"
+                >
+                  Novo por aqui? Criar conta
+                </a>
+              </div>
+
               {/* Links */}
               <div
                 className="mt-4 flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm text-white/55 transition-opacity duration-700"
@@ -319,6 +455,10 @@ export function LoginPageContent() {
                 <span className="text-white/25">•</span>
                 <a className="hover:text-white/80 hover:underline" href="/terms">
                   Rules
+                </a>
+                <span className="text-white/25">•</span>
+                <a className="hover:text-white/80 hover:underline" href="/auth/register">
+                  Criar conta
                 </a>
               </div>
 
@@ -441,6 +581,15 @@ export function LoginPageContent() {
           50% {
             filter: blur(0.6px);
           }
+        }
+
+        .oauthButton:hover:not(:disabled) {
+          border-color: rgba(241, 241, 241, 0.35) !important;
+          background: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        .oauthButton:active:not(:disabled) {
+          transform: scale(0.99);
         }
       `}</style>
     </main>
@@ -698,6 +847,55 @@ function HUDChip({
         }
       `}</style>
     </div>
+  );
+}
+
+// Google Icon Component (monochrome)
+function GoogleIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      style={{ opacity: 0.9 }}
+    >
+      <path
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+        fill="currentColor"
+        opacity="0.9"
+      />
+      <path
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+        fill="currentColor"
+        opacity="0.75"
+      />
+      <path
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+        fill="currentColor"
+        opacity="0.6"
+      />
+      <path
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+        fill="currentColor"
+        opacity="0.85"
+      />
+    </svg>
+  );
+}
+
+// Apple Icon Component (monochrome)
+function AppleIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      style={{ opacity: 0.9 }}
+    >
+      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+    </svg>
   );
 }
 
