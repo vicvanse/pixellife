@@ -748,7 +748,7 @@ export function LoginPageContent() {
 
             {/* Language Selector - All languages (moved up, between build and hood) */}
             <div
-              className="mt-1 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-white/55 transition-opacity duration-700 flex-wrap"
+              className="mt-1 mb-12 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-white/55 transition-opacity duration-700 flex-wrap"
               style={{ opacity: bootStage >= 3 ? 1 : 0 }}
             >
               {(["PT", "EN", "JP", "ES", "FR", "DE", "IT", "RU", "ZH", "KO"] as const).map((lang, index) => (
