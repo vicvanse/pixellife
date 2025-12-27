@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
 import { useCosmetics } from "./CosmeticsContext";
 import { useUI } from "../context/UIContext";
 import { useSyncData, useSyncExpenses, useSyncPossessions, useSyncTree, useSyncCosmetics, useSyncBiography } from "../hooks/useSyncData";
@@ -17,12 +16,8 @@ interface GlobalLayoutProps {
 export function GlobalLayout({ children }: GlobalLayoutProps) {
   const { background } = useCosmetics();
   const { mode } = useUI();
-  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [currentBackground, setCurrentBackground] = useState("/fundo3.png");
-  
-  // Ocultar Footer nas páginas de auth (elas têm seu próprio rodapé)
-  const isAuthPage = pathname?.startsWith('/auth/login') || pathname?.startsWith('/auth/register');
 
   // Log para confirmar que GlobalLayout está sendo executado
   useEffect(() => {
@@ -107,7 +102,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
         <div className="flex-1">
           {children}
         </div>
-        {!isAuthPage && <Footer />}
+        <Footer />
       </div>
 
       {/* Barra inferior mobile - removida no mobile, agora está no PixelMenu */}

@@ -19,12 +19,12 @@ export function Footer() {
           <Link
             href="/about"
             className="font-pixel transition-colors"
-            style={{ color: '#333', fontSize: '16px' }}
+            style={{ color: '#000000', fontSize: '16px' }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#666';
+              e.currentTarget.style.color = '#000000';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = '#333';
+              e.currentTarget.style.color = '#000000';
             }}
           >
             {t('footer.about')}
@@ -32,12 +32,12 @@ export function Footer() {
           <Link
             href="/privacy"
             className="font-pixel transition-colors"
-            style={{ color: '#333', fontSize: '16px' }}
+            style={{ color: '#000000', fontSize: '16px' }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#666';
+              e.currentTarget.style.color = '#000000';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = '#333';
+              e.currentTarget.style.color = '#000000';
             }}
           >
             {t('footer.privacy')}
@@ -45,12 +45,12 @@ export function Footer() {
           <Link
             href="/terms"
             className="font-pixel transition-colors"
-            style={{ color: '#333', fontSize: '16px' }}
+            style={{ color: '#000000', fontSize: '16px' }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#666';
+              e.currentTarget.style.color = '#000000';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = '#333';
+              e.currentTarget.style.color = '#000000';
             }}
           >
             {t('footer.terms')}
@@ -58,12 +58,12 @@ export function Footer() {
           <Link
             href="/community"
             className="font-pixel transition-colors"
-            style={{ color: '#333', fontSize: '16px' }}
+            style={{ color: '#000000', fontSize: '16px' }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#666';
+              e.currentTarget.style.color = '#000000';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = '#333';
+              e.currentTarget.style.color = '#000000';
             }}
           >
             COMMUNITY
