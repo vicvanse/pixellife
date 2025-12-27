@@ -799,19 +799,19 @@ export function RegisterPageContent() {
               className="mt-3 flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm transition-opacity duration-700"
               style={{ opacity: bootStage >= 3 ? 1 : 0 }}
             >
-              <a className="hover:underline" href="/about" style={{ color: "#000000" }}>
+              <a className="hover:underline" href="/about" style={{ color: "#000000", textDecorationColor: "#000000" }}>
                 {t.sobre}
               </a>
               <span style={{ color: "#000000" }}>|</span>
-              <a className="hover:underline" href="/privacy" style={{ color: "#000000" }}>
+              <a className="hover:underline" href="/privacy" style={{ color: "#000000", textDecorationColor: "#000000" }}>
                 {t.privacidade}
               </a>
               <span style={{ color: "#000000" }}>|</span>
-              <a className="hover:underline" href="/terms" style={{ color: "#000000" }}>
+              <a className="hover:underline" href="/terms" style={{ color: "#000000", textDecorationColor: "#000000" }}>
                 {t.termos}
               </a>
               <span style={{ color: "#000000" }}>|</span>
-              <a className="hover:underline" href="/community" style={{ color: "#000000" }}>
+              <a className="hover:underline" href="/community" style={{ color: "#000000", textDecorationColor: "#000000" }}>
                 {t.community}
               </a>
             </div>
