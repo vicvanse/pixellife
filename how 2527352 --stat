@@ -1,0 +1,20 @@
+[33m2527352[m Corrigir persistência do moodNumber no diário - salvamento imediato e refs para valores mais recentes
+[33m53702c5[m Corrigir bug do diário e implementar design de favoritos; Reorganizar ordem da barra de navegação
+[33m3448996[m Corrige bug robusto do diário: deselecionar permanece deselecionado, selecionar permanece selecionado independente de emoji/número, remove bordas cinzas da tabela de finanças substituindo por fundo branco
+[33m078d775[m Corrige bug do diário ao deselecionar número, melhora renderização de fonte da tabela de finanças, centraliza coluna Detalhes, aumenta largura em 40%, e centraliza tabela reduzindo espaços em branco
+[33mf89db80[m Corrige problema do diário salvando nota 9 indevidamente e aumenta fonte da tabela de finanças em 2 pontos (13px -> 15px)
+[33mf1652ce[m Renomeia 'name' para 'title' em objetivos, adiciona campo 'description' (mostrado apenas no modal de detalhes), e corrige problema do diário salvando moodNumber incorretamente
+[33m1bdd9e1[m Reorganiza seção Finanças: substitui 'Diário Recomendado' por 'Dinheiro atual em conta', integra configurações no card 'Limite mensal' com botão +, remove seção inferior, e ajusta tabela (coluna Detalhes reduzida, quebra de linha, fonte +1px)
+[33mbe98e43[m Corrige problema de nota sendo atribuída sem motivo no diário - só salva quando há mood selecionado
+[33m2524a59[m feat: adicionar botÃ£o Comprar em objetivos quando chegar a 100%, trocar ConcluÃ­do por Quitado, ajustar Ã­cone para manter proporÃ§Ã£o, corrigir salvamento automÃ¡tico de mood no diÃ¡rio
+[33m5ed786a[m Corrigir erro de tipo: mudar mood null para undefined
+[33mdacbf1e[m Corrigir Ã¡rea de clique dos nÃºmeros de mood e evitar mudanÃ§a de data acidental
+[33m02b3eb8[m Fix: Centralize 'HÃ¡bitos' header, fix mood number selector clicks, round date headers in quick thoughts, ensure long thoughts are fully visible
+[33m5266156[m Reorganizar seÃ§Ãµes: mudar 'Posses e Objetivos' para 'OBJETIVOS' na semi barra, mover conteÃºdo para seÃ§Ã£o prÃ³pria, remover de FinanÃ§as, adicionar Cronograma em Mapas, mover botÃ£o histÃ³rico do journal para abaixo do textarea, ajustar histÃ³rico de quick thoughts (remover linha cinza, alinhar data com coluna)
+[33mf8ab6ee[m Expand internationalization: add translations for all main sections (habits, journal, finances, goals, maps, biography, display, feedback, guides)
+[33m9f2edfe[m Add footer with language selector and About/Privacy/Terms links, add expanded thoughts view for journal
+[33m8e29301[m Reorganizar board em seções com tabs: Display, Diário, Finanças, Mapas, Guias e Biografia
+[33m607b368[m Adicionar seção Biografia, ajustar espaçamento em Objetivos e inverter ordem dos emojis no Diário
+[33md15b896[m Remover entrada do journal imediatamente ao desselecionar mood e atualizar histórico
+[33m2ca6014[m Marcar dias no calendário apenas se tiverem texto, pensamentos rápidos ou mood selecionado
+[33ma98bf84[m Corrigir comparação incorreta entre mood e número no render do MoodSelector
