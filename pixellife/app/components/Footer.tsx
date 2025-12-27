@@ -13,7 +13,7 @@ export function Footer() {
         backgroundColor: '#f7f7f7',
       }}
     >
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-[18px]">
         {/* Links com Language */}
         <div className="flex flex-wrap justify-center gap-4 items-center">
           <Link

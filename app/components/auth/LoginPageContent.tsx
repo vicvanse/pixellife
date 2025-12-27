@@ -512,10 +512,10 @@ export function LoginPageContent() {
               <a className="hover:text-white/80 hover:underline" href="/community">
                 COMMUNITY
               </a>
-            </div>
         </div>
         </div>
       </div>
+    </div>
 
       {/* Global Styles */}
       <style jsx global>{`
