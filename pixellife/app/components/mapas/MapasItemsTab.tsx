@@ -9,6 +9,7 @@ import type {
 } from "../../types/mapas";
 import { STATE_LABELS, STATE_ICONS } from "../../types/mapas";
 import { useMapas } from "../../hooks/useMapas";
+import { getElementDexId } from "../../utils/mapas";
 
 interface MapasItemsTabProps {
   categories: MapasCategory[];
@@ -26,7 +27,6 @@ export function MapasItemsTab({
   onCategoryChange,
 }: MapasItemsTabProps) {
   const { updateElementState } = useMapas();
-  const [selectedElement, setSelectedElement] = useState<string | null>(null);
   // Estado local para atualização otimista
   const [optimisticStates, setOptimisticStates] = useState<Record<string, MapasState>>({});
 
@@ -46,10 +46,6 @@ export function MapasItemsTab({
     return userElement?.state || "not_done";
   };
 
-  // Obter categoria de um elemento
-  const getElementCategory = (element: MapasElement): MapasCategory | undefined => {
-    return categories.find((c) => c.key === element.category_key);
-  };
 
   // Mudar estado de um elemento
   const handleStateChange = async (elementId: string, newState: MapasState) => {
@@ -119,121 +115,96 @@ export function MapasItemsTab({
         ))}
       </div>
 
-      {/* Grid de itens */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Grid de itens - Cards Dex Compactos */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {filteredElements.map((element) => {
           const currentState = getElementState(element.id);
-          const category = getElementCategory(element);
-          const isSelected = selectedElement === element.id;
+          const userElement = userElements.find((ue) => ue.element_id === element.id);
+          const dexId = getElementDexId(element.id);
 
           return (
             <div
               key={element.id}
-              className="p-4 rounded transition-all cursor-pointer"
-              onClick={() => setSelectedElement(isSelected ? null : element.id)}
+              className="p-3 rounded transition-all cursor-pointer group"
               style={{
-                backgroundColor: isSelected ? "#f0f8ff" : "#FFFFFF",
-                border: `1px solid ${isSelected ? "#4d82ff" : "#e5e5e5"}`,
+                backgroundColor: "#FFFFFF",
+                border: "1px solid #e5e5e5",
                 boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
               }}
               onMouseEnter={(e) => {
-                if (!isSelected) {
-                  e.currentTarget.style.backgroundColor = "#f9f9f9";
-                }
+                e.currentTarget.style.backgroundColor = "#f9f9f9";
               }}
               onMouseLeave={(e) => {
-                if (!isSelected) {
-                  e.currentTarget.style.backgroundColor = "#FFFFFF";
-                }
+                e.currentTarget.style.backgroundColor = "#FFFFFF";
               }}
             >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    {category && <span>{category.icon}</span>}
-                    <h4 
-                      className="font-pixel-bold text-base line-clamp-2" 
-                      style={{ color: "#111", maxWidth: '250px' }}
-                      title={element.name}
-                    >
-                      {element.name}
-                    </h4>
-                  </div>
-                  {element.description && (
-                    <p className="font-pixel text-xs" style={{ color: "#666" }}>
-                      {element.description}
-                    </p>
-                  )}
-                </div>
+              {/* ID Dex no canto superior esquerdo */}
+              <div className="flex items-start justify-between mb-2">
+                <span className="font-pixel text-xs" style={{ color: "#999" }}>
+                  {dexId}
+                </span>
+                {/* Badge de status fixo */}
+                <span className="font-pixel text-base">
+                  {STATE_ICONS[currentState]}
+                </span>
               </div>
 
-              {/* Estado atual */}
-              <div className="mb-3">
+              {/* Nome do elemento */}
+              <h4 
+                className="font-pixel-bold text-sm mb-2 line-clamp-2" 
+                style={{ color: "#111" }}
+                title={element.name}
+              >
+                {element.name}
+              </h4>
+
+              {/* Data "Último" - apenas se state !== "not_done" */}
+              {currentState !== "not_done" && userElement?.last_updated_at && (
                 <p className="font-pixel text-xs mb-2" style={{ color: "#999" }}>
-                  Estado:
+                  Último: {new Date(userElement.last_updated_at).toLocaleDateString("pt-BR")}
                 </p>
-                <div className="flex items-center gap-2">
-                  <span>{STATE_ICONS[currentState]}</span>
-                  <span className="font-pixel text-sm" style={{ color: "#666" }}>
-                    {STATE_LABELS[currentState]}
-                  </span>
-                </div>
-              </div>
+              )}
 
-              {/* Botões para mudar estado */}
-              <div className="space-y-1">
+              {/* Stepper compacto de estados - sempre visível no mobile, apenas hover no desktop */}
+              <div className="flex items-center gap-1 mt-3 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                 {states.map((state) => {
                   const isActive = currentState === state;
-                  // Estilo baseado no estado ativo
-                  const getButtonStyle = () => {
-                    if (isActive) {
-                      // Estado ativo: verde (mesmo verde dos hábitos)
-                      return {
-                        backgroundColor: '#7aff7a',
-                        color: '#0f9d58',
-                        border: '1px solid #0f9d58',
-                        cursor: 'pointer',
-                      };
-                    } else {
-                      // Estado inativo: cinza claro
-                      return {
-                        backgroundColor: '#f0f0f0',
-                        color: '#666',
-                        border: '1px solid #e0e0e0',
-                        cursor: 'pointer',
-                      };
-                    }
-                  };
-
-                  const buttonStyle = getButtonStyle();
-
                   return (
                     <button
                       key={state}
                       onClick={(e) => {
-                        e.stopPropagation(); // Prevenir que o clique no botão selecione o card
+                        e.stopPropagation();
                         handleStateChange(element.id, state);
                       }}
-                      className="w-full px-2 py-1.5 rounded font-pixel text-xs transition-all"
+                      className="px-1.5 py-1 rounded font-pixel text-xs transition-all"
                       style={{
-                        ...buttonStyle,
-                        fontWeight: isActive ? '700' : '400',
+                        backgroundColor: isActive ? '#f0f8ff' : 'transparent',
+                        border: `1px solid ${isActive ? '#4d82ff' : '#e0e0e0'}`,
+                        color: isActive ? '#4d82ff' : '#666',
+                        cursor: 'pointer',
                       }}
                       onMouseEnter={(e) => {
-                        if (!isActive) {
-                          e.currentTarget.style.backgroundColor = '#e0e0e0';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
                         if (!isActive) {
                           e.currentTarget.style.backgroundColor = '#f0f0f0';
                         }
                       }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }
+                      }}
                     >
-                      {STATE_ICONS[state]} {STATE_LABELS[state]}
+                      {STATE_ICONS[state]}
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Espaço reservado para Notas */}
+              <div className="mt-2 pt-2 border-t" style={{ borderColor: "#e5e5e5" }}>
+                <p className="font-pixel text-xs" style={{ color: "#999" }}>
+                  Notas ▸
+                </p>
               </div>
             </div>
           );

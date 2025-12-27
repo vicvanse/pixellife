@@ -33,6 +33,20 @@ export function MapasCategoriesTab({
     };
   };
 
+  // Calcular estatísticas por estado para categoria
+  const getCategoryStats = (categoryKey: string) => {
+    const categoryElements = elements.filter((e) => e.category_key === categoryKey);
+    const userCategoryElements = userElements.filter(
+      (ue) => ue.element?.category_key === categoryKey
+    );
+
+    return {
+      complete: userCategoryElements.filter((ue) => ue.state === "complete").length,
+      satisfied: userCategoryElements.filter((ue) => ue.state === "satisfied").length,
+      experienced: userCategoryElements.filter((ue) => ue.state === "experienced").length,
+    };
+  };
+
   return (
     <div className="space-y-4">
       <p className="font-pixel text-sm mb-4" style={{ color: "#666" }}>
@@ -42,6 +56,7 @@ export function MapasCategoriesTab({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {categories.map((category) => {
           const progress = getCategoryProgress(category.key);
+          const stats = getCategoryStats(category.key);
 
           return (
             <button
@@ -79,7 +94,7 @@ export function MapasCategoriesTab({
 
               {/* Barra de progresso leve */}
               <div
-                className="h-2 rounded"
+                className="h-2 rounded mb-3"
                 style={{ backgroundColor: "#e0e0e0" }}
               >
                 <div
@@ -90,116 +105,98 @@ export function MapasCategoriesTab({
                   }}
                 />
               </div>
+
+              {/* Rodapé compacto com contadores */}
+              {(stats.experienced > 0 || stats.satisfied > 0 || stats.complete > 0) && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  {stats.experienced > 0 && (
+                    <span className="font-pixel text-sm" style={{ color: "#666" }}>
+                      👣 {stats.experienced}
+                    </span>
+                  )}
+                  {stats.satisfied > 0 && (
+                    <span className="font-pixel text-sm" style={{ color: "#666" }}>
+                      ★ {stats.satisfied}
+                    </span>
+                  )}
+                  {stats.complete > 0 && (
+                    <span className="font-pixel text-sm" style={{ color: "#666" }}>
+                      ✓ {stats.complete}
+                    </span>
+                  )}
+                </div>
+              )}
             </button>
           );
         })}
       </div>
 
-      {/* Seção de Progresso */}
+      {/* Seção de Progresso - Feed Compacto */}
       <div className="mt-8 pt-8 border-t" style={{ borderColor: "#e5e5e5" }}>
         <h2 className="font-pixel-bold text-xl mb-4" style={{ color: "#333" }}>
           Progresso
         </h2>
-        <p className="font-pixel text-sm mb-4" style={{ color: "#666" }}>
-          O que você já viveu?
-        </p>
 
-        {/* Estatísticas por categoria */}
-        <div className="space-y-4">
-          {categories.map((category) => {
-            const categoryElements = elements.filter((e) => e.category_key === category.key);
-            const userCategoryElements = userElements.filter(
-              (ue) => ue.element?.category_key === category.key
-            );
+        {/* Lista compacta de itens recentes */}
+        {(() => {
+          const recentElements = userElements
+            .filter((ue) => ue.state !== "not_done")
+            .sort((a, b) => {
+              const dateA = new Date(a.last_updated_at).getTime();
+              const dateB = new Date(b.last_updated_at).getTime();
+              return dateB - dateA;
+            })
+            .slice(0, 10);
 
-            const stats = {
-              complete: userCategoryElements.filter((ue) => ue.state === "complete").length,
-              satisfied: userCategoryElements.filter((ue) => ue.state === "satisfied").length,
-              experienced: userCategoryElements.filter((ue) => ue.state === "experienced").length,
-              notDone: categoryElements.length - userCategoryElements.length,
-            };
-
-            if (stats.complete + stats.satisfied + stats.experienced === 0) {
-              return null;
-            }
-
-            // Encontrar a data mais recente da categoria
-            const mostRecentDate = userCategoryElements.length > 0
-              ? userCategoryElements
-                  .map((ue) => new Date(ue.last_updated_at).getTime())
-                  .reduce((max, date) => Math.max(max, date), 0)
-              : null;
-
+          if (recentElements.length === 0) {
             return (
-              <div
-                key={category.id}
-                className="p-4 rounded"
-                style={{
-                  backgroundColor: "#FFFFFF",
-                  border: "1px solid #e5e5e5",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-                }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">{category.icon}</span>
-                    <h3 
-                      className="font-pixel-bold text-lg line-clamp-2" 
-                      style={{ color: "#111", maxWidth: '200px' }}
-                      title={category.name}
-                    >
-                      {category.name}
-                    </h3>
-                  </div>
-                  {mostRecentDate && (
-                    <span className="font-pixel text-xs" style={{ color: "#999" }}>
-                      {new Date(mostRecentDate).toLocaleDateString("pt-BR")}
-                    </span>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  {stats.complete > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span>{STATE_ICONS.complete}</span>
-                      <span className="font-pixel text-sm" style={{ color: "#666" }}>
-                        {stats.complete} experiências completas
-                      </span>
-                    </div>
-                  )}
-                  {stats.satisfied > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span>{STATE_ICONS.satisfied}</span>
-                      <span className="font-pixel text-sm" style={{ color: "#666" }}>
-                        {stats.satisfied} práticas recorrentes
-                      </span>
-                    </div>
-                  )}
-                  {stats.experienced > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span>{STATE_ICONS.experienced}</span>
-                      <span className="font-pixel text-sm" style={{ color: "#666" }}>
-                        {stats.experienced} experiências únicas
-                      </span>
-                    </div>
-                  )}
-                </div>
+              <div className="text-center py-8">
+                <p className="font-pixel text-sm" style={{ color: "#999" }}>
+                  Ainda não há experiências registradas.
+                </p>
+                <p className="font-pixel text-xs mt-2" style={{ color: "#999" }}>
+                  Explore as categorias e marque o que você já viveu.
+                </p>
               </div>
             );
-          })}
-        </div>
+          }
 
-        {/* Mensagem quando não há experiências */}
-        {userElements.filter((ue) => ue.state !== "not_done").length === 0 && (
-          <div className="text-center py-8 mt-6">
-            <p className="font-pixel text-sm" style={{ color: "#999" }}>
-              Ainda não há experiências registradas.
-            </p>
-            <p className="font-pixel text-xs mt-2" style={{ color: "#999" }}>
-              Explore as categorias e marque o que você já viveu.
-            </p>
-          </div>
-        )}
+          return (
+            <div className="space-y-2">
+              {recentElements.map((userElement) => {
+                const element = elements.find((e) => e.id === userElement.element_id);
+                if (!element) return null;
+
+                return (
+                  <div
+                    key={userElement.id}
+                    className="p-2 rounded flex items-center justify-between"
+                    style={{
+                      backgroundColor: "#f8f8f8",
+                      border: "1px solid #e5e5e5",
+                    }}
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="font-pixel text-base flex-shrink-0">
+                        {STATE_ICONS[userElement.state]}
+                      </span>
+                      <span 
+                        className="font-pixel text-sm truncate" 
+                        style={{ color: "#111" }}
+                        title={element.name}
+                      >
+                        {element.name}
+                      </span>
+                    </div>
+                    <span className="font-pixel text-xs flex-shrink-0 ml-2" style={{ color: "#999" }}>
+                      — {new Date(userElement.last_updated_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

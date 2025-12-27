@@ -324,18 +324,6 @@ export function RegisterPageContent() {
 
   const t = translations[language];
 
-  // Load language from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('authLanguage') as AuthLanguage;
-    if (saved && validLanguages.includes(saved)) {
-      setLanguage(saved);
-    } else {
-      const defaultLang = getDefaultLanguage();
-      setLanguage(defaultLang);
-      localStorage.setItem('authLanguage', defaultLang);
-    }
-  }, []);
-
   // Handle language change and persist to localStorage
   const handleLanguageChange = (lang: AuthLanguage) => {
     setLanguage(lang);
