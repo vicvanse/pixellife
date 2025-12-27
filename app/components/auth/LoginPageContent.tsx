@@ -1,30 +1,100 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LoginForm } from "./LoginForm";
-import { AppleSignInButton } from "./AppleSignInButton";
-import { GoogleSignInButton } from "./GoogleSignInButton";
 import { useAuth } from "../../context/AuthContext";
 
+type LoginMethod = "email" | "password";
+type BootStage = 0 | 1 | 2 | 3;
+
+interface HudBit {
+  id: string;
+  label: string;
+  side: "tl" | "tr" | "bl" | "br";
+  delay: number;
+}
+
 export function LoginPageContent() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading, loginEmail, loginPassword } = useAuth();
   const router = useRouter();
 
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [method, setMethod] = useState<LoginMethod>("email");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [bootStage, setBootStage] = useState<BootStage>(0);
+
+  // Boot sequence - elementos aparecendo progressivamente
   useEffect(() => {
-    console.log("🎨 LoginPageContent renderizado com background pixel art");
-    // Aguardar um pouco para garantir que a sessão foi totalmente carregada
-    if (!loading && user) {
-      console.log("✅ Usuário autenticado detectado, redirecionando para /display...");
-      // Usar replace para evitar adicionar ao histórico
+    const t1 = window.setTimeout(() => setBootStage(1), 350);
+    const t2 = window.setTimeout(() => setBootStage(2), 900);
+    const t3 = window.setTimeout(() => setBootStage(3), 1600);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
+    };
+  }, []);
+
+  // Redirecionar se já estiver autenticado
+  useEffect(() => {
+    if (!authLoading && user) {
       router.replace("/display");
     }
-  }, [user, loading, router]);
+  }, [user, authLoading, router]);
 
-  if (loading) {
+  // HUD elements nos cantos
+  const hudBits: HudBit[] = useMemo(
+    () => [
+      { id: "hud-1", label: "AUTH / HANDSHAKE", side: "tl", delay: 0.55 },
+      { id: "hud-2", label: "SYNC / STANDBY", side: "br", delay: 1.05 },
+      { id: "hud-3", label: "ENCRYPT / OK", side: "tr", delay: 1.45 },
+      { id: "hud-4", label: "CACHE / READY", side: "bl", delay: 1.85 },
+    ],
+    []
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (method === "email") {
+      if (!email.trim()) {
+        setError("Por favor, insira seu email");
+        return;
+      }
+
+      setIsLoading(true);
+      const { error: authError } = await loginEmail(email.trim(), false);
+      setIsLoading(false);
+
+      if (authError) {
+        setError(authError.message || "Erro ao enviar link de acesso");
+      } else {
+        router.push("/auth/verify-email");
+      }
+    } else {
+      if (!email.trim() || !password.trim()) {
+        setError("Por favor, preencha email e senha");
+        return;
+      }
+
+      setIsLoading(true);
+      const { error: authError } = await loginPassword(email.trim(), password, false);
+      setIsLoading(false);
+
+      if (authError) {
+        setError(authError.message || "Email ou senha incorretos");
+      }
+      // loginPassword já faz redirecionamento automático se bem-sucedido
+    }
+  };
+
+  if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-xl font-bold">Carregando...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] text-[#F1F1F1]">
+        <p className="text-sm tracking-widest">INITIALIZING...</p>
       </div>
     );
   }
@@ -34,82 +104,614 @@ export function LoginPageContent() {
   }
 
   return (
-    <div 
-      className="min-h-screen relative flex items-center p-4 overflow-hidden"
-      style={{
-        backgroundImage: "url('/fundo4.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        imageRendering: "pixelated",
-      }}
-    >
-      {/* Overlay escuro sutil para melhor contraste do texto */}
-      <div 
-        className="absolute inset-0"
-        style={{
-          background: "linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.1) 50%, transparent 100%)",
-          zIndex: 1,
-        }}
-      />
-      
-      {/* Conteúdo sobre o background - posicionado à direita */}
-      <div 
-        className="relative z-10 space-y-4" 
-        style={{ 
-          zIndex: 10,
-          position: "absolute",
-          right: "15%",
-          top: "50%",
-          transform: "translateY(-50%)",
-          width: "90%",
-          maxWidth: "360px",
-        }}
-      >
-        {/* Título pixel art */}
-        <div className="text-center mb-8">
-          <h1
-            className="text-6xl font-bold text-white mb-2 font-pixel"
-            style={{
-              fontFamily: "'Pixel Operator', monospace, Arial, sans-serif",
-              fontSize: "4.4rem",
-              imageRendering: "pixelated",
-              letterSpacing: "0.1em",
-              whiteSpace: "nowrap",
-            }}
-          >
-            PIXEL LIFE
-          </h1>
-          <p 
-            className="text-xl text-white font-pixel"
-            style={{
-              imageRendering: "pixelated",
-            }}
-          >
-            - Sua história -
-          </p>
-          <p 
-            className="text-sm text-white/80 font-pixel mt-1"
-            style={{
-              imageRendering: "pixelated",
-            }}
-          >
-            Registro, guias e desejos
-          </p>
+    <main className="min-h-[100svh] w-full bg-[#0a0a0a] text-[#F1F1F1] relative overflow-hidden">
+      {/* Background Layers */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        {/* Base gradient */}
+        <div className="absolute inset-0 bg-[radial-gradient(70%_55%_at_50%_35%,rgba(255,255,255,0.06)_0%,rgba(0,0,0,0)_55%),radial-gradient(55%_60%_at_15%_85%,rgba(255,255,255,0.035)_0%,rgba(0,0,0,0)_60%),radial-gradient(55%_60%_at_85%_85%,rgba(255,255,255,0.03)_0%,rgba(0,0,0,0)_60%),linear-gradient(to_bottom,rgba(0,0,0,0.2),rgba(0,0,0,0.85))]" />
+
+        {/* Soft geometric slabs */}
+        <div
+          className="absolute inset-0 transition-opacity duration-700"
+          style={{ opacity: bootStage >= 1 ? 1 : 0 }}
+        >
+          <div className="slab slab-a" />
+          <div className="slab slab-b" />
+          <div className="slab slab-c" />
         </div>
 
-        <LoginForm />
-        <div className="flex items-center gap-3">
-          <div className="flex-1 border-t-2 border-white"></div>
-          <span className="font-bold text-white text-sm font-pixel" style={{ textShadow: "2px 2px 0 #000" }}>OU</span>
-          <div className="flex-1 border-t-2 border-white"></div>
+        {/* Scanlines */}
+        <div className="absolute inset-0 pointer-events-none scanlines opacity-[0.12]" />
+
+        {/* Procedural noise */}
+        <NoiseOverlay />
+
+        {/* Subtle fog / bloom */}
+        <div
+          className="absolute inset-0 pointer-events-none mix-blend-screen transition-opacity duration-700"
+          style={{ opacity: bootStage >= 2 ? 0.7 : 0 }}
+        >
+          <div className="fogLayer" />
         </div>
-        <div className="bg-white/95 border-4 border-black p-3 shadow-[8px_8px_0_0_#000] space-y-2.5 backdrop-blur-sm font-pixel">
-          <GoogleSignInButton />
-          <AppleSignInButton />
+
+        {/* HUD chips */}
+        <div className="absolute inset-0 pointer-events-none">
+          {hudBits.map((bit) => (
+            <HUDChip
+              key={bit.id}
+              label={bit.label}
+              side={bit.side}
+              delay={bit.delay}
+              visible={bootStage >= 2}
+            />
+          ))}
         </div>
       </div>
+
+      {/* Content */}
+      <div className="relative z-10 flex min-h-[100svh] w-full items-center justify-center px-6">
+        <div className="w-full max-w-xl">
+          <div className="flex flex-col items-center justify-center">
+            {/* Center "Dollars" composition */}
+            <div
+              className="relative flex items-center justify-center mb-6"
+              style={{ 
+                width: 420, 
+                height: 420, 
+                maxWidth: "min(92vw, 420px)", 
+                maxHeight: "min(92vw, 420px)",
+                minWidth: "280px",
+                minHeight: "280px"
+              }}
+            >
+              {/* Outer ring */}
+              <div className="absolute inset-0 rounded-full ringOuter" />
+
+              {/* Inner ring */}
+              <div className="absolute inset-[18px] rounded-full ringInner" />
+
+              {/* Living "Detroit" loading ring */}
+              <div
+                className="absolute inset-[74px] rounded-full transition-opacity duration-700"
+                style={{ opacity: bootStage >= 1 ? 1 : 0 }}
+              >
+                <LivingRing />
+              </div>
+
+              {/* Wordmark */}
+              <div
+                className="absolute inset-0 flex flex-col items-center justify-center text-center transition-opacity duration-700 px-4"
+                style={{ opacity: bootStage >= 1 ? 1 : 0 }}
+              >
+                <DottedWordmark text="PIXEL LIFE" />
+                <div className="mt-3 text-[10px] sm:text-xs tracking-[0.34em] text-[#F1F1F1]/70">
+                  AUTH NODE • SESSION GATE
+                </div>
+              </div>
+            </div>
+
+            {/* Login controls */}
+            <form onSubmit={handleSubmit} className="w-full max-w-sm">
+              {/* Method selector */}
+              <div
+                className="mb-4 flex gap-2 transition-opacity duration-700"
+                style={{ opacity: bootStage >= 2 ? 1 : 0 }}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMethod("email");
+                    setError(null);
+                  }}
+                  className={`flex-1 py-2.5 sm:py-2 text-[10px] sm:text-xs tracking-widest transition-colors ${
+                    method === "email"
+                      ? "border border-white/30 bg-white/10 text-white/90"
+                      : "border border-white/10 bg-transparent text-white/50 hover:text-white/70"
+                  }`}
+                  style={{ borderRadius: "999px" }}
+                >
+                  MAGIC LINK
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMethod("password");
+                    setError(null);
+                  }}
+                  className={`flex-1 py-2.5 sm:py-2 text-[10px] sm:text-xs tracking-widest transition-colors ${
+                    method === "password"
+                      ? "border border-white/30 bg-white/10 text-white/90"
+                      : "border border-white/10 bg-transparent text-white/50 hover:text-white/70"
+                  }`}
+                  style={{ borderRadius: "999px" }}
+                >
+                  SENHA
+                </button>
+              </div>
+
+              {/* Email input */}
+              <div
+                className="mb-3 transition-opacity duration-700"
+                style={{ opacity: bootStage >= 2 ? 1 : 0 }}
+              >
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setError(null);
+                  }}
+                  placeholder="Email"
+                  required
+                  className="w-full bg-transparent px-4 py-3.5 sm:py-3 outline-none text-sm tracking-[0.06em] text-white placeholder:text-white/35"
+                  style={{
+                    border: "1px solid rgba(241,241,241,0.22)",
+                    borderRadius: "999px",
+                    boxShadow: "0 0 0 1px rgba(0,0,0,0.5) inset",
+                    minHeight: "44px",
+                  }}
+                />
+              </div>
+
+              {/* Password input (only for password method) */}
+              {method === "password" && (
+                <div
+                  className="mb-3 transition-opacity duration-700"
+                  style={{ opacity: bootStage >= 2 ? 1 : 0 }}
+                >
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setError(null);
+                    }}
+                    placeholder="Senha"
+                    required
+                    className="w-full bg-transparent px-4 py-3.5 sm:py-3 outline-none text-sm tracking-[0.06em] text-white placeholder:text-white/35"
+                    style={{
+                      border: "1px solid rgba(241,241,241,0.22)",
+                      borderRadius: "999px",
+                      boxShadow: "0 0 0 1px rgba(0,0,0,0.5) inset",
+                      minHeight: "44px",
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Error message */}
+              {error && (
+                <div className="mb-3 text-xs tracking-widest text-[#F1F1F1]/70 text-center">
+                  {error}
+                </div>
+              )}
+
+              {/* Submit button */}
+              <button
+                type="submit"
+                disabled={isLoading || bootStage < 3}
+                className="w-full py-3.5 sm:py-3 text-sm tracking-[0.18em] font-semibold transition active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  border: "1px solid rgba(241,241,241,0.30)",
+                  borderRadius: "999px",
+                  background: "rgba(255,255,255,0.06)",
+                  color: "#F1F1F1",
+                  opacity: bootStage >= 3 ? 1 : 0,
+                  transition: "opacity 700ms",
+                  minHeight: "44px",
+                }}
+              >
+                {isLoading ? "PROCESSING..." : "ENTER"}
+              </button>
+
+              {/* Links */}
+              <div
+                className="mt-4 flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm text-white/55 transition-opacity duration-700"
+                style={{ opacity: bootStage >= 3 ? 1 : 0 }}
+              >
+                <a className="hover:text-white/80 hover:underline" href="/privacy">
+                  Settings
+                </a>
+                <span className="text-white/25">•</span>
+                <a className="hover:text-white/80 hover:underline" href="/about">
+                  FAQ
+                </a>
+                <span className="text-white/25">•</span>
+                <a className="hover:text-white/80 hover:underline" href="/terms">
+                  Rules
+                </a>
+              </div>
+
+              {/* Footer */}
+              <div
+                className="mt-6 flex items-center justify-center transition-opacity duration-700"
+                style={{ opacity: bootStage >= 3 ? 1 : 0 }}
+              >
+                <div
+                  className="px-3 py-1.5 text-xs tracking-[0.18em] text-white/70"
+                  style={{
+                    border: "1px solid rgba(241,241,241,0.15)",
+                    borderRadius: "6px",
+                    background: "rgba(0,0,0,0.40)",
+                  }}
+                >
+                  PROJECT PIXEL LIFE
+                </div>
+              </div>
+
+              {/* Build ID */}
+              <div className="mt-6 text-center text-[11px] tracking-[0.12em] text-white/25">
+                build: {stablePseudoId()}
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {/* Global Styles */}
+      <style jsx global>{`
+        .scanlines {
+          background-image: repeating-linear-gradient(
+            0deg,
+            rgba(255, 255, 255, 0.08),
+            rgba(255, 255, 255, 0.08) 1px,
+            rgba(0, 0, 0, 0) 3px,
+            rgba(0, 0, 0, 0) 6px
+          );
+          animation: scanShift 7s linear infinite;
+        }
+
+        @keyframes scanShift {
+          0% {
+            transform: translateY(0);
+          }
+          100% {
+            transform: translateY(28px);
+          }
+        }
+
+        .fogLayer {
+          position: absolute;
+          inset: -10%;
+          background: radial-gradient(800px 420px at 30% 25%, rgba(255, 255, 255, 0.08), transparent 62%),
+            radial-gradient(760px 520px at 75% 70%, rgba(255, 255, 255, 0.06), transparent 64%),
+            radial-gradient(620px 420px at 55% 55%, rgba(255, 255, 255, 0.04), transparent 68%);
+          filter: blur(1px);
+          animation: fogFloat 8.5s ease-in-out infinite;
+          opacity: 0.75;
+        }
+
+        @keyframes fogFloat {
+          0%,
+          100% {
+            transform: translateY(0px) translateX(0px);
+            opacity: 0.65;
+          }
+          50% {
+            transform: translateY(-8px) translateX(10px);
+            opacity: 0.85;
+          }
+        }
+
+        .ringOuter {
+          border: 5px solid rgba(255, 255, 255, 0.95);
+          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+          opacity: 0.92;
+        }
+
+        .ringInner {
+          border: 2px solid rgba(255, 255, 255, 0.42);
+          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset, 0 0 80px rgba(255, 255, 255, 0.04);
+          opacity: 0.85;
+        }
+
+        .slab {
+          position: absolute;
+          inset: -20%;
+          opacity: 0.16;
+          filter: blur(0.2px);
+          mix-blend-mode: screen;
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0));
+          transform: rotate(0deg);
+          animation: slabDrift 10s ease-in-out infinite;
+        }
+
+        .slab-a {
+          transform: rotate(24deg) translateX(-8%) translateY(-2%);
+        }
+
+        .slab-b {
+          opacity: 0.10;
+          transform: rotate(-18deg) translateX(10%) translateY(8%);
+          animation-duration: 12s;
+        }
+
+        .slab-c {
+          opacity: 0.08;
+          transform: rotate(8deg) translateX(14%) translateY(-10%);
+          animation-duration: 14s;
+        }
+
+        @keyframes slabDrift {
+          0%,
+          100% {
+            filter: blur(0.2px);
+            opacity: inherit;
+          }
+          50% {
+            filter: blur(0.6px);
+          }
+        }
+      `}</style>
+    </main>
+  );
+}
+
+// Living Ring Component
+function LivingRing() {
+  return (
+    <div className="relative h-full w-full">
+      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" aria-hidden="true">
+        <defs>
+          <linearGradient id="ringGradient" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="rgba(255,255,255,0.18)" />
+            <stop offset="0.55" stopColor="rgba(255,255,255,0.55)" />
+            <stop offset="1" stopColor="rgba(255,255,255,0.12)" />
+          </linearGradient>
+        </defs>
+        {/* Base faint circle */}
+        <circle
+          cx="50"
+          cy="50"
+          r="34"
+          stroke="rgba(255,255,255,0.10)"
+          strokeWidth="8"
+          fill="none"
+        />
+        {/* Segmented arc ring */}
+        <g className="ringSpin">
+          <circle
+            cx="50"
+            cy="50"
+            r="34"
+            stroke="url(#ringGradient)"
+            strokeWidth="8"
+            strokeLinecap="round"
+            fill="none"
+            strokeDasharray="24 10"
+            className="ringPulse"
+          />
+          {/* Inner thin ring */}
+          <circle
+            cx="50"
+            cy="50"
+            r="26"
+            stroke="rgba(255,255,255,0.22)"
+            strokeWidth="2"
+            fill="none"
+            strokeDasharray="10 6"
+            className="ringWobble"
+          />
+        </g>
+      </svg>
+      <style jsx>{`
+        .ringSpin {
+          transform-origin: 50% 50%;
+          animation: spin 3.2s linear infinite;
+        }
+
+        .ringPulse {
+          animation: pulse 2.6s ease-in-out infinite;
+          filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.10));
+        }
+
+        .ringWobble {
+          transform-origin: 50% 50%;
+          animation: wobble 2.2s ease-in-out infinite;
+          opacity: 0.85;
+        }
+
+        @keyframes spin {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+
+        @keyframes pulse {
+          0%,
+          100% {
+            opacity: 0.55;
+            stroke-dasharray: 24 10;
+          }
+          50% {
+            opacity: 0.92;
+            stroke-dasharray: 28 8;
+          }
+        }
+
+        @keyframes wobble {
+          0%,
+          100% {
+            transform: rotate(-2deg) scale(1);
+          }
+          50% {
+            transform: rotate(2deg) scale(1.01);
+          }
+        }
+      `}</style>
     </div>
   );
 }
 
+// Dotted Wordmark Component
+function DottedWordmark({ text }: { text: string }) {
+  return (
+    <div className="relative inline-block select-none">
+      <div className="text-4xl font-semibold tracking-[0.32em] text-white/0">{text}</div>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="wordDots text-4xl font-semibold tracking-[0.32em]">{text}</div>
+      </div>
+      <style jsx>{`
+        .wordDots {
+          color: rgba(255, 255, 255, 0.92);
+          background-image: radial-gradient(
+            circle,
+            rgba(255, 255, 255, 0.95) 1.2px,
+            rgba(0, 0, 0, 0) 1.4px
+          );
+          background-size: 7px 7px;
+          background-position: 0 0;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.08));
+          animation: shimmer 6.2s ease-in-out infinite;
+          font-size: clamp(1.5rem, 8vw, 2.25rem);
+        }
+
+        @keyframes shimmer {
+          0%,
+          100% {
+            background-position: 0 0;
+            opacity: 0.82;
+          }
+          50% {
+            background-position: 18px 10px;
+            opacity: 0.98;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .wordDots {
+            font-size: 1.5rem;
+            letter-spacing: 0.2em;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// Noise Overlay Component
+function NoiseOverlay() {
+  return (
+    <div className="absolute inset-0 pointer-events-none opacity-[0.12] mix-blend-overlay">
+      <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <filter id="noiseFilter">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch" />
+          <feColorMatrix
+            type="matrix"
+            values="1 0 0 0 0
+                    0 1 0 0 0
+                    0 0 1 0 0
+                    0 0 0 0.32 0"
+          />
+        </filter>
+        <rect width="100" height="100" filter="url(#noiseFilter)" />
+      </svg>
+    </div>
+  );
+}
+
+// HUD Chip Component
+function HUDChip({
+  label,
+  side,
+  delay,
+  visible,
+}: {
+  label: string;
+  side: "tl" | "tr" | "bl" | "br";
+  delay: number;
+  visible: boolean;
+}) {
+  const positionClasses = {
+    tl: "top-6 left-6",
+    tr: "top-6 right-6",
+    bl: "bottom-6 left-6",
+    br: "bottom-6 right-6",
+  };
+
+  return (
+    <div
+      className={`absolute inline-flex gap-2.5 items-center hudChip ${positionClasses[side]}`}
+      style={{
+        animationDelay: `${delay}s, ${delay + 5.2}s`,
+        opacity: visible ? 1 : 0,
+      }}
+    >
+      <span className="hudDot" />
+      {label}
+      <style jsx>{`
+        .hudChip {
+          color: rgba(255, 255, 255, 0.60);
+          font: 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+            "Courier New", monospace;
+          letter-spacing: 0.22em;
+          text-transform: uppercase;
+          padding: 10px 12px;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          background: rgba(0, 0, 0, 0.22);
+          backdrop-filter: blur(2px);
+          opacity: 0;
+          transform: translateY(8px);
+          animation: chipIn 900ms ease forwards, chipOut 900ms ease forwards;
+        }
+
+        .hudDot {
+          width: 6px;
+          height: 6px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.60);
+          box-shadow: 0 0 12px rgba(255, 255, 255, 0.12);
+        }
+
+        @keyframes chipIn {
+          0% {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes chipOut {
+          0% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(-6px);
+          }
+        }
+
+        @media (max-width: 880px) {
+          .hudChip {
+            display: none;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// Stable pseudo ID (like drrr.com)
+function stablePseudoId(): string {
+  if (typeof window === "undefined") return "local";
+
+  // @ts-ignore
+  if (!window.__pl_id) {
+    // @ts-ignore
+    window.__pl_id =
+      Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2);
+  }
+
+  // @ts-ignore
+  return String(window.__pl_id).slice(0, 28);
+}
